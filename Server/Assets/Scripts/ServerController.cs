@@ -16,6 +16,8 @@ public class ServerController : MonoBehaviour {
 	public GameObject obj;
 	public GameObject touchProcessor;
 	public GameObject faceTracker;
+	public GameObject panVisualizer;
+	public GameObject rotateVisualizer;
 	public Camera renderCamera;
 
 	private Color disconnectColor = new Color(0.8156f, 0.3529f, 0.4313f);
@@ -26,6 +28,7 @@ public class ServerController : MonoBehaviour {
 	private Thread tcpListenerThread;
 	private TcpClient connectedTcpClient;
 	private string rcvMsg = "";
+	private bool refreshed = false;
 
 	private bool noConnection = true;
 	
@@ -42,6 +45,10 @@ public class ServerController : MonoBehaviour {
 		if (connectedTcpClient != null && noConnection) {
 			sendMessage();
 			noConnection = false;
+		}
+		if (refreshed) {
+			getVector();
+			refreshed = false;
 		}
 	}
 	
@@ -60,7 +67,7 @@ public class ServerController : MonoBehaviour {
 							Array.Copy(bytes, 0, incommingData, 0, length);
 							string clientMessage = Encoding.ASCII.GetString(incommingData);
 							rcvMsg = clientMessage;
-							getVector(clientMessage);
+							refreshed = true;
 						}
 					}
 				}
@@ -72,30 +79,28 @@ public class ServerController : MonoBehaviour {
 	}
 	
 	public void sendMessage() {
+		string serverMessage =
+			faceTracker.GetComponent<FaceTracker>().currentObserve.x + "," +
+			faceTracker.GetComponent<FaceTracker>().currentObserve.y + "," +
+			faceTracker.GetComponent<FaceTracker>().currentObserve.z + "," +
+			touchProcessor.GetComponent<TouchProcessor>().pos.x + "," +
+			touchProcessor.GetComponent<TouchProcessor>().pos.y + "," +
+			touchProcessor.GetComponent<TouchProcessor>().pos.z + "," +
+			touchProcessor.GetComponent<TouchProcessor>().planarScale + "," + 
+			touchProcessor.GetComponent<TouchProcessor>().verticalScale + "," + 
+			(-touchProcessor.GetComponent<TouchProcessor>().rot) + ","
+		;
 		if (connectedTcpClient == null) {
 			return;
 		}
 		
 		try {			
 			NetworkStream stream = connectedTcpClient.GetStream();
-			if (stream.CanWrite) {
-				string serverMessage =
-					faceTracker.GetComponent<FaceTracker>().currentObserve.x + "," +
-					faceTracker.GetComponent<FaceTracker>().currentObserve.y + "," +
-					faceTracker.GetComponent<FaceTracker>().currentObserve.z + "," +
-					touchProcessor.GetComponent<TouchProcessor>().pos.x + "," +
-					touchProcessor.GetComponent<TouchProcessor>().pos.y + "," +
-					touchProcessor.GetComponent<TouchProcessor>().pos.z + "," +
-					touchProcessor.GetComponent<TouchProcessor>().rot.x + "," +
-					touchProcessor.GetComponent<TouchProcessor>().rot.y + "," +
-					touchProcessor.GetComponent<TouchProcessor>().rot.z + "," +
-					touchProcessor.GetComponent<TouchProcessor>().rot.w + "," +
-					touchProcessor.GetComponent<TouchProcessor>().planarScale + ","
-				;
-				byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes(serverMessage);
-				stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
-				Debug.Log("Server sent his message - should be received by client");
-			}
+				if (stream.CanWrite) {
+					byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes(serverMessage);
+					stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
+					Debug.Log("Server sent his message - should be received by client");
+				}
 		}
 		catch (SocketException socketException) {
 			Debug.Log("Socket exception: " + socketException);
@@ -113,22 +118,21 @@ public class ServerController : MonoBehaviour {
 		throw new System.Exception("No network adapters with an IPv4 address in the system!");
 	}
 
-	private void getVector(string str) {
-		string[] temp = str.Split(',');
-		touchProcessor.GetComponent<TouchProcessor>().pos =
-			new Vector3(
-				System.Convert.ToSingle(temp[0]),
-				System.Convert.ToSingle(temp[1]),
-				System.Convert.ToSingle(temp[2])
-			);
-		touchProcessor.GetComponent<TouchProcessor>().rot =
-			new Quaternion(
-				System.Convert.ToSingle(temp[3]),
-				System.Convert.ToSingle(temp[4]),
-				System.Convert.ToSingle(temp[5]),
-				System.Convert.ToSingle(temp[6])
-			);
-		touchProcessor.GetComponent<TouchProcessor>().verticalScale = System.Convert.ToSingle(temp[7]);
+	private void getVector() {
+		if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
+			panVisualizer.GetComponent<PanVisualizer>().isPanning = (rcvMsg[0] == 'T');
+			rotateVisualizer.GetComponent<RotateVisualizer>().isRotating = (rcvMsg[1] == 'T');
+			rcvMsg = rcvMsg.Substring(2);
+			string[] temp = rcvMsg.Split(',');
+			touchProcessor.GetComponent<TouchProcessor>().pos =
+				new Vector3(
+					System.Convert.ToSingle(temp[0]),
+					System.Convert.ToSingle(temp[1]),
+					System.Convert.ToSingle(temp[2])
+				);
+			touchProcessor.GetComponent<TouchProcessor>().rot = System.Convert.ToSingle(temp[3]);
+			touchProcessor.GetComponent<TouchProcessor>().verticalScale = System.Convert.ToSingle(temp[4]);
+		}
 	}
 
 }

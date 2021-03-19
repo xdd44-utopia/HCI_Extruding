@@ -24,6 +24,9 @@ public class ClientController : MonoBehaviour {
 
 	private TcpClient socketConnection;
 	private Thread clientReceiveThread;
+
+	private bool refreshed = false;
+	private string receivedMessage;
 	
 	void Start () {
 		Camera cam = Camera.main;
@@ -34,6 +37,10 @@ public class ClientController : MonoBehaviour {
 	
 	void Update () {
 		renderCamera.backgroundColor = (socketConnection == null ? disconnectColor : connectColor);
+		if (refreshed) {
+			getVector();
+			refreshed = false;
+		}
 	}
 	
 	public void ConnectToTcpServer (string ipText) {
@@ -53,13 +60,14 @@ public class ClientController : MonoBehaviour {
 			socketConnection = new TcpClient(ipText, 8052);
 			Byte[] bytes = new Byte[1024];
 			while (true) {
+				Debug.Log("listening");
 				using (NetworkStream stream = socketConnection.GetStream()) {
 					int length;
 					while ((length = stream.Read(bytes, 0, bytes.Length)) != 0) {
 						var incommingData = new byte[length];
 						Array.Copy(bytes, 0, incommingData, 0, length);
-						string serverMessage = Encoding.ASCII.GetString(incommingData);
-						getVector(serverMessage);
+						receivedMessage = Encoding.ASCII.GetString(incommingData);
+						refreshed = true;
 					}
 				}
 			}
@@ -70,30 +78,28 @@ public class ClientController : MonoBehaviour {
 	}
 	
 	public void sendMessage() {
+		Vector3 tp = touchProcessor.GetComponent<TouchProcessor>().pos;
+		tp = convertToServer(tp);
+		string clientMessage =
+			(touchProcessor.GetComponent<TouchProcessor>().isPanning ? "T" : "F") + 
+			(touchProcessor.GetComponent<TouchProcessor>().isRotating ? "T" : "F") +
+			tp.x + "," +
+			tp.y + "," +
+			tp.z + "," +
+			(-touchProcessor.GetComponent<TouchProcessor>().rot) + "," +
+			touchProcessor.GetComponent<TouchProcessor>().verticalScale + ","
+		;
+		Debug.Log(clientMessage);
 		if (socketConnection == null) {
 			return;
 		}
 		try {		
 			NetworkStream stream = socketConnection.GetStream();
-			if (stream.CanWrite) {
-				Vector3 tp = touchProcessor.GetComponent<TouchProcessor>().pos;
-				tp = convertToServer(tp);
-				Quaternion tq = touchProcessor.GetComponent<TouchProcessor>().rot;
-				tq = convertRotToServer(tq);
-				string clientMessage =
-					tp.x + "," +
-					tp.y + "," +
-					tp.z + "," +
-					tq.x + "," +
-					tq.y + "," +
-					tq.z + "," +
-					tq.w + "," +
-					touchProcessor.GetComponent<TouchProcessor>().verticalScale + ","
-				;
-				byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
-				stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
-				Debug.Log("Client sent his message - should be received by server");
-			}
+				if (stream.CanWrite) {
+					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
+					stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
+					Debug.Log("Client sent his message - should be received by server");
+				}
 		}
 		catch (SocketException socketException) {
 			Debug.Log("Socket exception: " + socketException);
@@ -116,58 +122,39 @@ public class ClientController : MonoBehaviour {
 		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
 	}
 
-	private Quaternion convertRotFromServer(Quaternion q) {
-		Vector3 axisWorld = new Vector3(0, 1, 0);
-		axisWorld = Quaternion.Inverse(q) * axisWorld;
-		Quaternion rotChange = new Quaternion(
-			axisWorld.x * Mathf.Sin(-angle/2),
-			axisWorld.y * Mathf.Sin(-angle/2),
-			axisWorld.z * Mathf.Sin(-angle/2),
-			Mathf.Cos(-angle/2)
-		);
-		q *= rotChange;
-		return q;
-	}
-
-	private Quaternion convertRotToServer(Quaternion q) {
-		Vector3 axisWorld = new Vector3(0, 1, 0);
-		axisWorld = Quaternion.Inverse(q) * axisWorld;
-		Quaternion rotChange = new Quaternion(
-			axisWorld.x * Mathf.Sin(angle/2),
-			axisWorld.y * Mathf.Sin(angle/2),
-			axisWorld.z * Mathf.Sin(angle/2),
-			Mathf.Cos(angle/2)
-		);
-		q *= rotChange;
-		return q;
-	}
-
 	private float multXZ(Vector3 from, Vector3 to) {
 		return from.x * to.x + from.z * to.z;
 	}
 
-	private void getVector(string str) {
-		string[] temp = str.Split(',');
+	private void getVector() {
+		string[] temp = receivedMessage.Split(',');
 		faceTracker.GetComponent<FaceTracker>().currentObserve =
 			convertFromServer(new Vector3(
 				System.Convert.ToSingle(temp[0]),
 				System.Convert.ToSingle(temp[1]),
 				System.Convert.ToSingle(temp[2])
 			));
-		touchProcessor.GetComponent<TouchProcessor>().pos =
-			convertFromServer(new Vector3(
-				System.Convert.ToSingle(temp[3]),
-				System.Convert.ToSingle(temp[4]),
-				System.Convert.ToSingle(temp[5])
-			));
-		touchProcessor.GetComponent<TouchProcessor>().rot =
-			convertRotFromServer(new Quaternion(
-				System.Convert.ToSingle(temp[6]),
-				System.Convert.ToSingle(temp[7]),
-				System.Convert.ToSingle(temp[8]),
-				System.Convert.ToSingle(temp[9])
-			));
-		touchProcessor.GetComponent<TouchProcessor>().planarScale = System.Convert.ToSingle(temp[10]);
+		if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
+			touchProcessor.GetComponent<TouchProcessor>().pos =
+				convertFromServer(new Vector3(
+					System.Convert.ToSingle(temp[3]),
+					System.Convert.ToSingle(temp[4]),
+					System.Convert.ToSingle(temp[5])
+				));
+			touchProcessor.GetComponent<TouchProcessor>().planarScale = System.Convert.ToSingle(temp[6]);
+			touchProcessor.GetComponent<TouchProcessor>().verticalScale = System.Convert.ToSingle(temp[7]);
+			touchProcessor.GetComponent<TouchProcessor>().rot = System.Convert.ToSingle(temp[8]);
+		}
+	}
+
+	public void connect() {
+		string address = "172.20.10.6";
+		//Macbook local connecting to iPhone hotspot: 172.20.10.2
+		//Samsung connecting to iPhone hotspot: 172.20.10.6
+		//Samsung connecting to xdd44's wifi: 192.168.0.106
+		//Macbook local connecting to xdd44's wifi: 192.168.0.101
+		//iPhone connecting to iPhone hotspot: 10.150.153.190
+		ConnectToTcpServer(address);
 	}
 
 }

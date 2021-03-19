@@ -16,7 +16,7 @@ public class ModelController : MonoBehaviour
 		float planarScale = touchProcessor.GetComponent<TouchProcessor>().planarScale;
 		Vector3 tp = touchProcessor.GetComponent<TouchProcessor>().pos;
 		transform.position = new Vector3(tp.x, tp.y, tp.z + verticalScale);
-		transform.rotation = touchProcessor.GetComponent<TouchProcessor>().rot;
+		transform.rotation = Quaternion.Euler(0, 0, touchProcessor.GetComponent<TouchProcessor>().rot);
 		transform.localScale = new Vector3(planarScale, planarScale, verticalScale);
 	}
 
