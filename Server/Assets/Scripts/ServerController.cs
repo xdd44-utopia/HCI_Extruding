@@ -120,7 +120,9 @@ public class ServerController : MonoBehaviour {
 
 	private void getVector() {
 		if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
-			panVisualizer.GetComponent<PanVisualizer>().isPanning = (rcvMsg[0] == 'T');
+			if (rcvMsg[0] == 'T') {
+				panVisualizer.GetComponent<PanVisualizer>().pan();
+			}
 			rotateVisualizer.GetComponent<RotateVisualizer>().isRotating = (rcvMsg[1] == 'T');
 			rcvMsg = rcvMsg.Substring(2);
 			string[] temp = rcvMsg.Split(',');

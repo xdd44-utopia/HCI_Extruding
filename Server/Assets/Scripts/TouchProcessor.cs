@@ -8,6 +8,8 @@ public class TouchProcessor : MonoBehaviour
 	public GameObject sender;
 	public GameObject obj;
 
+	public GameObject panVisualizer;
+
 	private Phase phase;
 	private float sendTimer = -1;
 
@@ -96,6 +98,10 @@ public class TouchProcessor : MonoBehaviour
 		panTimer -= Time.deltaTime;
 		isScaling = (scaleTimer > 0);
 		scaleTimer -= Time.deltaTime;
+
+		if (isPanning) {
+			panVisualizer.GetComponent<PanVisualizer>().pan();
+		}
 	}
  
 	private void calculate () {

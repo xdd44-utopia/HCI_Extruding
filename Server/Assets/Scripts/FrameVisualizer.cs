@@ -27,8 +27,8 @@ public class FrameVisualizer : MonoBehaviour
 		lr.startColor = new Color(1, 1, 1, 1f);
 		lr.endColor = new Color(1, 1, 1, 1f);
 		lr.SetPosition(0, new Vector3(-camWidth, camHeight, 0));
-		lr.SetPosition(1, new Vector3(-camWidth, camHeight, camWidth));
-		lr.SetPosition(2, new Vector3(-camWidth, -camHeight, camWidth));
+		lr.SetPosition(1, new Vector3(-camWidth, camHeight, camWidth * 2));
+		lr.SetPosition(2, new Vector3(-camWidth, -camHeight, camWidth * 2));
 		lr.SetPosition(3, new Vector3(-camWidth, -camHeight, 0));
 
 		lr.enabled = true;
