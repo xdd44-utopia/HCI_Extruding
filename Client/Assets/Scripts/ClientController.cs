@@ -148,7 +148,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "172.20.10.6";
+		string address = "144.214.113.33";
 		//Macbook local connecting to iPhone hotspot: 172.20.10.2
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
 		//Samsung connecting to xdd44's wifi: 192.168.0.106

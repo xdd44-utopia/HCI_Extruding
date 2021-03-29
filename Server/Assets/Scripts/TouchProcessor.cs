@@ -82,7 +82,6 @@ public class TouchProcessor : MonoBehaviour
 	}
 
 	private void freemoving() {
-		bool refreshed = false;
 		if (panDelta.magnitude > minPanDistance) {
 			pos += panDelta;
 			isPanning = true;
