@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - FacePosition
+  - Object
   layers:
   - Default
   - TransparentFX
