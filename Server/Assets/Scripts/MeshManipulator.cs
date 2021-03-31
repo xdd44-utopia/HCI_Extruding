@@ -6,7 +6,7 @@ using System.Collections.Generic;
 public class MeshManipulator : MonoBehaviour
 {
 	Camera cam;
-
+	
 	private GameObject hitObj;
 	private Mesh hitMesh;
 	private Vector3[] hitVertices;
@@ -65,6 +65,7 @@ public class MeshManipulator : MonoBehaviour
 		selectObject
 	}
 
+	/* #region Main */
 	void Start()
 	{
 		cam = Camera.main;
@@ -126,7 +127,9 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 	}
+	/* #endregion */
 
+	/* #region Construct highlight */
 	private void castRay() {
 		RaycastHit hit;
 		if (!Physics.Raycast(cam.ScreenPointToRay(Input.mousePosition), out hit)) {
@@ -312,7 +315,9 @@ public class MeshManipulator : MonoBehaviour
 			hitRenderer.material.SetColor("_Color", Color.yellow);
 		}
 	}
+	/* #endregion */
 
+	/* #region Extrude */
 	private void extrude() {
 
 		extrudedVertices = extrudedMesh.vertices;
@@ -372,7 +377,9 @@ public class MeshManipulator : MonoBehaviour
 
 		state = Status.extrude;
 	}
+	/* #endregion */
 
+	/* #region Taper */
 	private void taper() {
 		
 		taperedVertices = taperedMesh.vertices;
@@ -417,7 +424,9 @@ public class MeshManipulator : MonoBehaviour
 
 		state = Status.taper;
 	}
+	/* #endregion */
 
+	/* #region Split */
 	private void slice(Vector3 planePos, Vector3 planeNormal) {
 		// x ⋅ planePos - dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
@@ -435,14 +444,11 @@ public class MeshManipulator : MonoBehaviour
 		}
 		planePos += avoidZeroVector;
 
-		Debug.Log(planePos + " " + planeNormal);
-
 		List<Vector3> leftVerticesList = new List<Vector3>();
 		List<Vector3> rightVerticesList = new List<Vector3>();
-		List<int> leftTrianglesList = new List<int>();
-		List<int> rightTrianglesList = new List<int>();
-		List<int> edgeVerticesList = new List<int>();
+		List<Vector3> edgeVerticesList = new List<Vector3>();
 
+		//Calculate edge of cutting plane & reconstruct faces along the edge
 		int[] triangleSide = new int[hitTrianglesNum / 3]; // -1 left, 0 cross, 1 right
 		float pn = dotProduct(planePos, planeNormal);
 		for (int i=0;i<hitTrianglesNum / 3;i++) {
@@ -455,56 +461,228 @@ public class MeshManipulator : MonoBehaviour
 				triangleSide[i] = -1;
 				for (int j=0;j<3;j++) {
 					leftVerticesList.Add(hitVertices[hitTriangles[i * 3 + j]]);
-					leftTrianglesList.Add(leftTrianglesList.Count);
 				}
 			}
 			else if (verticesPos[0] > 0 && verticesPos[1] > 0 && verticesPos[2] > 0) {
 				triangleSide[i] = 1;
 				for (int j=0;j<3;j++) {
 					rightVerticesList.Add(hitVertices[hitTriangles[i * 3 + j]]);
-					rightTrianglesList.Add(rightTrianglesList.Count);
 				}
 			}
 			else {
 				triangleSide[i] = 0;
 				for (int j=0;j<3;j++) {
+					Vector3[] curVec = new Vector3[3]{
+						hitVertices[hitTriangles[i * 3 + j]],
+						hitVertices[hitTriangles[i * 3 + ((j+1)%3)]],
+						hitVertices[hitTriangles[i * 3 + ((j+2)%3)]]
+					};
 					if (verticesPos[j] <= 0 && verticesPos[(j+1)%3] <= 0) {
-						Vector3 newVec1 = intersectLinePlane(hitVertices[hitTriangles[i * 3 + j]], hitVertices[hitTriangles[i * 3 + ((j+2)%3)]], planePos, planeNormal);
-						Vector3 newVec2 = intersectLinePlane(hitVertices[hitTriangles[i * 3 + ((j+1)%3)]], hitVertices[hitTriangles[i * 3 + ((j+2)%3)]], planePos, planeNormal);
-						Debug.DrawLine(
-							hitTransform.TransformPoint(newVec1),
-							hitTransform.TransformPoint(newVec2),
-							Color.white,
-							1000,
-							false
-						);
+						Vector3 newVec1 = intersectLinePlane(curVec[0], curVec[2], planePos, planeNormal);
+						Vector3 newVec2 = intersectLinePlane(curVec[1], curVec[2], planePos, planeNormal);
+						leftVerticesList.Add(curVec[0]);
+						leftVerticesList.Add(curVec[1]);
+						leftVerticesList.Add(newVec1);
+						leftVerticesList.Add(curVec[1]);
+						leftVerticesList.Add(newVec2);
+						leftVerticesList.Add(newVec1);
+						rightVerticesList.Add(curVec[2]);
+						rightVerticesList.Add(newVec1);
+						rightVerticesList.Add(newVec2);
+						edgeVerticesList.Add(newVec1);
+						edgeVerticesList.Add(newVec2);
+						break;
 					}
 					else if (verticesPos[j] > 0 && verticesPos[(j+1)%3] > 0) {
-						Vector3 newVec1 = intersectLinePlane(hitVertices[hitTriangles[i * 3 + j]], hitVertices[hitTriangles[i * 3 + ((j+2)%3)]], planePos, planeNormal);
-						Vector3 newVec2 = intersectLinePlane(hitVertices[hitTriangles[i * 3 + ((j+1)%3)]], hitVertices[hitTriangles[i * 3 + ((j+2)%3)]], planePos, planeNormal);
-						Debug.DrawLine(
-							hitTransform.TransformPoint(newVec1),
-							hitTransform.TransformPoint(newVec2),
-							Color.white,
-							1000,
-							false
-						);
+						Vector3 newVec1 = intersectLinePlane(curVec[0], curVec[2], planePos, planeNormal);
+						Vector3 newVec2 = intersectLinePlane(curVec[1], curVec[2], planePos, planeNormal);
+						rightVerticesList.Add(curVec[0]);
+						rightVerticesList.Add(curVec[1]);
+						rightVerticesList.Add(newVec1);
+						rightVerticesList.Add(curVec[1]);
+						rightVerticesList.Add(newVec2);
+						rightVerticesList.Add(newVec1);
+						leftVerticesList.Add(curVec[2]);
+						leftVerticesList.Add(newVec1);
+						leftVerticesList.Add(newVec2);
+						edgeVerticesList.Add(newVec1);
+						edgeVerticesList.Add(newVec2);
+						break;
 					}
 				}
 			}
 		}
-		Debug.Log("Left: " + leftVerticesList.Count + " Right: " + rightVerticesList.Count);
 
-		// GameObject leftObj = hitObj;
-		// GameObject rightObj = Instantiate(leftObj, leftObj.transform);
-		// Mesh leftMesh = leftObj.GetComponent<MeshFilter>().mesh;
-		// Mesh rightMesh = rightObj.GetComponent<MeshFilter>().mesh;
+		//Extract edge as successive vertices
+		List<Vector3> sortedEdgeVerticesList = new List<Vector3>();
+		int curEdge = 0;
+		bool done = false;
+		sortedEdgeVerticesList.Add(edgeVerticesList[0]);
+		sortedEdgeVerticesList.Add(edgeVerticesList[1]);
+		while (!done) {
+			for (int i=0;i<edgeVerticesList.Count / 2;i++) {
+				for (int j=0;j<2;j++) {
+					if (i != curEdge && edgeVerticesList[i * 2 + j] == sortedEdgeVerticesList[sortedEdgeVerticesList.Count - 1]) {
+						if (edgeVerticesList[i * 2 + (1 - j)] == sortedEdgeVerticesList[0]) {
+							done = true;
+						}
+						else {
+							sortedEdgeVerticesList.Add(edgeVerticesList[i * 2 + (1 - j)]);
+							curEdge = i;
+						}
+					}
+				}
+			}
+		}
 
+		//Simplify edge
+		while (true) {
+			int prevCount = sortedEdgeVerticesList.Count;
+			for (int i=0;i<sortedEdgeVerticesList.Count;i++) {
+				int prev = (i + sortedEdgeVerticesList.Count - 1) % sortedEdgeVerticesList.Count;
+				int next = (i + 1) % sortedEdgeVerticesList.Count;
+				if (crossProduct(sortedEdgeVerticesList[next] - sortedEdgeVerticesList[i], sortedEdgeVerticesList[i] - sortedEdgeVerticesList[prev]).magnitude < 0.001f) {
+					sortedEdgeVerticesList.RemoveAt(i);
+					break;
+				}
+			}
+			if (sortedEdgeVerticesList.Count == prevCount) {
+				break;
+			}
+		}
 
+		//Construct cutting plane
+		List<Vector3> cuttingPlaneVerticesList = new List<Vector3>();
+		while (sortedEdgeVerticesList.Count > 3) {
+			int prevCount = sortedEdgeVerticesList.Count;
+			int loopCount = 0;
+			int i = Random.Range(0, sortedEdgeVerticesList.Count);
+			while (loopCount < prevCount) {
+				int prev1 = (i + sortedEdgeVerticesList.Count - 1) % sortedEdgeVerticesList.Count;
+				int prev2 = (i + sortedEdgeVerticesList.Count - 2) % sortedEdgeVerticesList.Count;
+				int next1 = (i + 1) % sortedEdgeVerticesList.Count;
+				int next2 = (i + 2) % sortedEdgeVerticesList.Count;
+				bool isIntersect = false;
+				if (Vector3.Angle(
+						sortedEdgeVerticesList[next1] - sortedEdgeVerticesList[i],
+						sortedEdgeVerticesList[next2] - sortedEdgeVerticesList[next1]
+					) <
+					Vector3.Angle(
+						sortedEdgeVerticesList[next1] - sortedEdgeVerticesList[i],
+						sortedEdgeVerticesList[prev1] - sortedEdgeVerticesList[next1]
+					)
+				) {
+					for (int j=0;j<sortedEdgeVerticesList.Count;j++) {
+						if (j != i && j != prev1 && j != prev2 && j != next1 &&
+							areLinesIntersect(
+								sortedEdgeVerticesList[prev1],
+								sortedEdgeVerticesList[next1],
+								sortedEdgeVerticesList[j],
+								sortedEdgeVerticesList[(j+1)%sortedEdgeVerticesList.Count]
+							)
+						) {
+							isIntersect = true;
+							break;
+						}
+					}
+					if (!isIntersect) {
+						cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[prev1]);
+						cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[i]);
+						cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[next1]);
+						sortedEdgeVerticesList.RemoveAt(i);
+					}
+				}
+				if (!isIntersect) {
+					break;
+				}
+				i++;
+				loopCount++;
+				if (i == sortedEdgeVerticesList.Count) {
+					i = 0;
+				}
+			}
+			if (prevCount == sortedEdgeVerticesList.Count) {
+				Debug.Log(prevCount);
+				break;
+			}
+		}
+		cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[0]);
+		cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[1]);
+		cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[2]);
 
+		//Verify direction
+		for (int i=0;i<cuttingPlaneVerticesList.Count / 3;i++) {
+			Vector3 normalFace = crossProduct(
+				cuttingPlaneVerticesList[i * 3 + 1] - cuttingPlaneVerticesList[i * 3 + 0],
+				cuttingPlaneVerticesList[i * 3 + 2] - cuttingPlaneVerticesList[i * 3 + 1]
+			);
+			if (
+				(normalFace.x != 0 && planeNormal.x != 0 && planeNormal.x / normalFace.x < 0) ||
+				(normalFace.y != 0 && planeNormal.y != 0 && planeNormal.y / normalFace.y < 0) ||
+				(normalFace.z != 0 && planeNormal.z != 0 && planeNormal.z / normalFace.z < 0)
+			) {
+				Vector3 tempVertex = cuttingPlaneVerticesList[i * 3 + 1];
+				cuttingPlaneVerticesList[i * 3 + 1] = new Vector3(cuttingPlaneVerticesList[i * 3 + 0].x, cuttingPlaneVerticesList[i * 3 + 0].y, cuttingPlaneVerticesList[i * 3 + 0].z);
+				cuttingPlaneVerticesList[i * 3 + 0] = tempVertex;
+			}
+		}
+
+		GameObject leftObj = hitObj;
+		GameObject rightObj = Instantiate(leftObj, leftObj.transform);
+		rightObj.transform.parent = null;
+		rightObj.transform.position = leftObj.transform.position;
+		rightObj.transform.rotation = leftObj.transform.rotation;
+		rightObj.transform.localScale = leftObj.transform.localScale;
+		Mesh leftMesh = leftObj.GetComponent<MeshFilter>().mesh;
+		Mesh rightMesh = rightObj.GetComponent<MeshFilter>().mesh;
+		leftMesh.Clear();
+		rightMesh.Clear();
+
+		leftMesh.vertices = new Vector3[leftVerticesList.Count + cuttingPlaneVerticesList.Count];
+		leftMesh.triangles = new int[leftVerticesList.Count + cuttingPlaneVerticesList.Count];
+		Vector3[] leftVertices = leftMesh.vertices;
+		int[] leftTriangles = leftMesh.triangles;
+		rightMesh.vertices = new Vector3[rightVerticesList.Count + cuttingPlaneVerticesList.Count];
+		rightMesh.triangles = new int[rightVerticesList.Count + cuttingPlaneVerticesList.Count];
+		Vector3[] rightVertices = rightMesh.vertices;
+		int[] rightTriangles = rightMesh.triangles;
+
+		for (int i=0;i<leftVerticesList.Count;i++) {
+			leftVertices[i] = leftVerticesList[i];
+			leftTriangles[i] = i;
+		}
+		for (int i=0;i<rightVerticesList.Count;i++) {
+			rightVertices[i] = rightVerticesList[i];
+			rightTriangles[i] = i;
+		}
+		for (int i=0;i<cuttingPlaneVerticesList.Count / 3;i++) {
+			for (int j=0;j<3;j++) {
+				leftVertices[i * 3 + j + leftVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
+				leftTriangles[i * 3 + j + leftVerticesList.Count] = i * 3 + j + leftVerticesList.Count;
+				rightVertices[i * 3 + j + rightVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
+				rightTriangles[i * 3 + j + rightVerticesList.Count] = i * 3 + (2 - j) + rightVerticesList.Count;
+			}
+		}
+
+		leftMesh.vertices = leftVertices;
+		leftMesh.triangles = leftTriangles;
+		leftMesh.MarkModified();
+		leftMesh.RecalculateNormals();
+		leftObj.GetComponent<MeshFilter>().mesh = leftMesh;
+		leftObj.GetComponent<MeshCollider>().sharedMesh = leftMesh;
+		rightMesh.vertices = rightVertices;
+		rightMesh.triangles = rightTriangles;
+		rightMesh.MarkModified();
+		rightMesh.RecalculateNormals();
+		rightObj.GetComponent<MeshFilter>().mesh = rightMesh;
+		rightObj.GetComponent<MeshCollider>().sharedMesh = rightMesh;
+
+		leftObj.transform.position = leftObj.transform.position + selectedNormal.normalized * 0.25f;
+		rightObj.transform.position = rightObj.transform.position - selectedNormal.normalized * 0.25f;
 
 		state = Status.freemove;
 	}
+	/* #endregion */
 
 	private Vector3 crossProduct(Vector3 a, Vector3 b) {
 		return new Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
@@ -519,6 +697,24 @@ public class MeshManipulator : MonoBehaviour
 		return a + t * (a - b);
 	}
 
+	private bool areLinesIntersect(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2) {
+		bool result = true;
+		if (crossProduct(a2 - a1, b2 - a2).magnitude > 0 &&
+			crossProduct(a2 - a1, b1 - a2).magnitude > 0 &&
+			Vector3.Angle(crossProduct(a2 - a1, b2 - a2), crossProduct(a2 - a1, b1 - a2)) < 0.001f
+		) {
+			result = false;
+		}
+		if (crossProduct(b2 - b1, a1 - b2).magnitude > 0 &&
+			crossProduct(b2 - b1, a2 - b2).magnitude > 0 &&
+			Vector3.Angle(crossProduct(b2 - b1, a1 - b2), crossProduct(b2 - b1, a2 - b2)) < 0.001f
+		) {
+			result = false;
+		}
+		return result;
+	}
+
+	/* #region Public */
 	public void startFocus() {
 		if (state == Status.select && smode == SelectMode.selectFace) {
 			state = Status.focus;
@@ -558,4 +754,5 @@ public class MeshManipulator : MonoBehaviour
 	public void cancel() {
 		state = Status.freemove;
 	}
+	/* #endregion */
 }
