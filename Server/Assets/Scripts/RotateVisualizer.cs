@@ -55,16 +55,16 @@ public class RotateVisualizer : MonoBehaviour
 	void Update()
 	{
 
-		if (!prevState && isRotating) {
-			startAngle = touchProcessor.GetComponent<TouchProcessor>().rot;
-		}
-		prevState = isRotating;
-		angle = touchProcessor.GetComponent<TouchProcessor>().rot;
+		// if (!prevState && isRotating) {
+		// 	startAngle = touchProcessor.GetComponent<TouchProcessor>().rot;
+		// }
+		// prevState = isRotating;
+		// angle = touchProcessor.GetComponent<TouchProcessor>().rot;
 
 		bkgLR.enabled = isRotating;
 		sliderLR.enabled = isRotating;
 
-		Vector3 pos = touchProcessor.GetComponent<TouchProcessor>().pos;
+		Vector3 pos = new Vector3(0, 0, 0);//touchProcessor.GetComponent<TouchProcessor>().pos;
 		for (int i=0;i<=100;i++) {
 			bkgLR.SetPosition(i, new Vector3(-camWidth, pos.y + camWidth * Mathf.Cos(Mathf.PI * i / 50) / 2, pos.z + camWidth * Mathf.Sin(Mathf.PI * i / 50) / 2));
 		}
@@ -82,8 +82,6 @@ public class RotateVisualizer : MonoBehaviour
 			}
 			sliderLR.SetPosition(n + 1, new Vector3(-camWidth, pos.y, pos.z));
 		}
-
-		dbgText.text = "" + angle + " " + startAngle;
 	}
 	
 }

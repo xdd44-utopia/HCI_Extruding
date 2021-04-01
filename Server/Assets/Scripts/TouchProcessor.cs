@@ -6,33 +6,16 @@ using UnityEngine.UI;
 public class TouchProcessor : MonoBehaviour
 {
 	public GameObject sender;
-	public GameObject obj;
 
 	public GameObject panVisualizer;
+	public GameObject meshManipulator;
+	private GameObject hitObj;
 
 	private Phase phase;
 	private float sendTimer = -1;
 
 	[HideInInspector]
-	public bool isScaling;
-	[HideInInspector]
-	public bool isPanning;
-	[HideInInspector]
 	public bool isLocked;
-	private float panTimer;
-	private float scaleTimer;
-	private float panDelay = 0.1f;
-
-	[HideInInspector]
-	public float verticalScale = 2.5f;
-	[HideInInspector]
-	public float planarScale = 2.5f;
-	[HideInInspector]
-	public Vector3 pos;
-	[HideInInspector]
-	public float rot;
-	private Vector3 defaultPos;
-	private float defaultRot;
 	
 	//standard
  
@@ -43,26 +26,28 @@ public class TouchProcessor : MonoBehaviour
 	private const float minDragDist = 0;
 
 	private Vector3 panDelta;
+	private float pinchDelta;
+	private float turnDelta;
+	private const float minPinchDistance = 0;
+	private const float minTurnDistance = 0.05f;
 
 	private float dragDelta;
 	private Vector3 dragStartPoint;
+
+	private float touchTimer = 0;
+	private float touchDelayTolerance = 0.1f;
 
 
 	void Start()
 	{
 		phase = Phase.freemove;
-		pos = new Vector3(100, 100, 0);
-		rot = 0;
-		defaultPos = new Vector3(100, 100, 0);
-		defaultRot = 0;
-		verticalScale = 0.01f;
-		planarScale = 0f;
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
 		calculate();
+		hitObj = meshManipulator.GetComponent<MeshManipulator>().hitObj;
 
 		switch (phase) {
 			case Phase.freemove:
@@ -78,40 +63,35 @@ public class TouchProcessor : MonoBehaviour
 			sendTimer -= Time.deltaTime;
 		}
 
-		isLocked = isPanning || isScaling;
+		touchTimer -= Time.deltaTime;
+
 	}
 
 	private void freemoving() {
-		if (panDelta.magnitude > minPanDistance) {
-			pos += panDelta;
-			isPanning = true;
-			panTimer = panDelay;
+		if (touchTimer > 0) {
+			//meshManipulator.GetComponent<MeshManipulator>().pan(panDelta);
+			//meshManipulator.GetComponent<MeshManipulator>().pinch(pinchDelta);
+			meshManipulator.GetComponent<MeshManipulator>().turn(turnDelta, true);
 		}
-		if (Mathf.Abs(dragDelta) > minDragDist) {
-			planarScale += dragDelta;
-			isScaling = true;
-			scaleTimer = panDelay;
-		}
+		// if (Mathf.Abs(dragDelta) > minDragDist) {
 
-		isPanning = (panTimer > 0);
-		panTimer -= Time.deltaTime;
-		isScaling = (scaleTimer > 0);
-		scaleTimer -= Time.deltaTime;
+		// }
 
-		if (isPanning) {
-			panVisualizer.GetComponent<PanVisualizer>().pan();
-		}
 	}
  
 	private void calculate () {
 		dragDelta = 0;
 		panDelta = new Vector3(0, 0, 0);
+		pinchDelta = 0;
+		meshManipulator.GetComponent<MeshManipulator>().touchPosition = new Vector3(10000, 10000, 10000);
  
 		if (Input.touchCount == 2) {
 			Touch touch1 = Input.touches[0];
 			Touch touch2 = Input.touches[1];
  
 			if (touch1.phase == TouchPhase.Moved || touch2.phase == TouchPhase.Moved) {
+
+				touchTimer = touchDelayTolerance;
 
 				Vector3 panStart = (touch1.position - touch1.deltaPosition + touch2.position - touch2.deltaPosition) / 2;
 				Vector3 panEnd = (touch1.position + touch2.position) / 2;
@@ -124,25 +104,44 @@ public class TouchProcessor : MonoBehaviour
 				else {
 					panDelta = new Vector3(0, 0, 0);
 				}
+
+				float pinchStart = ((touch1.position - touch1.deltaPosition) - (touch2.position - touch2.deltaPosition)).magnitude;
+				float pinchEnd = (touch1.position - touch2.position).magnitude;
+
+				pinchDelta = pinchEnd - pinchStart;
+
+				if (Mathf.Abs(pinchDelta) > minPinchDistance) {
+					pinchDelta  *= Camera.main.orthographicSize / 772;
+				}
+				else {
+					pinchDelta = 0;
+				}
+
+				Vector3 startVec = (touch1.position - touch1.deltaPosition) - (touch2.position - touch2.deltaPosition);
+				Vector3 endVec = touch1.position - touch2.position;
+				float turnStart = Vector3.Angle(new Vector3(1, 0, 0), startVec);
+				turnStart = (startVec.y >= 0 ? turnStart : -turnStart);
+				float turnEnd = Vector3.Angle(new Vector3(1, 0, 0), endVec);
+				turnEnd = (endVec.y >= 0 ? turnEnd : -turnEnd);
+
+				turnDelta = turnEnd - turnStart;
+
+				if (Mathf.Abs(turnDelta) > minTurnDistance) {
+					turnDelta *= 1;
+				}
+				else {
+					turnDelta = 0;
+				}
 			}
 		}
 		else if (Input.touchCount == 1) {
 			Touch touch1 = Input.touches[0];
 
-			if (touch1.position.y < 1250) {
-				if (touch1.phase == TouchPhase.Began) {
-					Vector3 tp = processTouchPoint(touch1.position);
-					pos = new Vector3(tp.x, tp.y, 0);
-					pos.x = tp.x;
-					pos.y = tp.y;
-					dragStartPoint = touch1.position;
-					rot = 0;
-					planarScale = 0;
-					verticalScale = 0.01f;
-					isScaling = true;
-					scaleTimer = panDelay;
-				}
-				else if (touch1.phase == TouchPhase.Moved) {
+			touchTimer = touchDelayTolerance;
+			
+			if (touch1.position.y > 200 && touch1.position.y < 1400) {
+				meshManipulator.GetComponent<MeshManipulator>().touchPosition = touch1.position;
+				if (touch1.phase == TouchPhase.Moved) {
 					float currentDist = Vector2.Distance(touch1.position, dragStartPoint);
 					float prevDist = Vector2.Distance(touch1.position - touch1.deltaPosition, dragStartPoint);
 					dragDelta = currentDist - prevDist;
@@ -180,10 +179,7 @@ public class TouchProcessor : MonoBehaviour
 	}
 
 	public void resetAll() {
-		pos = defaultPos;
-		rot = defaultRot;
-		verticalScale = 0.01f;
-		planarScale = 0f;
+		
 	}
 
 	private enum Phase {

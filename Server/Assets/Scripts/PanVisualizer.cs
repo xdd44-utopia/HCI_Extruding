@@ -58,12 +58,6 @@ public class PanVisualizer : MonoBehaviour
 	void Update()
 	{
 
-		if (!prevState && isPanning) {
-			startPos = touchProcessor.GetComponent<TouchProcessor>().pos;
-		}
-		prevState = isPanning;
-		pos = touchProcessor.GetComponent<TouchProcessor>().pos;
-
 		for (int i=0;i<6;i++) {
 			lrs[i].enabled = isPanning;
 		}
@@ -102,7 +96,12 @@ public class PanVisualizer : MonoBehaviour
 
 	}
 
-	public void pan() {
+	public void pan(Vector3 currentPos) {
+		if (!prevState && isPanning) {
+			startPos = currentPos;
+		}
+		prevState = isPanning;
+		pos = currentPos;
 		isPanning = true;
 		timer = tolerance;
 	}

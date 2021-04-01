@@ -82,13 +82,7 @@ public class ServerController : MonoBehaviour {
 		string serverMessage =
 			faceTracker.GetComponent<FaceTracker>().currentObserve.x + "," +
 			faceTracker.GetComponent<FaceTracker>().currentObserve.y + "," +
-			faceTracker.GetComponent<FaceTracker>().currentObserve.z + "," +
-			touchProcessor.GetComponent<TouchProcessor>().pos.x + "," +
-			touchProcessor.GetComponent<TouchProcessor>().pos.y + "," +
-			touchProcessor.GetComponent<TouchProcessor>().pos.z + "," +
-			touchProcessor.GetComponent<TouchProcessor>().planarScale + "," + 
-			touchProcessor.GetComponent<TouchProcessor>().verticalScale + "," + 
-			(-touchProcessor.GetComponent<TouchProcessor>().rot) + ","
+			faceTracker.GetComponent<FaceTracker>().currentObserve.z + ","
 		;
 		if (connectedTcpClient == null) {
 			return;
@@ -119,22 +113,21 @@ public class ServerController : MonoBehaviour {
 	}
 
 	private void getVector() {
-		if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
-			if (rcvMsg[0] == 'T') {
-				panVisualizer.GetComponent<PanVisualizer>().pan();
-			}
-			rotateVisualizer.GetComponent<RotateVisualizer>().isRotating = (rcvMsg[1] == 'T');
-			rcvMsg = rcvMsg.Substring(2);
-			string[] temp = rcvMsg.Split(',');
-			touchProcessor.GetComponent<TouchProcessor>().pos =
-				new Vector3(
-					System.Convert.ToSingle(temp[0]),
-					System.Convert.ToSingle(temp[1]),
-					System.Convert.ToSingle(temp[2])
-				);
-			touchProcessor.GetComponent<TouchProcessor>().rot = System.Convert.ToSingle(temp[3]);
-			touchProcessor.GetComponent<TouchProcessor>().verticalScale = System.Convert.ToSingle(temp[4]);
-		}
+		// if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
+		// 	if (rcvMsg[0] == 'T') {
+		// 		panVisualizer.GetComponent<PanVisualizer>().pan();
+		// 	}
+		// 	rotateVisualizer.GetComponent<RotateVisualizer>().isRotating = (rcvMsg[1] == 'T');
+		// 	rcvMsg = rcvMsg.Substring(2);
+		// 	string[] temp = rcvMsg.Split(',');
+		// 	touchProcessor.GetComponent<TouchProcessor>().pos =
+		// 		new Vector3(
+		// 			System.Convert.ToSingle(temp[0]),
+		// 			System.Convert.ToSingle(temp[1]),
+		// 			System.Convert.ToSingle(temp[2])
+		// 		);
+		// 	touchProcessor.GetComponent<TouchProcessor>().rot = System.Convert.ToSingle(temp[3]);
+		// }
 	}
 
 }
