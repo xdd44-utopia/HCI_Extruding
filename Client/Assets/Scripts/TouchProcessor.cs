@@ -89,7 +89,7 @@ public class TouchProcessor : MonoBehaviour
 		isLocked = isPanning || isExtruding || isRotating;
 
 		if (sendTimer < 0) {
-			sender.GetComponent<ClientController>().sendMessage();
+			//sender.GetComponent<ClientController>().sendMessage();
 			sendTimer = 0.05f;
 		}
 		else {

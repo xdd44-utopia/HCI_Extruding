@@ -5,14 +5,12 @@ using UnityEngine.UI;
 
 public class TouchProcessor : MonoBehaviour
 {
-	public GameObject sender;
 
 	public GameObject panVisualizer;
 	public GameObject meshManipulator;
 	private GameObject hitObj;
 
 	private Phase phase;
-	private float sendTimer = -1;
 
 	[HideInInspector]
 	public bool isLocked;
@@ -55,22 +53,14 @@ public class TouchProcessor : MonoBehaviour
 				break;
 		}
 
-		if (sendTimer < 0) {
-			sender.GetComponent<ServerController>().sendMessage();
-			sendTimer = 0.05f;
-		}
-		else {
-			sendTimer -= Time.deltaTime;
-		}
-
 		touchTimer -= Time.deltaTime;
 
 	}
 
 	private void freemoving() {
 		if (touchTimer > 0) {
-			//meshManipulator.GetComponent<MeshManipulator>().pan(panDelta);
-			//meshManipulator.GetComponent<MeshManipulator>().pinch(pinchDelta);
+			meshManipulator.GetComponent<MeshManipulator>().pan(panDelta);
+			meshManipulator.GetComponent<MeshManipulator>().pinch(pinchDelta);
 			meshManipulator.GetComponent<MeshManipulator>().turn(turnDelta, true);
 		}
 		// if (Mathf.Abs(dragDelta) > minDragDist) {

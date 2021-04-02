@@ -18,6 +18,10 @@ Transform (From server to client):
 - Fourth line rotation quaternion
 - Fifth line scale
 
+Face Track (From server to client):
+- First line "Face"
+- Second Line Vector3
+
 Cutting (From client to server):
 - First line "Cutting"
 - Second line touch point in server's space
@@ -25,6 +29,10 @@ Cutting (From client to server):
 Extruding (From client to server):
 - First line "Extruding"
 - Second line extruding distance
+
+Confirm (From client to server)
+
+Pan, Pinch, Turn
 
 ```
 Mesh

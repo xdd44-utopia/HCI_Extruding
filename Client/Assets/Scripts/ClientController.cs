@@ -12,6 +12,7 @@ public class ClientController : MonoBehaviour {
 	public GameObject obj;
 	public GameObject touchProcessor;
 	public GameObject faceTracker;
+	public GameObject objectManager;
 	public Camera renderCamera;
 
 	private float angle = - Mathf.PI / 2;
@@ -27,6 +28,7 @@ public class ClientController : MonoBehaviour {
 
 	private bool refreshed = false;
 	private string receivedMessage;
+	private int msgCount = -1;
 	
 	void Start () {
 		Camera cam = Camera.main;
@@ -66,8 +68,26 @@ public class ClientController : MonoBehaviour {
 					while ((length = stream.Read(bytes, 0, bytes.Length)) != 0) {
 						var incommingData = new byte[length];
 						Array.Copy(bytes, 0, incommingData, 0, length);
-						receivedMessage = Encoding.ASCII.GetString(incommingData);
-						refreshed = true;
+						string temp = Encoding.ASCII.GetString(incommingData);
+						Debug.Log("Receiving segment: " + temp);
+						if (temp[0] == '?' && temp[temp.Length - 1] == '!') {
+							temp = temp.Substring(1);
+							temp = temp.Remove(temp.Length - 1);
+							receivedMessage = temp;
+							refreshed = true;
+						}
+						else if (temp[0] == '?') {
+							temp = temp.Substring(1);
+							receivedMessage = temp;
+						}
+						else if (temp[temp.Length - 1] == '!') {
+							temp = temp.Remove(temp.Length - 1);
+							receivedMessage += temp;
+							refreshed = true;
+						}
+						else {
+							receivedMessage += temp;
+						}
 					}
 				}
 			}
@@ -77,26 +97,15 @@ public class ClientController : MonoBehaviour {
 		}
 	}
 	
-	public void sendMessage() {
-		Vector3 tp = touchProcessor.GetComponent<TouchProcessor>().pos;
-		tp = convertToServer(tp);
-		string clientMessage =
-			(touchProcessor.GetComponent<TouchProcessor>().isPanning ? "T" : "F") + 
-			(touchProcessor.GetComponent<TouchProcessor>().isRotating ? "T" : "F") +
-			tp.x + "," +
-			tp.y + "," +
-			tp.z + "," +
-			(-touchProcessor.GetComponent<TouchProcessor>().rot) + "," +
-			touchProcessor.GetComponent<TouchProcessor>().verticalScale + ","
-		;
-		Debug.Log(clientMessage);
+	public void sendMessage(string msg) {
+		Debug.Log(msg);
 		if (socketConnection == null) {
 			return;
 		}
 		try {		
 			NetworkStream stream = socketConnection.GetStream();
 				if (stream.CanWrite) {
-					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(clientMessage);
+					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(msg);
 					stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
 					Debug.Log("Client sent his message - should be received by server");
 				}
@@ -127,28 +136,34 @@ public class ClientController : MonoBehaviour {
 	}
 
 	private void getVector() {
-		string[] temp = receivedMessage.Split(',');
-		faceTracker.GetComponent<FaceTracker>().currentObserve =
-			convertFromServer(new Vector3(
-				System.Convert.ToSingle(temp[0]),
-				System.Convert.ToSingle(temp[1]),
-				System.Convert.ToSingle(temp[2])
-			));
-		if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
-			touchProcessor.GetComponent<TouchProcessor>().pos =
-				convertFromServer(new Vector3(
-					System.Convert.ToSingle(temp[3]),
-					System.Convert.ToSingle(temp[4]),
-					System.Convert.ToSingle(temp[5])
-				));
-			touchProcessor.GetComponent<TouchProcessor>().planarScale = System.Convert.ToSingle(temp[6]);
-			touchProcessor.GetComponent<TouchProcessor>().verticalScale = System.Convert.ToSingle(temp[7]);
-			touchProcessor.GetComponent<TouchProcessor>().rot = System.Convert.ToSingle(temp[8]);
+		string[] temp0 = receivedMessage.Split(';');
+		int msgIndex = System.Convert.ToInt32(temp0[0]);
+		if (msgIndex > msgCount) {
+			sendMessage("Confirm;" + temp0[0]);
+			msgCount++;
+			switch (temp0[1][0]) {
+				case 'F':
+					string[] temp1 = temp0[1].Split('\n');
+					string[] temp2 = temp1[1].Split(',');
+					faceTracker.GetComponent<FaceTracker>().currentObserve =
+						convertFromServer(new Vector3(
+							System.Convert.ToSingle(temp2[0]),
+							System.Convert.ToSingle(temp2[1]),
+							System.Convert.ToSingle(temp2[2])
+						));
+					break;
+				case 'M':
+					objectManager.GetComponent<ObjectManager>().updateMesh(temp0[1]);
+					break;
+				case 'T':
+					objectManager.GetComponent<ObjectManager>().updateTransform(temp0[1]);
+					break;
+			}
 		}
 	}
 
 	public void connect() {
-		string address = "144.214.113.33";
+		string address = "192.168.0.106";
 		//Macbook local connecting to iPhone hotspot: 172.20.10.2
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
 		//Samsung connecting to xdd44's wifi: 192.168.0.106

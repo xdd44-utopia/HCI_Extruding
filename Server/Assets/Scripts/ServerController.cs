@@ -31,6 +31,10 @@ public class ServerController : MonoBehaviour {
 	private bool refreshed = false;
 
 	private bool noConnection = true;
+
+	private Queue<string> msgBuffer = new Queue<string>();
+	private int msgCount = 0;
+	private float sendTimer = 0;
 	
 	void Start () {
 		tcpListenerThread = new Thread (new ThreadStart(ListenForIncommingRequests));
@@ -39,11 +43,15 @@ public class ServerController : MonoBehaviour {
 	}
 	
 	void Update () {
+		sendTimer -= Time.deltaTime;
+		if (sendTimer <= 0) {
+			sendBuffer();
+			sendTimer = 0.05f;
+		}
 		ipText.text = getIPAddress();
 		rcvText.text = rcvMsg;
 		renderCamera.backgroundColor = (connectedTcpClient == null ? disconnectColor : connectColor);
 		if (connectedTcpClient != null && noConnection) {
-			sendMessage();
 			noConnection = false;
 		}
 		if (refreshed) {
@@ -77,21 +85,23 @@ public class ServerController : MonoBehaviour {
 			Debug.Log("SocketException " + socketException.ToString());
 		}
 	}
+
+	public void sendMessage(string msg) {
+		msgBuffer.Enqueue(msgCount + ";" + msg);
+		msgCount++;
+	}
 	
-	public void sendMessage() {
-		string serverMessage =
-			faceTracker.GetComponent<FaceTracker>().currentObserve.x + "," +
-			faceTracker.GetComponent<FaceTracker>().currentObserve.y + "," +
-			faceTracker.GetComponent<FaceTracker>().currentObserve.z + ","
-		;
-		if (connectedTcpClient == null) {
+	public void sendBuffer() {
+		if (connectedTcpClient == null || msgBuffer.Count == 0) {
 			return;
 		}
+		string msg = msgBuffer.Peek();
+		Debug.Log(msg);
 		
 		try {			
 			NetworkStream stream = connectedTcpClient.GetStream();
 				if (stream.CanWrite) {
-					byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes(serverMessage);
+					byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
 					stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
 					Debug.Log("Server sent his message - should be received by client");
 				}
@@ -113,6 +123,19 @@ public class ServerController : MonoBehaviour {
 	}
 
 	private void getVector() {
+		switch (rcvMsg[0]) {
+			case 'C':
+				if (msgBuffer.Count > 0) {
+					string[] tempRcv = rcvMsg.Split(';');
+					int indexConfirming = System.Convert.ToInt32(tempRcv[1]);
+					string[] tempPeek = msgBuffer.Peek().Split(';');
+					int indexPeek = System.Convert.ToInt32(tempPeek[0]);
+					if (indexConfirming == indexPeek) {
+						msgBuffer.Dequeue();
+					}
+				}
+				break;
+		}
 		// if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
 		// 	if (rcvMsg[0] == 'T') {
 		// 		panVisualizer.GetComponent<PanVisualizer>().pan();

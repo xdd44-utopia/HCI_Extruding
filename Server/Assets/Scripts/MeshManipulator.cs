@@ -9,6 +9,7 @@ public class MeshManipulator : MonoBehaviour
 	public Camera cam;
 	public Text debugText;
 	public GameObject panVisualizer;
+	public GameObject objectManager;
 
 	[HideInInspector]
 	public Vector3 touchPosition;
@@ -132,6 +133,7 @@ public class MeshManipulator : MonoBehaviour
 				hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
 				state = Status.freemove;
 				isHit = false;
+				hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 			}
 		}
 
@@ -329,6 +331,7 @@ public class MeshManipulator : MonoBehaviour
 			state = Status.select;
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
+		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 	}
 
 	private void constructHighlight() {
@@ -396,6 +399,7 @@ public class MeshManipulator : MonoBehaviour
 		constructHighlight();
 		findPosition();
 		hitObj.transform.position = posToFocus;
+		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 	}
 	
 	private void prepareExtrude() {
@@ -468,6 +472,7 @@ public class MeshManipulator : MonoBehaviour
 			hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
 			state = Status.freemove;
 			isHit = false;
+			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 		}
 
 	}
@@ -747,6 +752,12 @@ public class MeshManipulator : MonoBehaviour
 		leftObj.transform.position = leftObj.transform.position + selectedNormal.normalized * 0.25f;
 		rightObj.transform.position = rightObj.transform.position - selectedNormal.normalized * 0.25f;
 
+		leftObj.GetComponent<ObjectController>().isTransformUpdated = true;
+		leftObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		rightObj.GetComponent<ObjectController>().isTransformUpdated = true;
+		rightObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		rightObj.GetComponent<ObjectController>().index = objectManager.GetComponent<ObjectManager>().getNum();
+
 		state = Status.freemove;
 		isHit = false;
 	}
@@ -829,6 +840,7 @@ public class MeshManipulator : MonoBehaviour
 	public void pan(Vector3 delta) {
 		if (isHit && smode == SelectMode.selectObject) {
 			hitObj.transform.position += delta;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			panVisualizer.GetComponent<PanVisualizer>().pan(hitObj.transform.position);
 		}
 	}
@@ -837,6 +849,7 @@ public class MeshManipulator : MonoBehaviour
 		if (isHit) {
 			if (smode == SelectMode.selectObject) {
 				hitObj.transform.localScale += new Vector3(delta, delta, delta);
+				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			}
 			else if (state == Status.taper) {
 				if (delta > 0){
@@ -853,6 +866,7 @@ public class MeshManipulator : MonoBehaviour
 		if (isHit && smode == SelectMode.selectObject) {
 			Quaternion rot = Quaternion.AngleAxis(angle, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0)));
 			hitObj.transform.rotation = rot * hitObj.transform.rotation;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 		}
 	}
 

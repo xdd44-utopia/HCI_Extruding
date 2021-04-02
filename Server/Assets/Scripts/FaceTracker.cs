@@ -20,8 +20,7 @@ public class FaceTracker : MonoBehaviour
 	public bool increaseZ = false;
 	public bool decreaseZ = false;
 
-	[HideInInspector]
-	public Vector3 currentObserve = new Vector3(0, 0, -5f);
+	private Vector3 currentObserve = new Vector3(0, 0, -10f);
 	private Vector3 observe = new Vector3(0, 0, -5f);
 	private Vector3 defaultObserve = new Vector3(0, 0, -5f);
 	private float correction = 0.2f;
@@ -90,7 +89,8 @@ public class FaceTracker : MonoBehaviour
 		if (Vector3.Distance(currentObserve, observe) > smoothTolerance) {
 			currentObserve = Vector3.Lerp(currentObserve, observe, smoothSpeed * Time.deltaTime);
 			renderCam.transform.position = currentObserve;
-			sender.GetComponent<ServerController>().sendMessage();
+			string msg = "Face\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z;
+			sender.GetComponent<ServerController>().sendMessage(msg);
 		}
 		facePosText.text = "Face pos: " + currentObserve;
 	}
