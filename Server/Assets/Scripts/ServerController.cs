@@ -13,11 +13,8 @@ public class ServerController : MonoBehaviour {
 
 	public Text ipText;
 	public Text rcvText;
-	public GameObject obj;
-	public GameObject touchProcessor;
-	public GameObject faceTracker;
-	public GameObject panVisualizer;
-	public GameObject rotateVisualizer;
+	public GameObject meshManipulator;
+	public GameObject sliderController;
 	public Camera renderCamera;
 
 	private Color disconnectColor = new Color(0.8156f, 0.3529f, 0.4313f);
@@ -29,12 +26,13 @@ public class ServerController : MonoBehaviour {
 	private TcpClient connectedTcpClient;
 	private string rcvMsg = "";
 	private bool refreshed = false;
+	
+	private float sendTimer = 0;
 
-	private bool noConnection = true;
+	private bool isConnected = false;
 
 	private Queue<string> msgBuffer = new Queue<string>();
 	private int msgCount = 0;
-	private float sendTimer = 0;
 	
 	void Start () {
 		tcpListenerThread = new Thread (new ThreadStart(ListenForIncommingRequests));
@@ -43,18 +41,15 @@ public class ServerController : MonoBehaviour {
 	}
 	
 	void Update () {
-		sendTimer -= Time.deltaTime;
-		if (sendTimer <= 0) {
-			sendBuffer();
-			sendTimer = 0.05f;
-		}
 		ipText.text = getIPAddress();
-		rcvText.text = rcvMsg;
 		renderCamera.backgroundColor = (connectedTcpClient == null ? disconnectColor : connectColor);
-		if (connectedTcpClient != null && noConnection) {
-			noConnection = false;
+		if (isConnected) {
+			while(msgBuffer.Count > 0) {
+				sendBuffer();
+			}
 		}
 		if (refreshed) {
+			rcvText.text = rcvMsg;
 			getVector();
 			refreshed = false;
 		}
@@ -87,6 +82,7 @@ public class ServerController : MonoBehaviour {
 	}
 
 	public void sendMessage(string msg) {
+		//Debug.Log(msg);
 		msgBuffer.Enqueue(msgCount + ";" + msg);
 		msgCount++;
 	}
@@ -96,7 +92,7 @@ public class ServerController : MonoBehaviour {
 			return;
 		}
 		string msg = msgBuffer.Peek();
-		Debug.Log(msg);
+		msgBuffer.Dequeue();
 		
 		try {			
 			NetworkStream stream = connectedTcpClient.GetStream();
@@ -124,33 +120,37 @@ public class ServerController : MonoBehaviour {
 
 	private void getVector() {
 		switch (rcvMsg[0]) {
-			case 'C':
-				if (msgBuffer.Count > 0) {
-					string[] tempRcv = rcvMsg.Split(';');
-					int indexConfirming = System.Convert.ToInt32(tempRcv[1]);
-					string[] tempPeek = msgBuffer.Peek().Split(';');
-					int indexPeek = System.Convert.ToInt32(tempPeek[0]);
-					if (indexConfirming == indexPeek) {
-						msgBuffer.Dequeue();
-					}
-				}
+			case 'T':
+				string[] temp1 = rcvMsg.Split('\n');
+				string[] panStr = temp1[1].Split(',');
+				Vector3 panDelta = new Vector3(
+					System.Convert.ToSingle(panStr[0]),
+					System.Convert.ToSingle(panStr[1]),
+					System.Convert.ToSingle(panStr[2])
+				);
+				float pinchDelta = System.Convert.ToSingle(temp1[2]);
+				float turnDelta = System.Convert.ToSingle(temp1[3]);
+				meshManipulator.GetComponent<MeshManipulator>().startTransform(panDelta, pinchDelta, turnDelta, false);
+				break;
+			case 'E':
+				string extrudeDistStr = rcvMsg.Split('\n')[1];
+				meshManipulator.GetComponent<MeshManipulator>().updateExtrude(System.Convert.ToSingle(extrudeDistStr));
+				break;
+			case 'H':
+				isConnected = true;
+				break;
+			case 'A':
+				temp1 = rcvMsg.Split('\n');
+				string[] temp2 = temp1[1].Split(',');
+				Vector3 acc =
+					new Vector3(
+						System.Convert.ToSingle(temp2[0]),
+						System.Convert.ToSingle(temp2[1]),
+						System.Convert.ToSingle(temp2[2])
+					);
+				sliderController.GetComponent<SliderController>().acceOther = acc;
 				break;
 		}
-		// if (!touchProcessor.GetComponent<TouchProcessor>().isLocked) {
-		// 	if (rcvMsg[0] == 'T') {
-		// 		panVisualizer.GetComponent<PanVisualizer>().pan();
-		// 	}
-		// 	rotateVisualizer.GetComponent<RotateVisualizer>().isRotating = (rcvMsg[1] == 'T');
-		// 	rcvMsg = rcvMsg.Substring(2);
-		// 	string[] temp = rcvMsg.Split(',');
-		// 	touchProcessor.GetComponent<TouchProcessor>().pos =
-		// 		new Vector3(
-		// 			System.Convert.ToSingle(temp[0]),
-		// 			System.Convert.ToSingle(temp[1]),
-		// 			System.Convert.ToSingle(temp[2])
-		// 		);
-		// 	touchProcessor.GetComponent<TouchProcessor>().rot = System.Convert.ToSingle(temp[3]);
-		// }
 	}
 
 }

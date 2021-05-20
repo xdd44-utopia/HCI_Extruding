@@ -5,6 +5,7 @@ using UnityEngine;
 public class ObjectController : MonoBehaviour
 {
 
+	public GameObject inside;
 	[HideInInspector]
 	public bool isTransformUpdated;
 	[HideInInspector]
@@ -22,6 +23,8 @@ public class ObjectController : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		
+		if (isMeshUpdated) {
+			inside.GetComponent<MeshFilter>().mesh = GetComponent<MeshFilter>().mesh;
+		}
 	}
 }

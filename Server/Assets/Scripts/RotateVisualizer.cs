@@ -28,7 +28,7 @@ public class RotateVisualizer : MonoBehaviour
 	void Start()
 	{
 		Camera cam = Camera.main;
-		camHeight = cam.orthographicSize;
+		camHeight = 10;
 		camWidth = camHeight * cam.aspect;
 
 		bkgLR = bkg.AddComponent<LineRenderer>();

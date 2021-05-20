@@ -5,127 +5,94 @@ using UnityEngine.UI;
 
 public class TouchProcessor : MonoBehaviour
 {
+
 	public GameObject sender;
-	public GameObject obj;
 	public Slider extrudeSlider;
 
 	[HideInInspector]
-	public bool isExtruding;
-	[HideInInspector]
-	public bool isPanning;
-	[HideInInspector]
 	public bool isLocked;
-	private float panTimer;
-	private float panDelay = 0.1f;
-	[HideInInspector]
-	public bool isRotating;
-
-	public Text panText;
-	public Text pinchText;
-	public Text angleText;
-
-	private Phase phase;
-	private float sendTimer = -1;
-
-	[HideInInspector]
-	public float verticalScale = 2.5f;
-	[HideInInspector]
-	public float planarScale = 2.5f;
-	[HideInInspector]
-	public Vector3 pos;
-	[HideInInspector]
-	public float rot;
-	private Vector3 defaultPos;
-	private float defaultRot;
-
-	private const float maxPlanarScale = 5;
 	
 	//standard
-	private const float pinchTurnRatio = Mathf.PI / 2;
-	private const float minTurnAngle = 0;
- 
-	private const float pinchRatio = 1;
-	private const float minPinchDistance = 0;
  
 	private const float panRatio = 1;
 	private const float minPanDistance = 0;
- 
-	private float turnAngleDelta;
-	private float turnAngle;
- 
-	private float pinchDistanceDelta;
-	private float pinchDistance;
+
+	private const float dragRatio = 0.01f;
+	private const float minDragDist = 0;
 
 	private Vector3 panDelta;
+	private float pinchDelta;
+	private float turnDelta;
+	private const float minPinchDistance = 0;
+	private const float minTurnDistance = 0.05f;
 
-	[HideInInspector]
-	public float extrudeDelta;
+	private float dragDelta;
+	private Vector3 dragStartPoint;
+
+	private float touchTimer = 0;
+	private float touchDelayTolerance = 0.1f;
+
+	private float angle = - Mathf.PI / 2;
+	private float camWidth;
+	private float camHeight;
+
+	//extrude
+	private bool isExtruding = false;
+	private float verticalScale;
+	private float maxVerticalScale = 1;
+
 
 	void Start()
 	{
-		phase = Phase.freemove;
-		pos = new Vector3(100, 100, 0);
-		rot = 0;
-		defaultPos = new Vector3(100, 100, 0);
-		defaultRot = 0;
-		verticalScale = 0.01f;
-		planarScale = 0f;
+		Camera cam = Camera.main;
+		camHeight = 10;
+		camWidth = camHeight * cam.aspect;
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
+		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
 		calculate();
 
-		switch (phase) {
-			case Phase.freemove:
-				freemoving();
-				break;
-		}
+		freemoving();
 
-		panText.text = "Rotating " + isRotating;
-		pinchText.text = "Extruding " + isExtruding;
-
-		isLocked = isPanning || isExtruding || isRotating;
-
-		if (sendTimer < 0) {
-			//sender.GetComponent<ClientController>().sendMessage();
-			sendTimer = 0.05f;
-		}
-		else {
-			sendTimer -= Time.deltaTime;
-		}
+		touchTimer -= Time.deltaTime;
 
 	}
 
 	private void freemoving() {
-		if (Mathf.Abs(turnAngleDelta) > minTurnAngle) {
-			rot += turnAngleDelta;
-		}
-		if (panDelta.magnitude > minPanDistance) {
-			pos += panDelta;
-			panTimer = panDelay;
+		
+		if (touchTimer > 0) {
+			Vector3 panConverted = convertToServer(panDelta);
+			string msg = "Transform\n" + panDelta.x + "," + panDelta.y + "," + panDelta.z + "\n";
+			msg += pinchDelta + "\n";
+			msg += (-turnDelta) + "\n";
+			sender.GetComponent<ClientController>().sendMessage(msg);
 		}
 		if (isExtruding) {
-			verticalScale = maxPlanarScale * extrudeSlider.value;
+			verticalScale = maxVerticalScale * extrudeSlider.value;
+			string msg = "Extruding\n" + verticalScale;
+			sender.GetComponent<ClientController>().sendMessage(msg);
 		}
+		// if (Mathf.Abs(dragDelta) > minDragDist) {
 
-		isPanning = (panTimer > 0);
-		panTimer -= Time.deltaTime;
+		// }
+
 	}
  
 	private void calculate () {
-		pinchDistance = pinchDistanceDelta = 0;
-		turnAngle = turnAngleDelta = 0;
+		dragDelta = 0;
 		panDelta = new Vector3(0, 0, 0);
+		pinchDelta = 0;
  
-		// if two fingers are touching the screen at the same time ...
 		if (Input.touchCount == 2) {
 			Touch touch1 = Input.touches[0];
 			Touch touch2 = Input.touches[1];
  
-			// ... if at least one of them moved ...
 			if (touch1.phase == TouchPhase.Moved || touch2.phase == TouchPhase.Moved) {
+
+				touchTimer = touchDelayTolerance;
 
 				Vector3 panStart = (touch1.position - touch1.deltaPosition + touch2.position - touch2.deltaPosition) / 2;
 				Vector3 panEnd = (touch1.position + touch2.position) / 2;
@@ -138,30 +105,53 @@ public class TouchProcessor : MonoBehaviour
 				else {
 					panDelta = new Vector3(0, 0, 0);
 				}
-			}
-		}
-		else if (Input.touchCount == 1 && !isExtruding) {
-			Touch touch1 = Input.touches[0];
-			if (touch1.phase == TouchPhase.Moved) {
-				turnAngle = Angle(touch1.position, new Vector2(360, 772));
-				float prevTurn = Angle(touch1.position - touch1.deltaPosition, new Vector2(360, 772));
-				turnAngleDelta = Mathf.DeltaAngle(prevTurn, turnAngle);
-				if (Mathf.Abs(turnAngleDelta) > minTurnAngle) {
-					turnAngleDelta *= pinchTurnRatio;
-				} else {
-					turnAngle = turnAngleDelta = 0;
+
+				float pinchStart = ((touch1.position - touch1.deltaPosition) - (touch2.position - touch2.deltaPosition)).magnitude;
+				float pinchEnd = (touch1.position - touch2.position).magnitude;
+
+				pinchDelta = pinchEnd - pinchStart;
+
+				if (Mathf.Abs(pinchDelta) > minPinchDistance) {
+					pinchDelta  *= Camera.main.orthographicSize / 772;
+				}
+				else {
+					pinchDelta = 0;
+				}
+
+				Vector3 startVec = (touch1.position - touch1.deltaPosition) - (touch2.position - touch2.deltaPosition);
+				Vector3 endVec = touch1.position - touch2.position;
+				float turnStart = Vector3.Angle(new Vector3(1, 0, 0), startVec);
+				turnStart = (startVec.y >= 0 ? turnStart : -turnStart);
+				float turnEnd = Vector3.Angle(new Vector3(1, 0, 0), endVec);
+				turnEnd = (endVec.y >= 0 ? turnEnd : -turnEnd);
+
+				turnDelta = turnEnd - turnStart;
+
+				if (Mathf.Abs(turnDelta) > minTurnDistance) {
+					turnDelta *= 1;
+				}
+				else {
+					turnDelta = 0;
 				}
 			}
-			else if (touch1.phase == TouchPhase.Began) {
-				isRotating = true;
-			}
-			else if (touch1.phase == TouchPhase.Ended) {
-				isRotating = false;
-			}
 		}
+		else if (Input.touchCount == 1) {
+			Touch touch1 = Input.touches[0];
+			
+			if (touch1.position.y > 200 && touch1.position.y < 1400) {
+				if (touch1.phase == TouchPhase.Moved) {
+					float currentDist = Vector2.Distance(touch1.position, dragStartPoint);
+					float prevDist = Vector2.Distance(touch1.position - touch1.deltaPosition, dragStartPoint);
+					dragDelta = currentDist - prevDist;
 
-		if (isExtruding || isPanning) {
-			isRotating = false;
+					if (Mathf.Abs(dragDelta) > minDragDist) {
+						dragDelta *= dragRatio;
+					} else {
+						dragDelta = 0;
+					}
+				}
+			}
+
 		}
 	}
 
@@ -186,25 +176,29 @@ public class TouchProcessor : MonoBehaviour
 		return result;
 	}
 
+	public void resetAll() {
+		Debug.Log("233");
+	}
+
+	private Vector3 convertToServer(Vector3 v) {
+		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
+		v -= origin;
+		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
+	}
+
+	private float multXZ(Vector3 from, Vector3 to) {
+		return from.x * to.x + from.z * to.z;
+	}
+	
 	public void startExtruding() {
 		isExtruding = true;
-		planarScale = 0;
+		verticalScale = 0;
 	}
 
 	public void endExtruding() {
 		isExtruding = false;
 		extrudeSlider.value = 0;
-	}
-
-	public void resetAll() {
-		pos = defaultPos;
-		rot = defaultRot;
-		verticalScale = 0.01f;
-		planarScale = 0f;
-	}
-
-	private enum Phase {
-		scale,
-		freemove
 	}
 }

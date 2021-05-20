@@ -52,9 +52,11 @@ public class MeshManipulator : MonoBehaviour
 
 	//extrude
 	private Mesh extrudedMesh;
-	private float extrudeDist = 0.2f;
+	private float extrudeDist = 0f;
 	private Vector3[] extrudedVertices;
 	private int[] extrudedTriangles;
+	private bool extrudeStarted = false;
+	private float extrudeTimer = 0;
 
 	//taper
 	private Mesh taperedMesh;
@@ -74,7 +76,7 @@ public class MeshManipulator : MonoBehaviour
 		taper
 	}
 
-	private SelectMode smode = SelectMode.selectFace;
+	private SelectMode smode = SelectMode.selectObject;
 	private enum SelectMode {
 		selectFace,
 		selectObject
@@ -95,7 +97,7 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	void Update() {
-
+		debugText.text = state + " " + smode;
 		if (state == Status.freemove) {
 			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
 			foreach (GameObject obj in allObjects) {
@@ -118,7 +120,6 @@ public class MeshManipulator : MonoBehaviour
 				focus();
 				break;
 			case Status.extrude:
-				extrudeDist = (Input.mousePosition.y - 80) / 100;
 				extrude();
 				break;
 			case Status.taper:
@@ -126,16 +127,6 @@ public class MeshManipulator : MonoBehaviour
 				break;
 		}
 		mr.enabled = isHit;
-
-		if (Input.GetMouseButtonDown(0)) {
-			if (state == Status.extrude) {
-				hitObj.GetComponent<MeshFilter>().mesh = extrudedMesh;
-				hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
-				state = Status.freemove;
-				isHit = false;
-				hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
-			}
-		}
 
 		if (touchPosition.magnitude < 10000 && !usePreviousTouch) {
 			prevTouchPosition = touchPosition;
@@ -156,6 +147,7 @@ public class MeshManipulator : MonoBehaviour
 	private void castRay() {
 
 		Vector3 mousePos = touchPosition;
+		mousePos = Input.mousePosition;
 		mousePos.x -= 360;
 		mousePos.y -= 772;
 		mousePos.z = 0;
@@ -378,7 +370,7 @@ public class MeshManipulator : MonoBehaviour
 		extrudedVertices = extrudedMesh.vertices;
 		extrudedTriangles = extrudedMesh.triangles;
 
-		Vector3 localNormal = hitTransform.InverseTransformPoint(selectedNormal + hitObj.transform.position);
+		Vector3 localNormal = hitTransform.InverseTransformPoint(selectedNormal);
 		for (int i=0;i<edgeLength;i++) {
 			extrudedVertices[hitVerticesNum + i * 6 + 2] = hitVertices[edgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 4] = hitVertices[edgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
@@ -399,7 +391,19 @@ public class MeshManipulator : MonoBehaviour
 		constructHighlight();
 		findPosition();
 		hitObj.transform.position = posToFocus;
-		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+		if(extrudeStarted) {
+			extrudeTimer -= Time.deltaTime;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		}
+		if (extrudeTimer < 0) {
+			hitObj.GetComponent<MeshFilter>().mesh = extrudedMesh;
+			hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
+			state = Status.freemove;
+			isHit = false;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		}
 	}
 	
 	private void prepareExtrude() {
@@ -434,6 +438,9 @@ public class MeshManipulator : MonoBehaviour
 		extrudedMesh.triangles = extrudedTriangles;
 
 		state = Status.extrude;
+		extrudeStarted = false;
+		extrudeTimer = touchDelayTolerance;
+
 	}
 	/* #endregion */
 
@@ -502,9 +509,12 @@ public class MeshManipulator : MonoBehaviour
 	private void slice(Vector3 planePos, Vector3 planeNormal) {
 		// x ⋅ planePos - dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
+		Debug.Log(planePos + " " + planeNormal);
+		Debug.DrawLine(planePos, planePos + planeNormal * 5f, Color.white, 5000f, false);
+		Vector3 planeNormalWorld = new Vector3(planeNormal.x, planeNormal.y, planeNormal.z);
 		planePos = hitTransform.InverseTransformPoint(planePos);
-		planeNormal = hitTransform.InverseTransformPoint(planeNormal);
-		Vector3 avoidZeroVector = new Vector3(Random.Range(1f, 5f), Random.Range(1f, 5f), Random.Range(1f, 5f));
+		planeNormal = hitTransform.InverseTransformPoint(planeNormal + hitTransform.position);
+		Vector3 avoidZeroVector = new Vector3(Random.Range(0.01f, 0.02f), Random.Range(0.01f, 0.02f), Random.Range(0.01f, 0.02f));
 		if (planeNormal.x != 0) {
 			avoidZeroVector.x = - (avoidZeroVector.y * planeNormal.y + avoidZeroVector.z * planeNormal.z) / planeNormal.x;
 		}
@@ -515,6 +525,7 @@ public class MeshManipulator : MonoBehaviour
 			avoidZeroVector.z = - (avoidZeroVector.x * planeNormal.x + avoidZeroVector.y * planeNormal.y) / planeNormal.z;
 		}
 		planePos += avoidZeroVector;
+		Debug.Log(hitTransform.position);
 
 		List<Vector3> leftVerticesList = new List<Vector3>();
 		List<Vector3> rightVerticesList = new List<Vector3>();
@@ -730,9 +741,9 @@ public class MeshManipulator : MonoBehaviour
 		for (int i=0;i<cuttingPlaneVerticesList.Count / 3;i++) {
 			for (int j=0;j<3;j++) {
 				leftVertices[i * 3 + j + leftVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
-				leftTriangles[i * 3 + j + leftVerticesList.Count] = i * 3 + j + leftVerticesList.Count;
+				leftTriangles[i * 3 + j + leftVerticesList.Count] = i * 3 + (2 - j) + leftVerticesList.Count;
 				rightVertices[i * 3 + j + rightVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
-				rightTriangles[i * 3 + j + rightVerticesList.Count] = i * 3 + (2 - j) + rightVerticesList.Count;
+				rightTriangles[i * 3 + j + rightVerticesList.Count] = i * 3 + j + rightVerticesList.Count;
 			}
 		}
 
@@ -749,8 +760,8 @@ public class MeshManipulator : MonoBehaviour
 		rightObj.GetComponent<MeshFilter>().mesh = rightMesh;
 		rightObj.GetComponent<MeshCollider>().sharedMesh = rightMesh;
 
-		leftObj.transform.position = leftObj.transform.position + selectedNormal.normalized * 0.25f;
-		rightObj.transform.position = rightObj.transform.position - selectedNormal.normalized * 0.25f;
+		leftObj.transform.position = leftObj.transform.position - planeNormalWorld.normalized * 0.25f;
+		rightObj.transform.position = rightObj.transform.position + planeNormalWorld.normalized * 0.25f;
 
 		leftObj.GetComponent<ObjectController>().isTransformUpdated = true;
 		leftObj.GetComponent<ObjectController>().isMeshUpdated = true;
@@ -823,7 +834,8 @@ public class MeshManipulator : MonoBehaviour
 	public void startSlice() {
 		GameObject slicePlane = GameObject.Find("SlicePlane");
 		if (state == Status.select && smode == SelectMode.selectObject) {
-			slice(slicePlane.transform.position, slicePlane.transform.rotation * new Vector3(0, 1, 0));
+			Vector3 normalTemp = slicePlane.transform.rotation * new Vector3(0, 1, 0);
+			slice(slicePlane.transform.position, normalTemp);
 		}
 	}
 
@@ -837,37 +849,38 @@ public class MeshManipulator : MonoBehaviour
 		}
 	}
 
-	public void pan(Vector3 delta) {
+	public void startTransform(Vector3 panDelta, float pinchDelta, float turnDelta, bool isMainScreen) {
 		if (isHit && smode == SelectMode.selectObject) {
-			hitObj.transform.position += delta;
+			hitObj.transform.position += panDelta;
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			panVisualizer.GetComponent<PanVisualizer>().pan(hitObj.transform.position);
 		}
-	}
 
-	public void pinch(float delta) {
 		if (isHit) {
 			if (smode == SelectMode.selectObject) {
-				hitObj.transform.localScale += new Vector3(delta, delta, delta);
+				hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
 				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			}
 			else if (state == Status.taper) {
-				if (delta > 0){
+				if (pinchDelta > 0){
 					taperStarted = true;
 				}
-				taperScale += delta / 2;
+				taperScale += pinchDelta / 4;
 				taperTimer = touchDelayTolerance;
 			}
 		}
-	}
 
-	public void turn(float angle, bool isMainScreen) {
-		debugText.text = "" + angle;
 		if (isHit && smode == SelectMode.selectObject) {
-			Quaternion rot = Quaternion.AngleAxis(angle, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0)));
+			Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0)));
 			hitObj.transform.rotation = rot * hitObj.transform.rotation;
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 		}
+	}
+
+	public void updateExtrude(float newValue) {
+		extrudeDist = newValue;
+		extrudeTimer = touchDelayTolerance;
+		extrudeStarted = true;
 	}
 
 	public void cancel() {

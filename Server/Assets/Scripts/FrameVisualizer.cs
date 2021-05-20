@@ -15,7 +15,7 @@ public class FrameVisualizer : MonoBehaviour
 	void Start()
 	{
 		Camera cam = Camera.main;
-		camHeight = cam.orthographicSize;
+		camHeight = 10;
 		camWidth = camHeight * cam.aspect;
 
 		lr = GetComponent<LineRenderer>();
@@ -31,7 +31,7 @@ public class FrameVisualizer : MonoBehaviour
 		lr.SetPosition(2, new Vector3(-camWidth, -camHeight, camWidth * 2));
 		lr.SetPosition(3, new Vector3(-camWidth, -camHeight, 0));
 
-		lr.enabled = true;
+		lr.enabled = false;
 		
 	}
 

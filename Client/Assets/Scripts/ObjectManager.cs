@@ -1,11 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ObjectManager : MonoBehaviour
 {
 	public GameObject prefab;
 	public GameObject sender;
+	public Text debugText;
 	private GameObject[] objects;
 
 	private float angle = - Mathf.PI / 2;
@@ -15,23 +17,19 @@ public class ObjectManager : MonoBehaviour
 	void Start()
 	{
 		Camera cam = Camera.main;
-		camHeight = 2f * cam.orthographicSize;
+		camHeight = 10;
 		camWidth = camHeight * cam.aspect;
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
+		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
 		objects = GameObject.FindGameObjectsWithTag("Object");
 	}
 
 	public void updateMesh(string msg) {
 		string[] temp1 = msg.Split('\n');
-		Debug.Log(temp1[1]);
-		Debug.Log(temp1[2]);
-		Debug.Log(temp1[3]);
-		Debug.Log(temp1[4]);
-		Debug.Log(temp1[5]);
 		int index = System.Convert.ToInt32(temp1[1]);
 
 		int verticesNum = System.Convert.ToInt32(temp1[2]);
@@ -60,7 +58,9 @@ public class ObjectManager : MonoBehaviour
 		}
 		if (target == null) {
 			target = Instantiate(prefab, new Vector3(0, 0, 0), Quaternion.identity);
+			target.GetComponent<ObjectController>().index = index;
 		}
+		target.GetComponent<ObjectController>().isMeshUpdated = true;
 
 		Mesh mesh = target.GetComponent<MeshFilter>().mesh;
 		mesh.Clear();
@@ -98,7 +98,7 @@ public class ObjectManager : MonoBehaviour
 		);
 		target.transform.position = convertFromServer(target.transform.position);
 		Quaternion currentRot = target.transform.rotation;
-		currentRot.eulerAngles = new Vector3(
+		currentRot = Quaternion.Euler(
 			System.Convert.ToSingle(rotationStr[0]),
 			System.Convert.ToSingle(rotationStr[1]),
 			System.Convert.ToSingle(rotationStr[2])
@@ -111,11 +111,13 @@ public class ObjectManager : MonoBehaviour
 			System.Convert.ToSingle(scaleStr[2])
 		);
 
+		//debugText.text = target.transform.position + "\n" + target.transform.rotation.eulerAngles + "\n" + target.transform.localScale;
+
 	}
 	private Vector3 convertFromServer(Vector3 v) {
-		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(Mathf.PI - angle) / 2, 0, - camWidth * Mathf.Sin(Mathf.PI - angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(Mathf.PI - angle), 0, - Mathf.Sin(Mathf.PI - angle));
-		Vector3 z = new Vector3(Mathf.Cos(angle - Mathf.PI / 2), 0, Mathf.Sin(angle - Mathf.PI / 2));
+		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, - Mathf.Sin(angle));
+		Vector3 z = new Vector3(Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
 		v -= origin;
 		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
 	}

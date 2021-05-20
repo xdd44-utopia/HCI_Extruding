@@ -30,7 +30,7 @@ public class PanVisualizer : MonoBehaviour
 	void Start()
 	{
 		Camera cam = Camera.main;
-		camHeight = cam.orthographicSize;
+		camHeight = 10;
 		camWidth = camHeight * cam.aspect;
 
 		for (int i=0;i<6;i++) {

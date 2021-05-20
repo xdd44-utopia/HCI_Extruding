@@ -6,14 +6,15 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ClientController : MonoBehaviour {
 
-	public GameObject obj;
 	public GameObject touchProcessor;
 	public GameObject faceTracker;
 	public GameObject objectManager;
 	public Camera renderCamera;
+	public Text debugText;
 
 	private float angle = - Mathf.PI / 2;
 	private float camWidth;
@@ -28,20 +29,53 @@ public class ClientController : MonoBehaviour {
 
 	private bool refreshed = false;
 	private string receivedMessage;
+	private string msgBuffer = "";
 	private int msgCount = -1;
+
+	private bool isConnected = false;
+
+	private float sendTimer = 0;
 	
 	void Start () {
 		Camera cam = Camera.main;
-		camHeight = 2f * cam.orthographicSize;
+		camHeight = 10;
 		camWidth = camHeight * cam.aspect;
 		socketConnection = null;
 	}
 	
 	void Update () {
-		renderCamera.backgroundColor = (socketConnection == null ? disconnectColor : connectColor);
+		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
+		if (!isConnected && socketConnection != null) {
+			renderCamera.backgroundColor = connectColor;
+			isConnected = true;
+			sendMessage("Hello");
+		}
+		while (msgBuffer.Length > 0 && !refreshed) {
+			switch(msgBuffer[0]) {
+				case '?':
+					receivedMessage = "";
+					break;
+				case '!':
+					refreshed = true;
+					break;
+				default:
+					receivedMessage += msgBuffer[0];
+					break;
+			}
+			msgBuffer = msgBuffer.Substring(1);
+		}
 		if (refreshed) {
+			Debug.Log(receivedMessage);
 			getVector();
 			refreshed = false;
+		}
+		if (sendTimer >= 0.1f) {
+			Vector3 accConverted = Input.acceleration;
+			sendMessage("Acc\n" + accConverted.x + "," + accConverted.y + "," + accConverted.z);
+			sendTimer = 0;
+		}
+		else {
+			sendTimer += Time.deltaTime;
 		}
 	}
 	
@@ -70,24 +104,7 @@ public class ClientController : MonoBehaviour {
 						Array.Copy(bytes, 0, incommingData, 0, length);
 						string temp = Encoding.ASCII.GetString(incommingData);
 						Debug.Log("Receiving segment: " + temp);
-						if (temp[0] == '?' && temp[temp.Length - 1] == '!') {
-							temp = temp.Substring(1);
-							temp = temp.Remove(temp.Length - 1);
-							receivedMessage = temp;
-							refreshed = true;
-						}
-						else if (temp[0] == '?') {
-							temp = temp.Substring(1);
-							receivedMessage = temp;
-						}
-						else if (temp[temp.Length - 1] == '!') {
-							temp = temp.Remove(temp.Length - 1);
-							receivedMessage += temp;
-							refreshed = true;
-						}
-						else {
-							receivedMessage += temp;
-						}
+						msgBuffer += temp;
 					}
 				}
 			}
@@ -98,7 +115,7 @@ public class ClientController : MonoBehaviour {
 	}
 	
 	public void sendMessage(string msg) {
-		Debug.Log(msg);
+		//Debug.Log(msg);
 		if (socketConnection == null) {
 			return;
 		}
@@ -107,7 +124,7 @@ public class ClientController : MonoBehaviour {
 				if (stream.CanWrite) {
 					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(msg);
 					stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
-					Debug.Log("Client sent his message - should be received by server");
+					//Debug.Log("Client sent his message - should be received by server");
 				}
 		}
 		catch (SocketException socketException) {
@@ -116,17 +133,17 @@ public class ClientController : MonoBehaviour {
 	}
 
 	private Vector3 convertFromServer(Vector3 v) {
-		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(Mathf.PI - angle) / 2, 0, - camWidth * Mathf.Sin(Mathf.PI - angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(Mathf.PI - angle), 0, - Mathf.Sin(Mathf.PI - angle));
-		Vector3 z = new Vector3(Mathf.Cos(angle - Mathf.PI / 2), 0, Mathf.Sin(angle - Mathf.PI / 2));
+		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, - Mathf.Sin(angle));
+		Vector3 z = new Vector3(Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
 		v -= origin;
 		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
 	}
 
 	private Vector3 convertToServer(Vector3 v) {
-		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(Mathf.PI - angle) / 2, 0, - camWidth * Mathf.Sin(Mathf.PI - angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(Mathf.PI - angle), 0, Mathf.Sin(Mathf.PI - angle));
-		Vector3 z = new Vector3(-Mathf.Cos(angle - Mathf.PI / 2), 0, Mathf.Sin(angle - Mathf.PI / 2));
+		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
 		v -= origin;
 		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
 	}
@@ -145,12 +162,12 @@ public class ClientController : MonoBehaviour {
 				case 'F':
 					string[] temp1 = temp0[1].Split('\n');
 					string[] temp2 = temp1[1].Split(',');
-					faceTracker.GetComponent<FaceTracker>().currentObserve =
-						convertFromServer(new Vector3(
+					faceTracker.GetComponent<FaceTracker>().observeOther =
+						new Vector3(
 							System.Convert.ToSingle(temp2[0]),
 							System.Convert.ToSingle(temp2[1]),
 							System.Convert.ToSingle(temp2[2])
-						));
+						);
 					break;
 				case 'M':
 					objectManager.GetComponent<ObjectManager>().updateMesh(temp0[1]);
@@ -158,17 +175,24 @@ public class ClientController : MonoBehaviour {
 				case 'T':
 					objectManager.GetComponent<ObjectManager>().updateTransform(temp0[1]);
 					break;
+				case 'A':
+					temp1 = temp0[1].Split('\n');
+					GameObject.Find("Angles").GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
+					break;
 			}
 		}
 	}
 
 	public void connect() {
-		string address = "192.168.0.106";
-		//Macbook local connecting to iPhone hotspot: 172.20.10.2
+		string address = "144.214.113.12";
+		//Samsung connecting to SCM: 144.214.113.34
+		//Samsung connecting to CS Lab: 144.214.112.123
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
 		//Samsung connecting to xdd44's wifi: 192.168.0.106
 		//Macbook local connecting to xdd44's wifi: 192.168.0.101
+		//Macbook local connecting to iPhone hotspot: 172.20.10.2
 		//iPhone connecting to iPhone hotspot: 10.150.153.190
+		Debug.Log("233");
 		ConnectToTcpServer(address);
 	}
 

@@ -45,7 +45,7 @@ public class ObjectManager : MonoBehaviour
 					objects[i].transform.position.z + "\n" +
 					objects[i].transform.rotation.eulerAngles.x + "," +
 					objects[i].transform.rotation.eulerAngles.y + "," +
-					objects[i].transform.rotation.eulerAngles.y + "\n" +
+					objects[i].transform.rotation.eulerAngles.z + "\n" +
 					objects[i].transform.localScale.x + "," +
 					objects[i].transform.localScale.y + "," +
 					objects[i].transform.localScale.z + "\n";
@@ -58,5 +58,11 @@ public class ObjectManager : MonoBehaviour
 
 	public int getNum() {
 		return objects.Length;
+	}
+
+	public void angleChanged() {
+		for (int i=0;i<objects.Length;i++) {
+			objects[i].GetComponent<ObjectController>().isTransformUpdated = true;
+		}
 	}
 }

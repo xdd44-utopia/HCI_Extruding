@@ -6,9 +6,7 @@ using UnityEngine.UI;
 public class TouchProcessor : MonoBehaviour
 {
 
-	public GameObject panVisualizer;
 	public GameObject meshManipulator;
-	private GameObject hitObj;
 
 	private Phase phase;
 
@@ -35,6 +33,9 @@ public class TouchProcessor : MonoBehaviour
 	private float touchTimer = 0;
 	private float touchDelayTolerance = 0.1f;
 
+	private float doubleTapTimer = 0;
+	private float doubleTapTolerance = 0.2f;
+
 
 	void Start()
 	{
@@ -45,7 +46,6 @@ public class TouchProcessor : MonoBehaviour
 	void Update()
 	{
 		calculate();
-		hitObj = meshManipulator.GetComponent<MeshManipulator>().hitObj;
 
 		switch (phase) {
 			case Phase.freemove:
@@ -54,14 +54,13 @@ public class TouchProcessor : MonoBehaviour
 		}
 
 		touchTimer -= Time.deltaTime;
+		doubleTapTimer -= Time.deltaTime;
 
 	}
 
 	private void freemoving() {
 		if (touchTimer > 0) {
-			meshManipulator.GetComponent<MeshManipulator>().pan(panDelta);
-			meshManipulator.GetComponent<MeshManipulator>().pinch(pinchDelta);
-			meshManipulator.GetComponent<MeshManipulator>().turn(turnDelta, true);
+			meshManipulator.GetComponent<MeshManipulator>().startTransform(panDelta, pinchDelta, turnDelta, true);
 		}
 		// if (Mathf.Abs(dragDelta) > minDragDist) {
 
@@ -126,11 +125,15 @@ public class TouchProcessor : MonoBehaviour
 		}
 		else if (Input.touchCount == 1) {
 			Touch touch1 = Input.touches[0];
-
-			touchTimer = touchDelayTolerance;
 			
 			if (touch1.position.y > 200 && touch1.position.y < 1400) {
 				meshManipulator.GetComponent<MeshManipulator>().touchPosition = touch1.position;
+				if (touch1.phase == TouchPhase.Began) {
+					if (doubleTapTimer > 0) {
+						meshManipulator.GetComponent<MeshManipulator>().startFocus();
+					}
+					doubleTapTimer = doubleTapTolerance;
+				}
 				if (touch1.phase == TouchPhase.Moved) {
 					float currentDist = Vector2.Distance(touch1.position, dragStartPoint);
 					float prevDist = Vector2.Distance(touch1.position - touch1.deltaPosition, dragStartPoint);

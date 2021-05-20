@@ -22,6 +22,11 @@ Face Track (From server to client):
 - First line "Face"
 - Second Line Vector3
 
+Touching (From client to server):
+- First line "Touch"
+- Second line n
+- Next n line Vector3 position + delta position
+
 Cutting (From client to server):
 - First line "Cutting"
 - Second line touch point in server's space
@@ -34,9 +39,13 @@ Confirm (From client to server)
 
 Pan, Pinch, Turn
 
-```
-Mesh
-5
-F
-F
-```
+
+
+
+
+
+Snap to another screen
+
+Show the angle
+
+Ways to close grid
