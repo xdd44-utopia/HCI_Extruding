@@ -14,7 +14,7 @@ public class SliceController : MonoBehaviour
 	void Update()
 	{
 		float angle = GameObject.Find("SliderController").GetComponent<SliderController>().angle;
-		//transform.rotation = Quaternion.Euler(-90, - angle * 180 / Mathf.PI, 0);
-		transform.rotation = Quaternion.Euler(-90, -65, 0);
+		transform.rotation = Quaternion.Euler(-90, angle * 180 / Mathf.PI, 0);
+		//transform.rotation = Quaternion.Euler(-90, -65, 0);
 	}
 }

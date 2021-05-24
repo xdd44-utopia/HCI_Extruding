@@ -6,7 +6,6 @@ using UnityEngine.UI;
 public class ObjectManager : MonoBehaviour
 {
 	public GameObject prefab;
-	public GameObject sender;
 	public Text debugText;
 	private GameObject[] objects;
 
@@ -75,10 +74,6 @@ public class ObjectManager : MonoBehaviour
 	public void updateTransform(string msg) {
 		string[] temp1 = msg.Split('\n');
 		int index = System.Convert.ToInt32(temp1[1]);
-		Debug.Log(temp1[1]);
-		Debug.Log(temp1[2]);
-		Debug.Log(temp1[3]);
-		Debug.Log(temp1[4]);
 
 		string[] positionStr = temp1[2].Split(',');
 		string[] rotationStr = temp1[3].Split(',');

@@ -15,6 +15,7 @@ public class ServerController : MonoBehaviour {
 	public Text rcvText;
 	public GameObject meshManipulator;
 	public GameObject sliderController;
+	public GameObject touchProcessor;
 	public Camera renderCamera;
 
 	private Color disconnectColor = new Color(0.8156f, 0.3529f, 0.4313f);
@@ -30,9 +31,6 @@ public class ServerController : MonoBehaviour {
 	private float sendTimer = 0;
 
 	private bool isConnected = false;
-
-	private Queue<string> msgBuffer = new Queue<string>();
-	private int msgCount = 0;
 	
 	void Start () {
 		tcpListenerThread = new Thread (new ThreadStart(ListenForIncommingRequests));
@@ -43,11 +41,7 @@ public class ServerController : MonoBehaviour {
 	void Update () {
 		ipText.text = getIPAddress();
 		renderCamera.backgroundColor = (connectedTcpClient == null ? disconnectColor : connectColor);
-		if (isConnected) {
-			while(msgBuffer.Count > 0) {
-				sendBuffer();
-			}
-		}
+		
 		if (refreshed) {
 			rcvText.text = rcvMsg;
 			getVector();
@@ -82,18 +76,9 @@ public class ServerController : MonoBehaviour {
 	}
 
 	public void sendMessage(string msg) {
-		//Debug.Log(msg);
-		msgBuffer.Enqueue(msgCount + ";" + msg);
-		msgCount++;
-	}
-	
-	public void sendBuffer() {
-		if (connectedTcpClient == null || msgBuffer.Count == 0) {
+		if (connectedTcpClient == null) {
 			return;
 		}
-		string msg = msgBuffer.Peek();
-		msgBuffer.Dequeue();
-		
 		try {			
 			NetworkStream stream = connectedTcpClient.GetStream();
 				if (stream.CanWrite) {
@@ -122,15 +107,24 @@ public class ServerController : MonoBehaviour {
 		switch (rcvMsg[0]) {
 			case 'T':
 				string[] temp1 = rcvMsg.Split('\n');
-				string[] panStr = temp1[1].Split(',');
-				Vector3 panDelta = new Vector3(
-					System.Convert.ToSingle(panStr[0]),
-					System.Convert.ToSingle(panStr[1]),
-					System.Convert.ToSingle(panStr[2])
-				);
-				float pinchDelta = System.Convert.ToSingle(temp1[2]);
-				float turnDelta = System.Convert.ToSingle(temp1[3]);
-				meshManipulator.GetComponent<MeshManipulator>().startTransform(panDelta, pinchDelta, turnDelta, false);
+				int touchCount = System.Convert.ToInt32(temp1[1]);
+				Vector3[] touchPos = new Vector3[touchCount];
+				Vector3[] touchPrevPos = new Vector3[touchCount];
+				for (int i=0;i<touchCount;i++) {
+					string[] posStr = temp1[i+2].Split(',');
+					touchPos[i] = new Vector3(
+						System.Convert.ToSingle(posStr[0]),
+						System.Convert.ToSingle(posStr[1]),
+						System.Convert.ToSingle(posStr[2])
+					);
+					touchPrevPos[i] = new Vector3(
+						System.Convert.ToSingle(posStr[3]),
+						System.Convert.ToSingle(posStr[4]),
+						System.Convert.ToSingle(posStr[5])
+					);
+					touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos);
+				}
+				
 				break;
 			case 'E':
 				string extrudeDistStr = rcvMsg.Split('\n')[1];

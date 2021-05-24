@@ -454,6 +454,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   meshManipulator: {fileID: 1929075835}
+  debugText: {fileID: 869907688}
   isLocked: 0
 --- !u!1 &152440743
 GameObject:
@@ -708,7 +709,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 173118145}
   m_LocalRotation: {x: 0.066452384, y: 0.16043025, z: -0.37686956, w: -0.9098437}
-  m_LocalPosition: {x: 2.581, y: 0, z: 0.49}
+  m_LocalPosition: {x: 2.93, y: 0, z: 0.5}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_Children:
   - {fileID: 297741898}
@@ -1342,8 +1343,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 104035597}
-        m_MethodName: resetAll
+      - m_Target: {fileID: 1284008267}
+        m_MethodName: refresh
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1519,7 +1520,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 696330781}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -1566,13 +1567,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 696330781}
-  m_LocalRotation: {x: -0.6903456, y: -0.15304585, z: -0.15304585, w: 0.6903456}
+  m_LocalRotation: {x: -0.61237246, y: -0.3535534, z: -0.3535534, w: 0.61237246}
   m_LocalPosition: {x: 2.2, y: 0, z: 0.05}
   m_LocalScale: {x: 0.2, y: 0.2, z: 0.2}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 9
-  m_LocalEulerAnglesHint: {x: -90, y: -25, z: 0}
+  m_LocalEulerAnglesHint: {x: -90, y: -60, z: 0}
 --- !u!1 &703217867
 GameObject:
   m_ObjectHideFlags: 0
@@ -1704,9 +1705,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 'ReceivedText
-
-'
+  m_Text: Debug
 --- !u!222 &869907689
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -1762,6 +1761,7 @@ MonoBehaviour:
   rcvText: {fileID: 1765123001}
   meshManipulator: {fileID: 1929075835}
   sliderController: {fileID: 1829497068}
+  touchProcessor: {fileID: 104035595}
   renderCamera: {fileID: 1500225672639526283}
 --- !u!1 &918689384
 GameObject:
@@ -2084,7 +2084,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1319728465
 Transform:
   m_ObjectHideFlags: 0
@@ -3324,9 +3324,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   cam: {fileID: 1500225672639526283}
-  debugText: {fileID: 576796818}
+  modeText: {fileID: 576796818}
+  debugText: {fileID: 869907688}
   panVisualizer: {fileID: 1375282340}
   objectManager: {fileID: 1284008265}
+  sender: {fileID: 892375413}
   touchPosition: {x: 0, y: 0, z: 0}
   hitObj: {fileID: 0}
 --- !u!23 &1929075838

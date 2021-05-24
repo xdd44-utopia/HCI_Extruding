@@ -7,7 +7,6 @@ public class SliderController : MonoBehaviour
 {
 	public GameObject sender;
 	public GameObject objectManager;
-
 	public Text debugText;
 
 	[HideInInspector]
@@ -37,11 +36,7 @@ public class SliderController : MonoBehaviour
 		acceThis.y = 0;
 		float angleTemp = Vector3.Angle(acceThis, acceOther);
 
-		//debugText.text = acceThis + "\n" + acceOther + "\n" + angleTemp;
-
 		angleTemp = - angleTemp * Mathf.PI / 180;
-
-		debugText.text = "" + angleTemp * 180 / Mathf.PI;
 
 		if (isActivated) {
 			angle = Mathf.Lerp(angle, angleTemp, Time.deltaTime * 3);
@@ -55,6 +50,8 @@ public class SliderController : MonoBehaviour
 		angle *= 180 / Mathf.PI;
 		//angle = Mathf.Round(angle);
 		angle *= Mathf.PI / 180;
+
+		angle = - Mathf.PI / 3;
 
 		if (Mathf.Abs(angle - prevAngle) > 0.005f) {
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle);

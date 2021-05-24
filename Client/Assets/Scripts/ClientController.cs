@@ -13,6 +13,7 @@ public class ClientController : MonoBehaviour {
 	public GameObject touchProcessor;
 	public GameObject faceTracker;
 	public GameObject objectManager;
+	public GameObject highlightManager;
 	public Camera renderCamera;
 	public Text debugText;
 
@@ -30,7 +31,6 @@ public class ClientController : MonoBehaviour {
 	private bool refreshed = false;
 	private string receivedMessage;
 	private string msgBuffer = "";
-	private int msgCount = -1;
 
 	private bool isConnected = false;
 
@@ -153,39 +153,36 @@ public class ClientController : MonoBehaviour {
 	}
 
 	private void getVector() {
-		string[] temp0 = receivedMessage.Split(';');
-		int msgIndex = System.Convert.ToInt32(temp0[0]);
-		if (msgIndex > msgCount) {
-			sendMessage("Confirm;" + temp0[0]);
-			msgCount++;
-			switch (temp0[1][0]) {
-				case 'F':
-					string[] temp1 = temp0[1].Split('\n');
-					string[] temp2 = temp1[1].Split(',');
-					faceTracker.GetComponent<FaceTracker>().observeOther =
-						new Vector3(
-							System.Convert.ToSingle(temp2[0]),
-							System.Convert.ToSingle(temp2[1]),
-							System.Convert.ToSingle(temp2[2])
-						);
-					break;
-				case 'M':
-					objectManager.GetComponent<ObjectManager>().updateMesh(temp0[1]);
-					break;
-				case 'T':
-					objectManager.GetComponent<ObjectManager>().updateTransform(temp0[1]);
-					break;
-				case 'A':
-					temp1 = temp0[1].Split('\n');
-					GameObject.Find("Angles").GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
-					break;
-			}
+		switch (receivedMessage[0]) {
+			case 'F':
+				string[] temp1 = receivedMessage.Split('\n');
+				string[] temp2 = temp1[1].Split(',');
+				faceTracker.GetComponent<FaceTracker>().observeOther =
+					new Vector3(
+						System.Convert.ToSingle(temp2[0]),
+						System.Convert.ToSingle(temp2[1]),
+						System.Convert.ToSingle(temp2[2])
+					);
+				break;
+			case 'M':
+				objectManager.GetComponent<ObjectManager>().updateMesh(receivedMessage);
+				break;
+			case 'T':
+				objectManager.GetComponent<ObjectManager>().updateTransform(receivedMessage);
+				break;
+			case 'H':
+				highlightManager.GetComponent<HighlightManager>().updateHighlight(receivedMessage);
+				break;
+			case 'A':
+				temp1 = receivedMessage.Split('\n');
+				GameObject.Find("Angles").GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
+				break;
 		}
 	}
 
 	public void connect() {
-		string address = "144.214.113.12";
-		//Samsung connecting to SCM: 144.214.113.34
+		string address = "144.214.112.225";
+		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
 		//Samsung connecting to xdd44's wifi: 192.168.0.106

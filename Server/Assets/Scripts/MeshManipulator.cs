@@ -7,9 +7,11 @@ using UnityEngine.UI;
 public class MeshManipulator : MonoBehaviour
 {
 	public Camera cam;
+	public Text modeText;
 	public Text debugText;
 	public GameObject panVisualizer;
 	public GameObject objectManager;
+	public GameObject sender;
 
 	[HideInInspector]
 	public Vector3 touchPosition;
@@ -97,7 +99,7 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	void Update() {
-		debugText.text = state + " " + smode;
+		modeText.text = state + " " + smode;
 		if (state == Status.freemove) {
 			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
 			foreach (GameObject obj in allObjects) {
@@ -147,7 +149,7 @@ public class MeshManipulator : MonoBehaviour
 	private void castRay() {
 
 		Vector3 mousePos = touchPosition;
-		mousePos = Input.mousePosition;
+		// mousePos = Input.mousePosition;
 		mousePos.x -= 360;
 		mousePos.y -= 772;
 		mousePos.z = 0;
@@ -357,9 +359,31 @@ public class MeshManipulator : MonoBehaviour
 			highlight.triangles = triangleTemps;
 			highlight.MarkModified();
 			highlight.RecalculateNormals();
+
+			string msg =
+				"Highlight\n" + 
+				"Face\n" + 
+				hitObj.GetComponent<ObjectController>().index + "\n";
+			msg += vertexTemps.Length + "\n";
+			for (int j=0;j<vertexTemps.Length;j++) {
+				msg += vertexTemps[j].x + "," + vertexTemps[j].y + "," + vertexTemps[j].z + ",";
+			}
+			msg += "\n";
+			msg += triangleTemps.Length + "\n";
+			for (int j=0;j<triangleTemps.Length;j++) {
+				msg += triangleTemps[j] + ",";
+			}
+			msg += "\n";
+			sender.GetComponent<ServerController>().sendMessage(msg);
 		}
 		else {
 			hitRenderer.material.SetColor("_Color", Color.yellow);
+
+			string msg =
+				"Highlight\n" + 
+				"Object\n" + 
+				hitObj.GetComponent<ObjectController>().index + "\n";
+			sender.GetComponent<ServerController>().sendMessage(msg);
 		}
 	}
 	/* #endregion */
@@ -710,40 +734,24 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 
-		GameObject leftObj = hitObj;
-		GameObject rightObj = Instantiate(leftObj, leftObj.transform);
-		rightObj.transform.parent = null;
-		rightObj.transform.position = leftObj.transform.position;
-		rightObj.transform.rotation = leftObj.transform.rotation;
-		rightObj.transform.localScale = leftObj.transform.localScale;
-		Mesh leftMesh = leftObj.GetComponent<MeshFilter>().mesh;
-		Mesh rightMesh = rightObj.GetComponent<MeshFilter>().mesh;
-		leftMesh.Clear();
-		rightMesh.Clear();
+		bool isTrim = true;
 
+		GameObject leftObj = hitObj;
+		Mesh leftMesh = leftObj.GetComponent<MeshFilter>().mesh;
+		leftMesh.Clear();
 		leftMesh.vertices = new Vector3[leftVerticesList.Count + cuttingPlaneVerticesList.Count];
 		leftMesh.triangles = new int[leftVerticesList.Count + cuttingPlaneVerticesList.Count];
 		Vector3[] leftVertices = leftMesh.vertices;
 		int[] leftTriangles = leftMesh.triangles;
-		rightMesh.vertices = new Vector3[rightVerticesList.Count + cuttingPlaneVerticesList.Count];
-		rightMesh.triangles = new int[rightVerticesList.Count + cuttingPlaneVerticesList.Count];
-		Vector3[] rightVertices = rightMesh.vertices;
-		int[] rightTriangles = rightMesh.triangles;
-
 		for (int i=0;i<leftVerticesList.Count;i++) {
 			leftVertices[i] = leftVerticesList[i];
 			leftTriangles[i] = i;
 		}
-		for (int i=0;i<rightVerticesList.Count;i++) {
-			rightVertices[i] = rightVerticesList[i];
-			rightTriangles[i] = i;
-		}
+
 		for (int i=0;i<cuttingPlaneVerticesList.Count / 3;i++) {
 			for (int j=0;j<3;j++) {
 				leftVertices[i * 3 + j + leftVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
-				leftTriangles[i * 3 + j + leftVerticesList.Count] = i * 3 + (2 - j) + leftVerticesList.Count;
-				rightVertices[i * 3 + j + rightVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
-				rightTriangles[i * 3 + j + rightVerticesList.Count] = i * 3 + j + rightVerticesList.Count;
+				leftTriangles[i * 3 + j + leftVerticesList.Count] = i * 3 + j + leftVerticesList.Count;
 			}
 		}
 
@@ -753,21 +761,44 @@ public class MeshManipulator : MonoBehaviour
 		leftMesh.RecalculateNormals();
 		leftObj.GetComponent<MeshFilter>().mesh = leftMesh;
 		leftObj.GetComponent<MeshCollider>().sharedMesh = leftMesh;
-		rightMesh.vertices = rightVertices;
-		rightMesh.triangles = rightTriangles;
-		rightMesh.MarkModified();
-		rightMesh.RecalculateNormals();
-		rightObj.GetComponent<MeshFilter>().mesh = rightMesh;
-		rightObj.GetComponent<MeshCollider>().sharedMesh = rightMesh;
 
-		leftObj.transform.position = leftObj.transform.position - planeNormalWorld.normalized * 0.25f;
-		rightObj.transform.position = rightObj.transform.position + planeNormalWorld.normalized * 0.25f;
-
+		leftObj.transform.position = leftObj.transform.position - (isTrim ? Vector3.zero : planeNormalWorld.normalized * 0.25f);
 		leftObj.GetComponent<ObjectController>().isTransformUpdated = true;
 		leftObj.GetComponent<ObjectController>().isMeshUpdated = true;
-		rightObj.GetComponent<ObjectController>().isTransformUpdated = true;
-		rightObj.GetComponent<ObjectController>().isMeshUpdated = true;
-		rightObj.GetComponent<ObjectController>().index = objectManager.GetComponent<ObjectManager>().getNum();
+
+		if (!isTrim) {
+			GameObject rightObj = Instantiate(leftObj, leftObj.transform);
+			rightObj.transform.parent = null;
+			rightObj.transform.position = leftObj.transform.position;
+			rightObj.transform.rotation = leftObj.transform.rotation;
+			rightObj.transform.localScale = leftObj.transform.localScale;
+			Mesh rightMesh = rightObj.GetComponent<MeshFilter>().mesh;
+			rightMesh.Clear();
+			rightMesh.vertices = new Vector3[rightVerticesList.Count + cuttingPlaneVerticesList.Count];
+			rightMesh.triangles = new int[rightVerticesList.Count + cuttingPlaneVerticesList.Count];
+			Vector3[] rightVertices = rightMesh.vertices;
+			int[] rightTriangles = rightMesh.triangles;
+			for (int i=0;i<rightVerticesList.Count;i++) {
+				rightVertices[i] = rightVerticesList[i];
+				rightTriangles[i] = i;
+			}
+			for (int i=0;i<cuttingPlaneVerticesList.Count / 3;i++) {
+				for (int j=0;j<3;j++) {
+					rightVertices[i * 3 + j + rightVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
+					rightTriangles[i * 3 + j + rightVerticesList.Count] = i * 3 + (2 - j) + rightVerticesList.Count;
+				}
+			}
+			rightMesh.vertices = rightVertices;
+			rightMesh.triangles = rightTriangles;
+			rightMesh.MarkModified();
+			rightMesh.RecalculateNormals();
+			rightObj.GetComponent<MeshFilter>().mesh = rightMesh;
+			rightObj.GetComponent<MeshCollider>().sharedMesh = rightMesh;
+			rightObj.transform.position = rightObj.transform.position + planeNormalWorld.normalized * 0.25f;
+			rightObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			rightObj.GetComponent<ObjectController>().isMeshUpdated = true;
+			rightObj.GetComponent<ObjectController>().index = objectManager.GetComponent<ObjectManager>().getNum();
+		}
 
 		state = Status.freemove;
 		isHit = false;
@@ -850,10 +881,11 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void startTransform(Vector3 panDelta, float pinchDelta, float turnDelta, bool isMainScreen) {
+		//debugText.text = panDelta.x + " " + panDelta.y + " " + panDelta.z + " " + pinchDelta + " " + turnDelta;
 		if (isHit && smode == SelectMode.selectObject) {
 			hitObj.transform.position += panDelta;
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-			panVisualizer.GetComponent<PanVisualizer>().pan(hitObj.transform.position);
+			//panVisualizer.GetComponent<PanVisualizer>().pan(hitObj.transform.position);
 		}
 
 		if (isHit) {
@@ -871,7 +903,7 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		if (isHit && smode == SelectMode.selectObject) {
-			Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(1, 0, 0)));
+			Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(-1, 0, 0)));
 			hitObj.transform.rotation = rot * hitObj.transform.rotation;
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 		}

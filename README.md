@@ -18,6 +18,14 @@ Transform (From server to client):
 - Fourth line rotation quaternion
 - Fifth line scale
 
+Highlight (From server to client):
+- First line "Highlight"
+- Second line "Object" or "Face"
+- Third line $n$ for nth object OR $nv$ for $nv$ vertices
+- Followed by one line of vertices separated by comma
+- Fourth line $nt$ for $nt$ triangle indices
+- Followed by one line of indices separated by comma
+
 Face Track (From server to client):
 - First line "Face"
 - Second Line Vector3
@@ -25,7 +33,11 @@ Face Track (From server to client):
 Touching (From client to server):
 - First line "Touch"
 - Second line n
-- Next n line Vector3 position + delta position
+- Next n line Vector3 position + previous position
+
+Acceleration (From client to server):
+- First line "Acc"
+- Second line acceleration
 
 Cutting (From client to server):
 - First line "Cutting"
@@ -34,10 +46,6 @@ Cutting (From client to server):
 Extruding (From client to server):
 - First line "Extruding"
 - Second line extruding distance
-
-Confirm (From client to server)
-
-Pan, Pinch, Turn
 
 
 

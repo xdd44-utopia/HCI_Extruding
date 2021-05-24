@@ -65,4 +65,11 @@ public class ObjectManager : MonoBehaviour
 			objects[i].GetComponent<ObjectController>().isTransformUpdated = true;
 		}
 	}
+
+	public void refresh() {
+		for (int i=0;i<objects.Length;i++) {
+			objects[i].GetComponent<ObjectController>().isMeshUpdated = true;
+			objects[i].GetComponent<ObjectController>().isTransformUpdated = true;
+		}
+	}
 }
