@@ -13,6 +13,7 @@ public class SliceController : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
+		transform.position = new Vector3(2.2f, 0, 0.05f);
 		float angle = GameObject.Find("SliderController").GetComponent<SliderController>().angle;
 		transform.rotation = Quaternion.Euler(-90, angle * 180 / Mathf.PI, 0);
 		//transform.rotation = Quaternion.Euler(-90, -65, 0);

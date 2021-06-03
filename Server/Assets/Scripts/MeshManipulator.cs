@@ -115,13 +115,6 @@ public class MeshManipulator : MonoBehaviour
 	void Update() {
 		modeText.text = state + " " + smode;
 		focusText.text = (isFocused ? "Front face aligned" : "No face aligned");
-		if (state == Status.freemove) {
-			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
-			foreach (GameObject obj in allObjects) {
-				Renderer tempRenderer = obj.GetComponent<Renderer>();
-				tempRenderer.material.SetColor("_Color", Color.white);
-			}
-		}
 
 		bool usePreviousTouch = false;
 		if (touchPosition.magnitude > 10000 && touchTimer >= 0) {
@@ -165,6 +158,8 @@ public class MeshManipulator : MonoBehaviour
 
 		Vector3 mousePos = touchPosition;
 		// mousePos = Input.mousePosition;
+		// mousePos -= new Vector3(360, 772, 0);
+		// mousePos *= Camera.main.orthographicSize / 772;
 
 		RaycastHit hit;
 		Vector3 rayStart = (Mathf.Abs(mousePos.z) < 0.01f ? cam.gameObject.transform.position : camOther);
@@ -385,7 +380,6 @@ public class MeshManipulator : MonoBehaviour
 		}
 		else {
 			hitRenderer.material.SetColor("_Color", Color.yellow);
-
 			string msg =
 				"Highlight\n" + 
 				"Object\n" + 
@@ -430,12 +424,7 @@ public class MeshManipulator : MonoBehaviour
 		if (extrudeTimer < 0) {
 			hitObj.GetComponent<MeshFilter>().mesh = extrudedMesh;
 			hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
-			state = Status.freemove;
-			string msg =
-				"Highlight\n" + 
-				"Cnacel\n";
-			sender.GetComponent<ServerController>().sendMessage(msg);
-			isHit = false;
+			cancel();
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 		}
@@ -512,12 +501,7 @@ public class MeshManipulator : MonoBehaviour
 		if (taperTimer < 0) {
 			hitObj.GetComponent<MeshFilter>().mesh = taperedMesh;
 			hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
-			state = Status.freemove;
-			string msg =
-				"Highlight\n" + 
-				"Cnacel\n";
-			sender.GetComponent<ServerController>().sendMessage(msg);
-			isHit = false;
+			cancel();
 			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 		}
 
@@ -815,12 +799,7 @@ public class MeshManipulator : MonoBehaviour
 			rightObj.GetComponent<ObjectController>().index = objectManager.GetComponent<ObjectManager>().getNum();
 		}
 
-		state = Status.freemove;
-		string msg =
-			"Highlight\n" + 
-			"Cnacel\n";
-		sender.GetComponent<ServerController>().sendMessage(msg);
-		isHit = false;
+		cancel();
 	}
 	/* #endregion */
 
@@ -907,11 +886,7 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void switchSelectMode() {
-		state = Status.freemove;
-		string msg =
-			"Highlight\n" + 
-			"Cnacel\n";
-		sender.GetComponent<ServerController>().sendMessage(msg);
+		cancel();
 		if (smode == SelectMode.selectFace) {
 			smode = SelectMode.selectObject;
 		}
@@ -964,6 +939,11 @@ public class MeshManipulator : MonoBehaviour
 			"Highlight\n" + 
 			"Cnacel\n";
 		sender.GetComponent<ServerController>().sendMessage(msg);
+		GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
+		foreach (GameObject obj in allObjects) {
+			Renderer tempRenderer = obj.GetComponent<Renderer>();
+			tempRenderer.material.SetColor("_Color", Color.white);
+		}
 	}
 	/* #endregion */
 }

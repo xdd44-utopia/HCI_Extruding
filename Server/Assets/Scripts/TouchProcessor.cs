@@ -7,6 +7,7 @@ public class TouchProcessor : MonoBehaviour
 {
 
 	public GameObject meshManipulator;
+	public GameObject slicePlane;
 	public GameObject touchPointMark;
 	public Text debugText;
 
@@ -67,7 +68,6 @@ public class TouchProcessor : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		debugText.text = "" + panThisScreen;
 
 		touchCountThisScreen = Input.touchCount;
 		if(touchCountThisScreen > 0) {
@@ -77,7 +77,7 @@ public class TouchProcessor : MonoBehaviour
 				Touch tch = Input.touches[i];
 				touchPosThisScreen[i] = tch.position;
 				touchPosThisScreen[i] -= new Vector3(360, 772, 0);
-				touchPosThisScreen[i] *= Camera.main.orthographicSize / 772; 
+				touchPosThisScreen[i] *= Camera.main.orthographicSize / 772;
 				touchPrevPosThisScreen[i] = tch.position - tch.deltaPosition;
 				touchPrevPosThisScreen[i] -= new Vector3(360, 772, 0);
 				touchPrevPosThisScreen[i] *= Camera.main.orthographicSize / 772; 
@@ -102,12 +102,16 @@ public class TouchProcessor : MonoBehaviour
 		}
 		if (crossScreenSliceTimer <= 0) {
 			processCrossScreenSlice();
+			startSliceThisScreen = Vector3.zero;
+			startSliceOtherScreen = Vector3.zero;
+			endSliceThisScreen = Vector3.zero;
+			endSliceOtherScreen = Vector3.zero;
 		}
 
 		touchTimer -= Time.deltaTime;
 		touchTimerOtherScreen -= Time.deltaTime;
 		doubleTapTimer -= Time.deltaTime;
-		crossScreenSliceTimer -= crossScreenSliceTolerance;
+		crossScreenSliceTimer -= Time.deltaTime;
 
 	}
 	private void calculate () {
@@ -197,7 +201,8 @@ public class TouchProcessor : MonoBehaviour
 			pinchDelta = (pinchEnd - pinchStart);
 
 			if (Mathf.Abs(pinchDelta) > minPinchDistance) {
-				pinchDelta  *= 1;
+				//pinchDelta *= 1;
+				pinchDelta *= 0;
 			}
 			else {
 				pinchDelta = 0;
@@ -211,15 +216,16 @@ public class TouchProcessor : MonoBehaviour
 				endSliceThisScreen = touchPosThisScreen[0];
 				endSliceOtherScreen = touchPosOtherScreen[0];
 			}
+			crossScreenSliceTimer = crossScreenSliceTolerance;
+
 		}
 		else if (Input.touchCount == 1) {
-			Touch touch1 = Input.touches[0];
 			
-			//if (touch1.position.y > 200 && touch1.position.y < 1400) {
+			if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
 				meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
 				touchPointMark.transform.position = touchPosThisScreen[0];
 
-				if (doubleTapTimer > 0) {
+				if (doubleTapTimer > doubleTapInterval) {
 					meshManipulator.GetComponent<MeshManipulator>().startFocus();
 				}
 				doubleTapTimer = doubleTapTolerance;
@@ -233,11 +239,11 @@ public class TouchProcessor : MonoBehaviour
 				} else {
 					dragDelta = 0;
 				}
-			//}
+			}
 		}
 		else if (touchCountOtherScreen == 1) {
 			
-			//if (touchPosOtherScreen[0].y > 200 && touchPosOtherScreen[0].y < 1400) {
+			if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2) {
 				meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
 				touchPointMark.transform.position = touchPosOtherScreen[0];
 
@@ -255,13 +261,34 @@ public class TouchProcessor : MonoBehaviour
 				} else {
 					dragDelta = 0;
 				}
-			//}
+			}
 		}
 	}
 
 	private void processCrossScreenSlice() {
 
-		//if ((endSliceThisScreen - startSliceThisScreen))
+		if ((endSliceThisScreen - startSliceThisScreen).magnitude < sliceMinDist || (endSliceOtherScreen - startSliceOtherScreen).magnitude < sliceMinDist) {
+			return;
+		}
+
+		Vector3 centerPos = (startSliceThisScreen + startSliceOtherScreen + endSliceThisScreen + endSliceOtherScreen) / 4;
+		Vector3 normal = crossProduct(startSliceThisScreen - endSliceOtherScreen, startSliceOtherScreen - endSliceThisScreen);
+
+		if (normal.z > 0) {
+			normal = -normal;
+		}
+
+		debugText.text = centerPos + " " + normal;
+
+		Vector3 axisToFocus = crossProduct(normal, new Vector3(0, -1, 0));
+		float angleToFocus = Vector3.Angle(normal, new Vector3(0, -1, 0));
+
+		Quaternion originRotation = Quaternion.identity;
+		originRotation.eulerAngles = new Vector3(0, -1, 0);
+		slicePlane.transform.position = centerPos;
+		slicePlane.transform.rotation = Quaternion.AngleAxis(angleToFocus, axisToFocus) * originRotation;
+		meshManipulator.GetComponent<MeshManipulator>().startSlice();
+
 	}
 	private Vector3 crossProduct(Vector3 a, Vector3 b) {
 		return new Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
@@ -290,8 +317,6 @@ public class TouchProcessor : MonoBehaviour
 		for (int i=0;i<touchCountOtherScreen;i++) {
 			touchPosOtherScreen[i] = touchPos[i];
 			touchPrevPosOtherScreen[i] = touchPrevPos[i];
-			touchPosOtherScreen[i] *= 772 / Camera.main.orthographicSize;
-			touchPrevPosOtherScreen[i] *= 772 / Camera.main.orthographicSize;
 		}
 	}
 	
