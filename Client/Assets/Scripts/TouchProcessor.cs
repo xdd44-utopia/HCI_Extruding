@@ -37,8 +37,8 @@ public class TouchProcessor : MonoBehaviour
 			string msg = "Touch\n" + Input.touchCount + "\n";
 			for (int i=0;i<Input.touchCount;i++) {
 				Touch tch = Input.touches[i];
-				Vector3 currPos = convertToServer(tch.position * Camera.main.orthographicSize / 772);
-				Vector3 prevPos = convertToServer((tch.position - tch.deltaPosition) * Camera.main.orthographicSize / 772);
+				Vector3 currPos = convertToServer(processTouchPoint(tch.position));
+				Vector3 prevPos = convertToServer(processTouchPoint(tch.position - tch.deltaPosition));
 				msg += currPos.x + "," + currPos.y + "," + currPos.z + "," + prevPos.x + "," + prevPos.y + "," + prevPos.z + "\n";
 			}
 			sender.GetComponent<ClientController>().sendMessage(msg);

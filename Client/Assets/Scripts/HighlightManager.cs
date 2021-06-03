@@ -37,7 +37,7 @@ public class HighlightManager : MonoBehaviour
 	public void updateHighlight(string msg) {
 		GameObject[] objects = GameObject.FindGameObjectsWithTag("Object");
 		foreach (GameObject obj in objects) {
-			obj.GetComponent<Renderer>().material.SetColor("_Color", Color.yellow);
+			obj.GetComponent<Renderer>().material.SetColor("_Color", Color.white);
 		}
 		highlight.Clear();
 
@@ -47,23 +47,23 @@ public class HighlightManager : MonoBehaviour
 			int index = System.Convert.ToInt32(temp1[2]);
 			foreach (GameObject obj in objects) {
 				if (obj.GetComponent<ObjectController>().index == index) {
-					obj.GetComponent<Renderer>().material.SetColor("_Color", Color.white);
+					obj.GetComponent<Renderer>().material.SetColor("_Color", Color.yellow);
 					break;
 				}
 			}
 			
 		}
-		else {
+		else if (temp1[1][0] == 'F') {
 
 			int verticesNum = System.Convert.ToInt32(temp1[3]);
 			string[] verticesStr = temp1[4].Split(',');
 			Vector3[] vertices = new Vector3[verticesNum];
 			for (int i=0;i<verticesNum;i++) {
-				vertices[i] = new Vector3(
+				vertices[i] = convertFromServer(new Vector3(
 					System.Convert.ToSingle(verticesStr[i * 3 + 0]),
 					System.Convert.ToSingle(verticesStr[i * 3 + 1]),
 					System.Convert.ToSingle(verticesStr[i * 3 + 2])
-				);
+				));
 			}
 
 			int trianglesNum = System.Convert.ToInt32(temp1[5]);

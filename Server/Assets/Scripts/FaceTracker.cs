@@ -22,7 +22,7 @@ public class FaceTracker : MonoBehaviour
 
 	private Vector3 currentObserve = new Vector3(0, 0, -10f);
 	private Vector3 observe = new Vector3(8.3f, 0, -8.3f);
-	private Vector3 defaultObserve = new Vector3(8.3f, 0, -8.3f);
+	private Vector3 defaultObserve = new Vector3(10f, -1f, -10f);
 	private float correction = 0.2f;
 	private float smoothSpeed = 20f;
 	private float smoothTolerance = 0.01f;

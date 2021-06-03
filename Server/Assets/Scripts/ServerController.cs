@@ -11,7 +11,6 @@ using UnityEngine.UI;
 
 public class ServerController : MonoBehaviour {
 
-	public Text ipText;
 	public Text rcvText;
 	public GameObject meshManipulator;
 	public GameObject sliderController;
@@ -25,7 +24,8 @@ public class ServerController : MonoBehaviour {
 	private TcpListener tcpListener;
 	private Thread tcpListenerThread;
 	private TcpClient connectedTcpClient;
-	private string rcvMsg = "";
+	private string receivedMessage;
+	private string msgBuffer = "";
 	private bool refreshed = false;
 	
 	private float sendTimer = 0;
@@ -39,13 +39,30 @@ public class ServerController : MonoBehaviour {
 	}
 	
 	void Update () {
-		ipText.text = getIPAddress();
+		//ipText.text = getIPAddress();
 		renderCamera.backgroundColor = (connectedTcpClient == null ? disconnectColor : connectColor);
 		
+		while (msgBuffer.Length > 0 && !refreshed) {
+			switch(msgBuffer[0]) {
+				case '?':
+					receivedMessage = "";
+					break;
+				case '!':
+					refreshed = true;
+					break;
+				default:
+					receivedMessage += msgBuffer[0];
+					break;
+			}
+			msgBuffer = msgBuffer.Substring(1);
+		}
+
 		if (refreshed) {
-			rcvText.text = rcvMsg;
-			getVector();
+			if (receivedMessage[0] == 'A') {
+				rcvText.text = receivedMessage;
+			}
 			refreshed = false;
+			getVector();
 		}
 	}
 	
@@ -62,9 +79,8 @@ public class ServerController : MonoBehaviour {
 						while ((length = stream.Read(bytes, 0, bytes.Length)) != 0) {
 							var incommingData = new byte[length];
 							Array.Copy(bytes, 0, incommingData, 0, length);
-							string clientMessage = Encoding.ASCII.GetString(incommingData);
-							rcvMsg = clientMessage;
-							refreshed = true;
+							string temp = Encoding.ASCII.GetString(incommingData);
+							msgBuffer += temp;
 						}
 					}
 				}
@@ -104,9 +120,10 @@ public class ServerController : MonoBehaviour {
 	}
 
 	private void getVector() {
-		switch (rcvMsg[0]) {
+		Debug.Log(receivedMessage);
+		switch (receivedMessage[0]) {
 			case 'T':
-				string[] temp1 = rcvMsg.Split('\n');
+				string[] temp1 = receivedMessage.Split('\n');
 				int touchCount = System.Convert.ToInt32(temp1[1]);
 				Vector3[] touchPos = new Vector3[touchCount];
 				Vector3[] touchPrevPos = new Vector3[touchCount];
@@ -127,14 +144,14 @@ public class ServerController : MonoBehaviour {
 				
 				break;
 			case 'E':
-				string extrudeDistStr = rcvMsg.Split('\n')[1];
+				string extrudeDistStr = receivedMessage.Split('\n')[1];
 				meshManipulator.GetComponent<MeshManipulator>().updateExtrude(System.Convert.ToSingle(extrudeDistStr));
 				break;
 			case 'H':
 				isConnected = true;
 				break;
 			case 'A':
-				temp1 = rcvMsg.Split('\n');
+				temp1 = receivedMessage.Split('\n');
 				string[] temp2 = temp1[1].Split(',');
 				Vector3 acc =
 					new Vector3(
@@ -143,6 +160,17 @@ public class ServerController : MonoBehaviour {
 						System.Convert.ToSingle(temp2[2])
 					);
 				sliderController.GetComponent<SliderController>().acceOther = acc;
+				break;
+			case 'C':
+				temp1 = receivedMessage.Split('\n');
+				string[] temp3 = temp1[1].Split(',');
+				Vector3 camPos =
+					new Vector3(
+						System.Convert.ToSingle(temp3[0]),
+						System.Convert.ToSingle(temp3[1]),
+						System.Convert.ToSingle(temp3[2])
+					);
+				meshManipulator.GetComponent<MeshManipulator>().camOther = camPos;
 				break;
 		}
 	}

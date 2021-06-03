@@ -7,10 +7,17 @@ using UnityEngine.UI;
 public class MeshManipulator : MonoBehaviour
 {
 	public Camera cam;
+	[HideInInspector]
+	public Vector3 camOther;
+	private float camWidth;
+	private float camHeight;
 	public Text modeText;
+
+	public Text focusText;
 	public Text debugText;
 	public GameObject panVisualizer;
 	public GameObject objectManager;
+	public GameObject sliderController;
 	public GameObject sender;
 
 	[HideInInspector]
@@ -18,6 +25,8 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3 prevTouchPosition;
 	private float touchTimer = 0;
 	private float touchDelayTolerance = 0.1f;
+	
+	//hit
 	
 	[HideInInspector]
 	public GameObject hitObj;
@@ -51,6 +60,7 @@ public class MeshManipulator : MonoBehaviour
 	private float angleToFocus;
 	private Vector3 posToFocus;
 	private const float focusSpeed = 25;
+	private bool isFocused = false;
 
 	//extrude
 	private Mesh extrudedMesh;
@@ -96,10 +106,15 @@ public class MeshManipulator : MonoBehaviour
 		highlight.triangles = new int[]{0, 1, 2};
 
 		touchPosition = new Vector3(10000, 10000, 10000);
+
+		Camera cam = Camera.main;
+		camHeight = 2f * cam.orthographicSize;
+		camWidth = camHeight * cam.aspect;
 	}
 
 	void Update() {
 		modeText.text = state + " " + smode;
+		focusText.text = (isFocused ? "Front face aligned" : "No face aligned");
 		if (state == Status.freemove) {
 			GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
 			foreach (GameObject obj in allObjects) {
@@ -150,19 +165,9 @@ public class MeshManipulator : MonoBehaviour
 
 		Vector3 mousePos = touchPosition;
 		// mousePos = Input.mousePosition;
-		mousePos.x -= 360;
-		mousePos.y -= 772;
-		mousePos.z = 0;
-		mousePos *= Camera.main.orthographicSize / 772;
-		Debug.DrawLine(
-			cam.gameObject.transform.position,
-			cam.gameObject.transform.position + 10 * (mousePos - cam.gameObject.transform.position),
-			Color.blue,
-			0.01f,
-			true
-		);
 
 		RaycastHit hit;
+		Vector3 rayStart = (Mathf.Abs(mousePos.z) < 0.01f ? cam.gameObject.transform.position : camOther);
 		if (!Physics.Raycast(cam.gameObject.transform.position, mousePos - cam.gameObject.transform.position, out hit)) {
 			isHit = false;
 		}
@@ -319,10 +324,12 @@ public class MeshManipulator : MonoBehaviour
 		float deltaAngle = angleToFocus - Mathf.Lerp(angleToFocus, 0, focusSpeed * Time.deltaTime);
 		angleToFocus -= deltaAngle;
 		hitObj.transform.rotation = Quaternion.AngleAxis(deltaAngle, axisToFocus) * hitObj.transform.rotation;
+		selectedNormal = Quaternion.AngleAxis(deltaAngle, axisToFocus) * selectedNormal;
 		constructHighlight();
 		if (Mathf.Abs(angleToFocus) < 0.01f) {
 			angleToFocus = 0;
 			state = Status.select;
+			isFocused = true;
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -352,7 +359,7 @@ public class MeshManipulator : MonoBehaviour
 							vertexTemps[i * 3 + j] = hitVertices[hitTriangles[selected[i] * 3 + j]];
 							break;
 					}
-					vertexTemps[i * 3 + j] = hitTransform.TransformPoint(vertexTemps[i * 3 + j]) + 0.01f * selectedNormal.normalized;
+					vertexTemps[i * 3 + j] = hitTransform.TransformPoint(vertexTemps[i * 3 + j]) + 0.001f * selectedNormal.normalized;
 				}
 			}
 			highlight.vertices = vertexTemps;
@@ -424,6 +431,10 @@ public class MeshManipulator : MonoBehaviour
 			hitObj.GetComponent<MeshFilter>().mesh = extrudedMesh;
 			hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
 			state = Status.freemove;
+			string msg =
+				"Highlight\n" + 
+				"Cnacel\n";
+			sender.GetComponent<ServerController>().sendMessage(msg);
 			isHit = false;
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
@@ -502,6 +513,10 @@ public class MeshManipulator : MonoBehaviour
 			hitObj.GetComponent<MeshFilter>().mesh = taperedMesh;
 			hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
 			state = Status.freemove;
+			string msg =
+				"Highlight\n" + 
+				"Cnacel\n";
+			sender.GetComponent<ServerController>().sendMessage(msg);
 			isHit = false;
 			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 		}
@@ -801,6 +816,10 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		state = Status.freemove;
+		string msg =
+			"Highlight\n" + 
+			"Cnacel\n";
+		sender.GetComponent<ServerController>().sendMessage(msg);
 		isHit = false;
 	}
 	/* #endregion */
@@ -848,6 +867,23 @@ public class MeshManipulator : MonoBehaviour
 			state = Status.focus;
 		}
 	}
+	public void startSecondaryFocus() {
+		if (state == Status.select && smode == SelectMode.selectFace && isFocused) {
+			angleToFocus = Vector3.Angle(new Vector3(selectedNormal.x, selectedNormal.y, 0), new Vector3(1, 0, 0));
+			if (selectedNormal.y < 0) {
+				angleToFocus = -angleToFocus;
+			}
+			axisToFocus = new Vector3(0, 0, -1);
+			float angle = sliderController.GetComponent<SliderController>().angle;
+			debugText.text = camWidth / 2 + " " + hitObj.transform.position.z / Mathf.Tan(-angle) + " " + (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude / Mathf.Sin(-angle);
+			posToFocus = new Vector3(
+				camWidth / 2 + hitObj.transform.position.z / Mathf.Tan(-angle) - (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude / Mathf.Sin(-angle) - 0.01f,
+				hitObj.transform.position.y,
+				hitObj.transform.position.z
+			);
+			state = Status.focus;
+		}
+	}
 
 	public void startExtrude() {
 		if (state == Status.select && smode == SelectMode.selectFace) {
@@ -872,6 +908,10 @@ public class MeshManipulator : MonoBehaviour
 
 	public void switchSelectMode() {
 		state = Status.freemove;
+		string msg =
+			"Highlight\n" + 
+			"Cnacel\n";
+		sender.GetComponent<ServerController>().sendMessage(msg);
 		if (smode == SelectMode.selectFace) {
 			smode = SelectMode.selectObject;
 		}
@@ -881,7 +921,9 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void startTransform(Vector3 panDelta, float pinchDelta, float turnDelta, bool isMainScreen) {
-		//debugText.text = panDelta.x + " " + panDelta.y + " " + panDelta.z + " " + pinchDelta + " " + turnDelta;
+		if (!isMainScreen) {
+			isFocused = false;
+		}
 		if (isHit && smode == SelectMode.selectObject) {
 			hitObj.transform.position += panDelta;
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -918,6 +960,10 @@ public class MeshManipulator : MonoBehaviour
 	public void cancel() {
 		state = Status.freemove;
 		isHit = false;
+		string msg =
+			"Highlight\n" + 
+			"Cnacel\n";
+		sender.GetComponent<ServerController>().sendMessage(msg);
 	}
 	/* #endregion */
 }

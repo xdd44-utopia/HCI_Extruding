@@ -27,6 +27,6 @@ public class CameraController : MonoBehaviour
 		fov = Mathf.PI * Camera.VerticalToHorizontalFieldOfView(renderCam.GetComponent<Camera>().fieldOfView, renderCam.GetComponent<Camera>().aspect) / 360f;
 		thisCam.orthographicSize = - camHeight / (eyeHeight * Mathf.Tan(fov) / (renderWidth / 2)) / 2f;
 		transform.position = new Vector3(-renderCam.transform.position.x * (renderWidth / 2) / Mathf.Tan(fov) / eyeHeight, renderCam.transform.position.y * (renderWidth / 2) / Mathf.Tan(fov) / eyeHeight, transform.position.z);
-		renderCam.GetComponent<Camera>().nearClipPlane = - renderCam.transform.position.z - 0.01f;
+		renderCam.GetComponent<Camera>().nearClipPlane = - renderCam.transform.position.z - 0.005f;
 	}
 }

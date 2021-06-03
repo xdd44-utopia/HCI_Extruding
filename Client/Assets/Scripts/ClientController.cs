@@ -66,8 +66,8 @@ public class ClientController : MonoBehaviour {
 		}
 		if (refreshed) {
 			Debug.Log(receivedMessage);
-			getVector();
 			refreshed = false;
+			getVector();
 		}
 		if (sendTimer >= 0.1f) {
 			Vector3 accConverted = Input.acceleration;
@@ -103,7 +103,6 @@ public class ClientController : MonoBehaviour {
 						var incommingData = new byte[length];
 						Array.Copy(bytes, 0, incommingData, 0, length);
 						string temp = Encoding.ASCII.GetString(incommingData);
-						Debug.Log("Receiving segment: " + temp);
 						msgBuffer += temp;
 					}
 				}
@@ -122,7 +121,7 @@ public class ClientController : MonoBehaviour {
 		try {		
 			NetworkStream stream = socketConnection.GetStream();
 				if (stream.CanWrite) {
-					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(msg);
+					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
 					stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
 					//Debug.Log("Client sent his message - should be received by server");
 				}
@@ -181,15 +180,15 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "144.214.112.225";
+		string address = "192.168.0.104";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
-		//Samsung connecting to xdd44's wifi: 192.168.0.106
+		//Samsung connecting to xdd44's wifi: 192.168.0.104
 		//Macbook local connecting to xdd44's wifi: 192.168.0.101
 		//Macbook local connecting to iPhone hotspot: 172.20.10.2
 		//iPhone connecting to iPhone hotspot: 10.150.153.190
-		Debug.Log("233");
+		//Debug.Log("233");
 		ConnectToTcpServer(address);
 	}
 

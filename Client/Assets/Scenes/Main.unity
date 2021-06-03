@@ -583,7 +583,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 5961839263175852153, guid: d7e814f4ce8c04486a0a1284d64f9441, type: 3}
-  debugText: {fileID: 0}
+  debugText: {fileID: 112596419}
 --- !u!1 &256772200
 GameObject:
   m_ObjectHideFlags: 0
@@ -1447,13 +1447,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1469623185}
-  m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
+  m_LocalRotation: {x: 0.21130908, y: -0.7848856, z: 0.36599815, w: 0.45315382}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 6
-  m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+  m_LocalEulerAnglesHint: {x: 50, y: -120, z: 0}
 --- !u!108 &1469623187
 Light:
   m_ObjectHideFlags: 0
@@ -1919,6 +1919,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   renderCam: {fileID: 1500225672639526389}
+  sender: {fileID: 1819280226625799064}
   debugText: {fileID: 112596419}
   observeOther: {x: 0, y: 0, z: -5}
 --- !u!1 &1949242731

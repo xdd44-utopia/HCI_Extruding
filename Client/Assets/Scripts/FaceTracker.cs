@@ -6,11 +6,13 @@ using UnityEngine.UI;
 public class FaceTracker : MonoBehaviour
 {
 	public GameObject renderCam;
+	public GameObject sender;
 	public Text debugText;
 
 	private float camWidth;
 	private float camHeight;
 	private float angle = - Mathf.PI / 2;
+	private float sendTimer = 0;
 
 	[HideInInspector]
 	public Vector3 observeOther = new Vector3(0, 0, -5f);
@@ -29,6 +31,13 @@ public class FaceTracker : MonoBehaviour
 		currentObserve = convertFromServer(observeOther);
 		updateObservation();
 		updateFov();
+		if (sendTimer >= 0.1f) {
+			sender.GetComponent<ClientController>().sendMessage("Camera\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z);
+			sendTimer = 0;
+		}
+		else {
+			sendTimer += Time.deltaTime;
+		}
 	}
 
 	// Update is called once per frame
@@ -45,13 +54,21 @@ public class FaceTracker : MonoBehaviour
 		float fovVertical = Mathf.Atan(-(Mathf.Abs(currentObserve.y) + camHeight / 2) / currentObserve.z) * 2;
 		fovVertical = fovVertical * 180 / Mathf.PI;
 		cam.fieldOfView = (fovVertical > fovHorizontal ? fovVertical : fovHorizontal);
-		debugText.text = angle + " " + renderCam.transform.position;
+		//debugText.text = angle + " " + renderCam.transform.position;
 	}
 
 	private Vector3 convertFromServer(Vector3 v) {
 		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
 		Vector3 x = new Vector3(Mathf.Cos(angle), 0, - Mathf.Sin(angle));
 		Vector3 z = new Vector3(Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
+		v -= origin;
+		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
+	}
+
+	private Vector3 convertToServer(Vector3 v) {
+		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
 		v -= origin;
 		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
 	}

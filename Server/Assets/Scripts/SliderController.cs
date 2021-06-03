@@ -48,10 +48,10 @@ public class SliderController : MonoBehaviour
 		angle = angle < maxAngle ? angle : maxAngle;
 
 		angle *= 180 / Mathf.PI;
-		//angle = Mathf.Round(angle);
+		angle = Mathf.Round(angle);
 		angle *= Mathf.PI / 180;
 
-		angle = - Mathf.PI / 3;
+		angle = - Mathf.PI / 2;
 
 		if (Mathf.Abs(angle - prevAngle) > 0.005f) {
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle);

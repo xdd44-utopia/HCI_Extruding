@@ -72,6 +72,8 @@ public class ObjectManager : MonoBehaviour
 	}
 
 	public void updateTransform(string msg) {
+		
+
 		string[] temp1 = msg.Split('\n');
 		int index = System.Convert.ToInt32(temp1[1]);
 
@@ -84,6 +86,10 @@ public class ObjectManager : MonoBehaviour
 			if (objects[i].GetComponent<ObjectController>().index == index) {
 				target = objects[i];
 			}
+		}
+
+		if (target == null) {
+			return;
 		}
 
 		target.transform.position = new Vector3(
