@@ -58,7 +58,7 @@ public class ServerController : MonoBehaviour {
 		}
 
 		if (refreshed) {
-			if (receivedMessage[0] == 'A') {
+			if (receivedMessage[0] == 'T') {
 				rcvText.text = receivedMessage;
 			}
 			refreshed = false;

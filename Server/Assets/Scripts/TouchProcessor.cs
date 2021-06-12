@@ -9,13 +9,18 @@ public class TouchProcessor : MonoBehaviour
 	public GameObject meshManipulator;
 	public GameObject slicePlane;
 	public GameObject touchPointMark;
+	public GameObject sliceTraceVisualizer;
+	public LineRenderer crossScreenLine;
 	public Text debugText;
+
+	public GameObject[] touchMarks;
 
 
 	[HideInInspector]
 	public bool isLocked;
 	
 	//standard
+	private Vector3 INF = new Vector3(10000, 10000, 10000);
  
 	private const float panRatio = 1;
 	private const float minPanDistance = 0;
@@ -57,7 +62,8 @@ public class TouchProcessor : MonoBehaviour
 	private Vector3 startSliceOtherScreen;
 	private Vector3 endSliceThisScreen;
 	private Vector3 endSliceOtherScreen;
-	private float sliceMinDist = 1f;
+	private float sliceMinDist = 0.5f;
+	private bool slicePrepared = false;
 
 
 	void Start()
@@ -84,6 +90,7 @@ public class TouchProcessor : MonoBehaviour
 			}
 		}
 
+		visualize();
 		calculate();
 
 		if (touchTimer > 0) {
@@ -100,26 +107,45 @@ public class TouchProcessor : MonoBehaviour
 		if (touchTimerOtherScreen <= 0) {
 			touchCountOtherScreen = 0;
 		}
-		if (crossScreenSliceTimer <= 0) {
-			processCrossScreenSlice();
+		if (crossScreenSliceTimer <= 0 && slicePrepared) {
+			meshManipulator.GetComponent<MeshManipulator>().executeSlice();
 			startSliceThisScreen = Vector3.zero;
 			startSliceOtherScreen = Vector3.zero;
 			endSliceThisScreen = Vector3.zero;
 			endSliceOtherScreen = Vector3.zero;
+			slicePlane.GetComponent<SliceController>().locked = false;
+			slicePrepared = false;
 		}
 
+		debugText.text = Time.deltaTime + "";
 		touchTimer -= Time.deltaTime;
 		touchTimerOtherScreen -= Time.deltaTime;
 		doubleTapTimer -= Time.deltaTime;
 		crossScreenSliceTimer -= Time.deltaTime;
 
 	}
+	private void visualize() {
+		for (int i=0;i<touchCountThisScreen;i++) {
+			touchMarks[i].transform.position = touchPosThisScreen[i];
+		}
+		for (int i=touchCountThisScreen;i<4;i++) {
+			touchMarks[i].transform.position = INF;
+		}
+		if (touchCountThisScreen == 1 && touchCountOtherScreen == 1) {
+			crossScreenLine.SetPosition(0, touchPosThisScreen[0]);
+			crossScreenLine.SetPosition(1, touchPosOtherScreen[0]);
+		}
+		else {
+			crossScreenLine.SetPosition(0, INF);
+			crossScreenLine.SetPosition(1, INF);
+		}
+	}
 	private void calculate () {
 		dragDelta = 0;
 		panThisScreen = new Vector3(0, 0, 0);
 		panOtherScreen = new Vector3(0, 0, 0);
 		pinchDelta = 0;
-		meshManipulator.GetComponent<MeshManipulator>().touchPosition = new Vector3(10000, 10000, 10000);
+		meshManipulator.GetComponent<MeshManipulator>().touchPosition = INF;
 
 		if (touchCountThisScreen == 2) {
 
@@ -215,6 +241,9 @@ public class TouchProcessor : MonoBehaviour
 			else {
 				endSliceThisScreen = touchPosThisScreen[0];
 				endSliceOtherScreen = touchPosOtherScreen[0];
+				sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().touchPointThisScreen = endSliceThisScreen;
+				sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().touchPointOtherScreen = endSliceOtherScreen;
+				processCrossScreenSlice();
 			}
 			crossScreenSliceTimer = crossScreenSliceTolerance;
 
@@ -271,22 +300,22 @@ public class TouchProcessor : MonoBehaviour
 			return;
 		}
 
-		Vector3 centerPos = (startSliceThisScreen + startSliceOtherScreen + endSliceThisScreen + endSliceOtherScreen) / 4;
-		Vector3 normal = crossProduct(startSliceThisScreen - endSliceOtherScreen, startSliceOtherScreen - endSliceThisScreen);
+		Vector3 centerPos = (startSliceThisScreen + startSliceOtherScreen) / 2;
+		Vector3 normal = crossProduct(centerPos - endSliceOtherScreen, centerPos - endSliceThisScreen);
 
-		if (normal.z > 0) {
+		if (normal.z < 0) {
 			normal = -normal;
 		}
 
-		debugText.text = centerPos + " " + normal;
-
 		Vector3 axisToFocus = crossProduct(normal, new Vector3(0, -1, 0));
-		float angleToFocus = Vector3.Angle(normal, new Vector3(0, -1, 0));
+		float angleToFocus = -Vector3.Angle(normal, new Vector3(0, -1, 0));
 
 		Quaternion originRotation = Quaternion.identity;
 		originRotation.eulerAngles = new Vector3(0, -1, 0);
+		slicePlane.GetComponent<SliceController>().locked = true;
 		slicePlane.transform.position = centerPos;
 		slicePlane.transform.rotation = Quaternion.AngleAxis(angleToFocus, axisToFocus) * originRotation;
+		slicePrepared = true;
 		meshManipulator.GetComponent<MeshManipulator>().startSlice();
 
 	}

@@ -8,17 +8,22 @@ public class TouchProcessor : MonoBehaviour
 
 	public GameObject sender;
 	public Slider extrudeSlider;
+	public GameObject[] touchMarks;
 	
 	//standard
 
 	private float angle = - Mathf.PI / 2;
 	private float camWidth;
 	private float camHeight;
+	private int touchCountThisScreen = 0;
+	private Vector3[] touchPosThisScreen;
+	private Vector3[] touchPrevPosThisScreen;
 
 	//extrude
 	private bool isExtruding = false;
 	private float verticalScale;
 	private float maxVerticalScale = 1;
+	private float sendTimer = 0;
 
 
 	void Start()
@@ -32,24 +37,40 @@ public class TouchProcessor : MonoBehaviour
 	{
 
 		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
-
-		if (Input.touchCount > 0) {
-			string msg = "Touch\n" + Input.touchCount + "\n";
-			for (int i=0;i<Input.touchCount;i++) {
+		
+		touchCountThisScreen = Input.touchCount;
+		if(touchCountThisScreen > 0) {
+			touchPosThisScreen = new Vector3[touchCountThisScreen];
+			touchPrevPosThisScreen = new Vector3[touchCountThisScreen];
+			for (int i=0;i<touchCountThisScreen;i++) {
 				Touch tch = Input.touches[i];
-				Vector3 currPos = convertToServer(processTouchPoint(tch.position));
-				Vector3 prevPos = convertToServer(processTouchPoint(tch.position - tch.deltaPosition));
+				touchPosThisScreen[i] = tch.position;
+				touchPosThisScreen[i] -= new Vector3(360, 772, 0);
+				touchPosThisScreen[i] *= Camera.main.orthographicSize / 772;
+				touchPrevPosThisScreen[i] = tch.position - tch.deltaPosition;
+				touchPrevPosThisScreen[i] -= new Vector3(360, 772, 0);
+				touchPrevPosThisScreen[i] *= Camera.main.orthographicSize / 772; 
+			}
+		}
+
+		for (int i=0;i<touchCountThisScreen;i++) {
+			touchMarks[i].transform.position = touchPosThisScreen[i];
+		}
+		for (int i=touchCountThisScreen;i<4;i++) {
+			touchMarks[i].transform.position = new Vector3(100, 100, 100);
+		}
+
+		if (touchCountThisScreen > 0 && sendTimer >= 0.06f) {
+			string msg = "Touch\n" + touchCountThisScreen + "\n";
+			for (int i=0;i<touchCountThisScreen;i++) {
+				Vector3 currPos = convertToServer(touchPosThisScreen[i]);
+				Vector3 prevPos = convertToServer(touchPrevPosThisScreen[i]);
 				msg += currPos.x + "," + currPos.y + "," + currPos.z + "," + prevPos.x + "," + prevPos.y + "," + prevPos.z + "\n";
 			}
 			sender.GetComponent<ClientController>().sendMessage(msg);
+			sendTimer = 0;
 		}
-	}
-
-	private Vector3 processTouchPoint(Vector3 v) {
-		v.x -= 360;
-		v.y -= 772;
-		v *= Camera.main.orthographicSize / 772;
-		return v;
+		sendTimer += Time.deltaTime;
 	}
  
 	private float Angle (Vector2 pos1, Vector2 pos2) {

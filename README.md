@@ -29,7 +29,14 @@ Highlight (From server to client):
 Face Track (From server to client):
 - First line "Face"
 - Second Line Vector3
-- 
+
+Slice Visualize (From server to client):
+- First line "Slice"
+- Second Line Vector3 touchPointThisScreen
+- Third Line Vector3 touchPointOtherScreen
+- Fourth Line n
+- Next n Vector3
+
 Camera pos (From client to server):
 - First line "Camera"
 - Second Line Vector3

@@ -14,6 +14,7 @@ public class ClientController : MonoBehaviour {
 	public GameObject faceTracker;
 	public GameObject objectManager;
 	public GameObject highlightManager;
+	public GameObject sliceTraceVisualizer;
 	public Camera renderCamera;
 	public Text debugText;
 
@@ -35,6 +36,7 @@ public class ClientController : MonoBehaviour {
 	private bool isConnected = false;
 
 	private float sendTimer = 0;
+	private Vector3 accPrev = Vector3.zero;
 	
 	void Start () {
 		Camera cam = Camera.main;
@@ -69,7 +71,7 @@ public class ClientController : MonoBehaviour {
 			refreshed = false;
 			getVector();
 		}
-		if (sendTimer >= 0.1f) {
+		if (sendTimer >= 0.1f && Vector3.Angle(accPrev, Input.acceleration) >= 5) {
 			Vector3 accConverted = Input.acceleration;
 			sendMessage("Acc\n" + accConverted.x + "," + accConverted.y + "," + accConverted.z);
 			sendTimer = 0;
@@ -162,6 +164,32 @@ public class ClientController : MonoBehaviour {
 						System.Convert.ToSingle(temp2[1]),
 						System.Convert.ToSingle(temp2[2])
 					);
+				break;
+			case 'S':
+				string[] tempSlice = receivedMessage.Split('\n');
+				string[] tempThisScreen = tempSlice[1].Split(',');
+				string[] tempOtherScreen = tempSlice[2].Split(',');
+				Vector3 touchPointThisScreen = convertFromServer(new Vector3(
+					System.Convert.ToSingle(tempThisScreen[0]),
+					System.Convert.ToSingle(tempThisScreen[1]),
+					System.Convert.ToSingle(tempThisScreen[2])
+				));
+				Vector3 touchPointOtherScreen = convertFromServer(new Vector3(
+					System.Convert.ToSingle(tempOtherScreen[0]),
+					System.Convert.ToSingle(tempOtherScreen[1]),
+					System.Convert.ToSingle(tempOtherScreen[2])
+				));
+				int count = System.Convert.ToInt32(tempSlice[3]);
+				Vector3[] vertices = new Vector3[count];
+				for (int i=0;i<count;i++) {
+					string[] tempVertex = tempSlice[4 + i].Split(',');
+					vertices[i] = convertFromServer(new Vector3(
+						System.Convert.ToSingle(tempVertex[0]),
+						System.Convert.ToSingle(tempVertex[1]),
+						System.Convert.ToSingle(tempVertex[2])
+					));
+				}
+				sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(vertices, touchPointThisScreen, touchPointOtherScreen);
 				break;
 			case 'M':
 				objectManager.GetComponent<ObjectManager>().updateMesh(receivedMessage);

@@ -12,10 +12,16 @@ public class MeshManipulator : MonoBehaviour
 	private float camWidth;
 	private float camHeight;
 	public Text modeText;
-
 	public Text focusText;
 	public Text debugText;
-	public GameObject panVisualizer;
+	public Image selectButton;
+	public Sprite selectFaceSprite;
+	public Sprite selectObjectSprite;
+	public Image measureButton;
+	public Sprite measureRecoverSprite;
+	public Sprite measureRecoveredSprite;
+	//public GameObject panVisualizer;
+	public GameObject sliceTraceVisualizer;
 	public GameObject objectManager;
 	public GameObject sliderController;
 	public GameObject sender;
@@ -25,6 +31,7 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3 prevTouchPosition;
 	private float touchTimer = 0;
 	private float touchDelayTolerance = 0.1f;
+	private Vector3 INF = new Vector3(10000, 10000, 10000);
 	
 	//hit
 	
@@ -39,6 +46,8 @@ public class MeshManipulator : MonoBehaviour
 	private int hitTrianglesNum;
 	private Renderer hitRenderer;
 	private Vector3 centerToHitFace;
+	private bool isTargetFocused = false;
+	private bool isTargetMeasureReal = false;
 
 	private Mesh highlight;
 	private MeshRenderer mr;
@@ -60,7 +69,6 @@ public class MeshManipulator : MonoBehaviour
 	private float angleToFocus;
 	private Vector3 posToFocus;
 	private const float focusSpeed = 25;
-	private bool isFocused = false;
 
 	//extrude
 	private Mesh extrudedMesh;
@@ -78,6 +86,13 @@ public class MeshManipulator : MonoBehaviour
 	private float taperScale;
 	private bool taperStarted = false;
 	private float taperTimer = 0;
+
+	//slice
+	private List<Vector3> leftVerticesList;
+	private List<Vector3> rightVerticesList;
+	private List<Vector3> edgeVerticesList;
+	private List<Vector3> cuttingPlaneVerticesList;
+	private Vector3 planeNormalWorld;
 
 	private Status state = Status.freemove;
 	private enum Status {
@@ -105,7 +120,7 @@ public class MeshManipulator : MonoBehaviour
 		highlight.uv = new Vector2[3];
 		highlight.triangles = new int[]{0, 1, 2};
 
-		touchPosition = new Vector3(10000, 10000, 10000);
+		touchPosition = INF;
 
 		Camera cam = Camera.main;
 		camHeight = 2f * cam.orthographicSize;
@@ -113,8 +128,10 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	void Update() {
-		modeText.text = state + " " + smode;
-		focusText.text = (isFocused ? "Front face aligned" : "No face aligned");
+		modeText.text = state + "";
+		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
+		measureButton.sprite = (isTargetMeasureReal ? measureRecoveredSprite : measureRecoverSprite);
+		focusText.text = (isHit ? (isTargetFocused ? "Front face aligned" : "No face aligned") : "N/A");
 
 		bool usePreviousTouch = false;
 		if (touchPosition.magnitude > 10000 && touchTimer >= 0) {
@@ -163,7 +180,7 @@ public class MeshManipulator : MonoBehaviour
 
 		RaycastHit hit;
 		Vector3 rayStart = (Mathf.Abs(mousePos.z) < 0.01f ? cam.gameObject.transform.position : camOther);
-		if (!Physics.Raycast(cam.gameObject.transform.position, mousePos - cam.gameObject.transform.position, out hit)) {
+		if (!Physics.Raycast(cam.gameObject.transform.position, mousePos - cam.gameObject.transform.position, out hit) || touchPosition.magnitude > 10000) {
 			isHit = false;
 		}
 		else {
@@ -180,6 +197,8 @@ public class MeshManipulator : MonoBehaviour
 				hitTrianglesNum = hitTriangles.Length;
 				hitTransform = hit.collider.transform;
 				hitRenderer = hitObj.GetComponent<Renderer>();
+				isTargetFocused = hitObj.GetComponent<ObjectController>().isFocused;
+				isTargetMeasureReal = hitObj.GetComponent<ObjectController>().isRealMeasure;
 				selectedVertices[0] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]];
 				selectedVertices[1] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 1]];
 				selectedVertices[2] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 2]];
@@ -324,7 +343,8 @@ public class MeshManipulator : MonoBehaviour
 		if (Mathf.Abs(angleToFocus) < 0.01f) {
 			angleToFocus = 0;
 			state = Status.select;
-			isFocused = true;
+			isTargetFocused = true;
+			hitObj.GetComponent<ObjectController>().isFocused = true;
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -529,12 +549,12 @@ public class MeshManipulator : MonoBehaviour
 	/* #endregion */
 
 	/* #region Split */
-	private void slice(Vector3 planePos, Vector3 planeNormal) {
+	private void prepareSlice(Vector3 planePos, Vector3 planeNormal) {
 		// x ⋅ planePos - dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
 		Debug.Log(planePos + " " + planeNormal);
 		Debug.DrawLine(planePos, planePos + planeNormal * 5f, Color.white, 5000f, false);
-		Vector3 planeNormalWorld = new Vector3(planeNormal.x, planeNormal.y, planeNormal.z);
+		planeNormalWorld = new Vector3(planeNormal.x, planeNormal.y, planeNormal.z);
 		planePos = hitTransform.InverseTransformPoint(planePos);
 		planeNormal = hitTransform.InverseTransformPoint(planeNormal + hitTransform.position);
 		Vector3 avoidZeroVector = new Vector3(Random.Range(0.01f, 0.02f), Random.Range(0.01f, 0.02f), Random.Range(0.01f, 0.02f));
@@ -550,9 +570,9 @@ public class MeshManipulator : MonoBehaviour
 		planePos += avoidZeroVector;
 		Debug.Log(hitTransform.position);
 
-		List<Vector3> leftVerticesList = new List<Vector3>();
-		List<Vector3> rightVerticesList = new List<Vector3>();
-		List<Vector3> edgeVerticesList = new List<Vector3>();
+		leftVerticesList = new List<Vector3>();
+		rightVerticesList = new List<Vector3>();
+		edgeVerticesList = new List<Vector3>();
 
 		//Calculate edge of cutting plane & reconstruct faces along the edge
 		int[] triangleSide = new int[hitTrianglesNum / 3]; // -1 left, 0 cross, 1 right
@@ -658,7 +678,7 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		//Construct cutting plane
-		List<Vector3> cuttingPlaneVerticesList = new List<Vector3>();
+		cuttingPlaneVerticesList = new List<Vector3>();
 		while (sortedEdgeVerticesList.Count > 3) {
 			int prevCount = sortedEdgeVerticesList.Count;
 			int loopCount = 0;
@@ -733,6 +753,15 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 
+		Vector3[] cuttingPlaneVertices = new Vector3[cuttingPlaneVerticesList.Count];
+		for (int i=0;i<cuttingPlaneVerticesList.Count;i++){
+			cuttingPlaneVertices[i] = hitTransform.TransformPoint(cuttingPlaneVerticesList[i]);
+		}
+		sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(cuttingPlaneVertices);
+	}
+	
+	public void executeSlice(){
+
 		bool isTrim = true;
 
 		GameObject leftObj = hitObj;
@@ -799,6 +828,7 @@ public class MeshManipulator : MonoBehaviour
 			rightObj.GetComponent<ObjectController>().index = objectManager.GetComponent<ObjectManager>().getNum();
 		}
 
+		sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().endVisualize();
 		cancel();
 	}
 	/* #endregion */
@@ -847,7 +877,7 @@ public class MeshManipulator : MonoBehaviour
 		}
 	}
 	public void startSecondaryFocus() {
-		if (state == Status.select && smode == SelectMode.selectFace && isFocused) {
+		if (state == Status.select && smode == SelectMode.selectFace && isTargetFocused) {
 			angleToFocus = Vector3.Angle(new Vector3(selectedNormal.x, selectedNormal.y, 0), new Vector3(1, 0, 0));
 			if (selectedNormal.y < 0) {
 				angleToFocus = -angleToFocus;
@@ -881,7 +911,7 @@ public class MeshManipulator : MonoBehaviour
 		GameObject slicePlane = GameObject.Find("SlicePlane");
 		if (state == Status.select && smode == SelectMode.selectObject) {
 			Vector3 normalTemp = slicePlane.transform.rotation * new Vector3(0, 1, 0);
-			slice(slicePlane.transform.position, normalTemp);
+			prepareSlice(slicePlane.transform.position, normalTemp);
 		}
 	}
 
@@ -896,19 +926,17 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void startTransform(Vector3 panDelta, float pinchDelta, float turnDelta, bool isMainScreen) {
-		if (!isMainScreen) {
-			isFocused = false;
-		}
-		if (isHit && smode == SelectMode.selectObject) {
-			hitObj.transform.position += panDelta;
-			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-			//panVisualizer.GetComponent<PanVisualizer>().pan(hitObj.transform.position);
-		}
 
 		if (isHit) {
 			if (smode == SelectMode.selectObject) {
+				hitObj.transform.position += panDelta;
+				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 				hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
 				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+				if (!isMainScreen) {
+					isTargetFocused = false;
+					hitObj.GetComponent<ObjectController>().isFocused = false;
+				}
 			}
 			else if (state == Status.taper) {
 				if (pinchDelta > 0){
@@ -932,9 +960,29 @@ public class MeshManipulator : MonoBehaviour
 		extrudeStarted = true;
 	}
 
+	public void recordRealMeasure() {
+		if (isHit) {
+			hitObj.GetComponent<ObjectController>().isRealMeasure = true;
+			hitObj.GetComponent<ObjectController>().realMeasure = hitObj.transform.localScale;
+			isTargetMeasureReal = true;
+		}
+	}
+
+	public void recoverRealMeasure() {
+		if (isHit && !isTargetMeasureReal) {
+			hitObj.GetComponent<ObjectController>().isRealMeasure = true;
+			hitObj.transform.localScale = hitObj.GetComponent<ObjectController>().realMeasure;
+			isTargetMeasureReal = true;
+		}
+	}
+
 	public void cancel() {
 		state = Status.freemove;
 		isHit = false;
+		isTargetFocused = false;
+		isTargetMeasureReal = false;
+		touchPosition = INF;
+		prevTouchPosition = INF;
 		string msg =
 			"Highlight\n" + 
 			"Cnacel\n";

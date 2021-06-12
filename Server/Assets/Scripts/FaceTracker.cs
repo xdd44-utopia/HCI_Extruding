@@ -8,6 +8,9 @@ public class FaceTracker : MonoBehaviour
 	public GameObject sender;
 	public GameObject renderCam;
 	public Text facePosText;
+	public Image observeButton;
+	public Sprite observeFaceTrackingSprite;
+	public Sprite observeFixedCameraSprite;
 	private bool useFaceTrack = false;
 
 	private float camWidth;
@@ -38,6 +41,7 @@ public class FaceTracker : MonoBehaviour
 	}
 
 	void Update() {
+		observeButton.sprite = (useFaceTrack ? observeFaceTrackingSprite : observeFixedCameraSprite);
 		updateObservation();
 		updateFov();
 	}

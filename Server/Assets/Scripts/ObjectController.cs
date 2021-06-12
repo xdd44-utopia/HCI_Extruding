@@ -12,12 +12,20 @@ public class ObjectController : MonoBehaviour
 	public bool isMeshUpdated;
 	[HideInInspector]
 	public int index;
+	[HideInInspector]
+	public bool isFocused;
+	[HideInInspector]
+	public bool isRealMeasure;
+	[HideInInspector]
+	public Vector3 realMeasure = new Vector3(1, 1, 1);
 	// Start is called before the first frame update
 	void Start()
 	{
 		isTransformUpdated = true;
 		isMeshUpdated = true;
 		index = 0;
+		isFocused = false;
+		isRealMeasure = false;
 	}
 
 	// Update is called once per frame
