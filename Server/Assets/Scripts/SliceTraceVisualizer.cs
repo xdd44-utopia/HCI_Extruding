@@ -10,7 +10,6 @@ public class SliceTraceVisualizer : MonoBehaviour
 	[HideInInspector]
 	public Vector3 touchPointOtherScreen;
 	private LineRenderer lineRenderer;
-	private float sendTimer = 0;
 	void Start()
 	{
 		lineRenderer = GetComponent<LineRenderer>();
@@ -18,7 +17,7 @@ public class SliceTraceVisualizer : MonoBehaviour
 
 	void Update()
 	{
-		sendTimer += Time.deltaTime;
+		
 	}
 
 	private bool checkVisible(Vector3 p) {
@@ -86,18 +85,15 @@ public class SliceTraceVisualizer : MonoBehaviour
 			}
 		}
 
-		if (sendTimer > 0.1f) {
-			string msg = "Slice\n";
-			msg += touchPointThisScreen.x + "," + touchPointThisScreen.y + "," + touchPointThisScreen.z + "\n";
-			msg += touchPointOtherScreen.x + "," + touchPointOtherScreen.y + "," + touchPointOtherScreen.z + "\n";
-			msg += lineRenderer.positionCount + "\n";
-			for (int i=0;i < lineRenderer.positionCount;i++) {
-				Vector3 tv = lineRenderer.GetPosition(i);
-				msg += tv.x + "," + tv.y + "," + tv.z + "\n";
-			}
-			sender.GetComponent<ServerController>().sendMessage(msg);
-			sendTimer = 0; 
+		string msg = "Slice\n";
+		msg += touchPointThisScreen.x + "," + touchPointThisScreen.y + "," + touchPointThisScreen.z + "\n";
+		msg += touchPointOtherScreen.x + "," + touchPointOtherScreen.y + "," + touchPointOtherScreen.z + "\n";
+		msg += lineRenderer.positionCount + "\n";
+		for (int i=0;i < lineRenderer.positionCount;i++) {
+			Vector3 tv = lineRenderer.GetPosition(i);
+			msg += tv.x + "," + tv.y + "," + tv.z + "\n";
 		}
+		sender.GetComponent<ServerController>().sendMessage(msg);
 	}
 
 	public void endVisualize() {

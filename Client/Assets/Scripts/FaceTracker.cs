@@ -12,7 +12,6 @@ public class FaceTracker : MonoBehaviour
 	private float camWidth;
 	private float camHeight;
 	private float angle = - Mathf.PI / 2;
-	private float sendTimer = 0;
 
 	[HideInInspector]
 	public Vector3 observeOther = new Vector3(0, 0, -5f);
@@ -31,13 +30,7 @@ public class FaceTracker : MonoBehaviour
 		currentObserve = convertFromServer(observeOther);
 		updateObservation();
 		updateFov();
-		if (sendTimer >= 0.1f) {
-			sender.GetComponent<ClientController>().sendMessage("Camera\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z);
-			sendTimer = 0;
-		}
-		else {
-			sendTimer += Time.deltaTime;
-		}
+		sender.GetComponent<ClientController>().sendMessage("Camera\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z + "\n");
 	}
 
 	// Update is called once per frame

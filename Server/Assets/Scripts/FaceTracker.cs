@@ -93,7 +93,7 @@ public class FaceTracker : MonoBehaviour
 		if (Vector3.Distance(currentObserve, observe) > smoothTolerance) {
 			currentObserve = Vector3.Lerp(currentObserve, observe, smoothSpeed * Time.deltaTime);
 			renderCam.transform.position = currentObserve;
-			string msg = "Face\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z;
+			string msg = "Face\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z + "\n";
 			sender.GetComponent<ServerController>().sendMessage(msg);
 		}
 		facePosText.text = "Face pos: " + currentObserve;

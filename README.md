@@ -3,7 +3,10 @@
 By Unity
 
 ### TCP Message
-Mesh (From server to client):
+
+## From server to client:
+
+Mesh:
 - First line "Mesh"
 - Second Line $n$ for $n$th mesh
 - Third line $nv$ for $nv$ vertices
@@ -11,14 +14,14 @@ Mesh (From server to client):
 - Fourth line $nt$ for $nt$ triangle indices
 - Followed by one line of indices separated by comma
 
-Transform (From server to client):
+Transform:
 - First line "Transform"
 - Second Line $n$ for $n$th objects
 - Third line position
 - Fourth line rotation quaternion
 - Fifth line scale
 
-Highlight (From server to client):
+Highlight:
 - First line "Highlight"
 - Second line "Object" or "Face"
 - Third line $n$ for nth object OR $nv$ for $nv$ vertices
@@ -26,35 +29,38 @@ Highlight (From server to client):
 - Fourth line $nt$ for $nt$ triangle indices
 - Followed by one line of indices separated by comma
 
-Face Track (From server to client):
+Face Track:
 - First line "Face"
 - Second Line Vector3
 
-Slice Visualize (From server to client):
+Slice Visualize 
 - First line "Slice"
 - Second Line Vector3 touchPointThisScreen
 - Third Line Vector3 touchPointOtherScreen
 - Fourth Line n
 - Next n Vector3
 
-Camera pos (From client to server):
-- First line "Camera"
-- Second Line Vector3
+Angle
+- First line "Angle"
+- Second line angle in radius
 
-Touching (From client to server):
+## From client to server:
+
+
+Touching:
 - First line "Touch"
 - Second line n
 - Next n line Vector3 position + previous position
 
-Acceleration (From client to server):
+Acceleration:
 - First line "Acc"
 - Second line acceleration
 
-Cutting (From client to server):
+Cutting:
 - First line "Cutting"
 - Second line touch point in server's space
 
-Extruding (From client to server):
+Extruding:
 - First line "Extruding"
 - Second line extruding distance
 

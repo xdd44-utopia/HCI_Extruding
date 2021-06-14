@@ -985,7 +985,7 @@ public class MeshManipulator : MonoBehaviour
 		prevTouchPosition = INF;
 		string msg =
 			"Highlight\n" + 
-			"Cnacel\n";
+			"Cancel\n";
 		sender.GetComponent<ServerController>().sendMessage(msg);
 		GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
 		foreach (GameObject obj in allObjects) {

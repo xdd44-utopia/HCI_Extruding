@@ -23,7 +23,6 @@ public class TouchProcessor : MonoBehaviour
 	private bool isExtruding = false;
 	private float verticalScale;
 	private float maxVerticalScale = 1;
-	private float sendTimer = 0;
 
 
 	void Start()
@@ -60,7 +59,7 @@ public class TouchProcessor : MonoBehaviour
 			touchMarks[i].transform.position = new Vector3(100, 100, 100);
 		}
 
-		if (touchCountThisScreen > 0 && sendTimer >= 0.06f) {
+		if (touchCountThisScreen > 0) {
 			string msg = "Touch\n" + touchCountThisScreen + "\n";
 			for (int i=0;i<touchCountThisScreen;i++) {
 				Vector3 currPos = convertToServer(touchPosThisScreen[i]);
@@ -68,9 +67,7 @@ public class TouchProcessor : MonoBehaviour
 				msg += currPos.x + "," + currPos.y + "," + currPos.z + "," + prevPos.x + "," + prevPos.y + "," + prevPos.z + "\n";
 			}
 			sender.GetComponent<ClientController>().sendMessage(msg);
-			sendTimer = 0;
 		}
-		sendTimer += Time.deltaTime;
 	}
  
 	private float Angle (Vector2 pos1, Vector2 pos2) {
