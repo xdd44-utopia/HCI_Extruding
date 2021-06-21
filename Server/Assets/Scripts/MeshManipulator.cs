@@ -45,7 +45,6 @@ public class MeshManipulator : MonoBehaviour
 	private Renderer hitRenderer;
 	private Vector3 centerToHitFace;
 	private bool isTargetFocused = false;
-	private bool isTargetMeasureReal = false;
 
 	private Mesh highlight;
 	private MeshRenderer mr;
@@ -128,7 +127,7 @@ public class MeshManipulator : MonoBehaviour
 	void Update() {
 		modeText.text = state + "";
 		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
-		measureButton.sprite = (isTargetMeasureReal ? measureRecoveredSprite : measureRecoverSprite);
+		measureButton.sprite = ((isHit && hitObj.GetComponent<ObjectController>().isRealMeasure) ? measureRecoveredSprite : measureRecoverSprite);
 		focusText.text = (isHit ? (isTargetFocused ? "Front face aligned" : "No face aligned") : "N/A");
 
 		bool usePreviousTouch = false;
@@ -221,8 +220,6 @@ public class MeshManipulator : MonoBehaviour
 		}
 		if (meshCollider != null && meshCollider.sharedMesh != null) {
 
-			debugText.text = " " + Time.deltaTime;
-
 			hitObj = meshCollider.gameObject;
 			hitRenderer = hitObj.GetComponent<Renderer>();
 
@@ -237,7 +234,6 @@ public class MeshManipulator : MonoBehaviour
 				hitTrianglesNum = hitTriangles.Length;
 				hitTransform = hit.collider.transform;
 				isTargetFocused = hitObj.GetComponent<ObjectController>().isFocused;
-				isTargetMeasureReal = hitObj.GetComponent<ObjectController>().isRealMeasure;
 				selectedVertices[0] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]];
 				selectedVertices[1] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 1]];
 				selectedVertices[2] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 2]];
@@ -970,6 +966,9 @@ public class MeshManipulator : MonoBehaviour
 				hitObj.transform.position += panDelta;
 				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 				hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
+				if (pinchDelta != 0) {
+					hitObj.GetComponent<ObjectController>().isRealMeasure = false;
+				}
 				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 				if (!isMainScreen) {
 					isTargetFocused = false;
@@ -1002,15 +1001,13 @@ public class MeshManipulator : MonoBehaviour
 		if (isHit) {
 			hitObj.GetComponent<ObjectController>().isRealMeasure = true;
 			hitObj.GetComponent<ObjectController>().realMeasure = hitObj.transform.localScale;
-			isTargetMeasureReal = true;
 		}
 	}
 
 	public void recoverRealMeasure() {
-		if (isHit && !isTargetMeasureReal) {
+		if (isHit && !hitObj.GetComponent<ObjectController>().isRealMeasure) {
 			hitObj.GetComponent<ObjectController>().isRealMeasure = true;
 			hitObj.transform.localScale = hitObj.GetComponent<ObjectController>().realMeasure;
-			isTargetMeasureReal = true;
 		}
 	}
 
@@ -1018,7 +1015,6 @@ public class MeshManipulator : MonoBehaviour
 		state = Status.freemove;
 		isHit = false;
 		isTargetFocused = false;
-		isTargetMeasureReal = false;
 		touchPosition = INF;
 		prevTouchPosition = INF;
 		string msg =
