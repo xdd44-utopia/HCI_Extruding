@@ -207,7 +207,7 @@ public class ServerController : MonoBehaviour {
 									System.Convert.ToSingle(temp3[1]),
 									System.Convert.ToSingle(temp3[2])
 								);
-							meshManipulator.GetComponent<MeshManipulator>().camOther = camPos;
+							// meshManipulator.GetComponent<MeshManipulator>().camOther = camPos;
 							break;
 					}
 				}

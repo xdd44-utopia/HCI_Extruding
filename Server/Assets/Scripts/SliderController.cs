@@ -16,7 +16,7 @@ public class SliderController : MonoBehaviour
 	public float angle;
 	private float prevAngle = -1;
 
-	private float defaultAngle = 2 * Mathf.PI / 3;
+	private float defaultAngle = - Mathf.PI / 3;
 	private const float minAngle = - Mathf.PI / 2;
 	private const float maxAngle = 0;
 
@@ -53,7 +53,7 @@ public class SliderController : MonoBehaviour
 
 		//angle = - Mathf.PI / 2;
 
-		if (Mathf.Abs(angle - prevAngle) > 0.005f) {
+		if (angle != prevAngle) {
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle + "\n");
 			objectManager.GetComponent<ObjectManager>().angleChanged();
 		}

@@ -9,10 +9,13 @@ public class FaceTracker : MonoBehaviour
 	public GameObject sender;
 	public Text debugText;
 
+	private Camera cam;
 	private float camWidth;
 	private float camHeight;
 	private float angle = - Mathf.PI / 2;
 
+	[HideInInspector]
+	public bool useOrtho = false;
 	[HideInInspector]
 	public Vector3 observeOther = new Vector3(0, 0, -5f);
 
@@ -20,9 +23,9 @@ public class FaceTracker : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
-		Camera cam = Camera.main;
-		camHeight = 2f * cam.orthographicSize;
-		camWidth = camHeight * cam.aspect;
+		cam = renderCam.GetComponent<Camera>();
+		camHeight = 2f * Camera.main.orthographicSize;
+		camWidth = camHeight * Camera.main.aspect;
 	}
 
 	void Update() {
@@ -36,11 +39,18 @@ public class FaceTracker : MonoBehaviour
 	// Update is called once per frame
 	void updateObservation()
 	{
-		renderCam.transform.position = currentObserve;
+		if (useOrtho) {
+			cam.orthographic = true;
+			renderCam.transform.position = new Vector3(0, 0, -5);
+		}
+		else {
+			cam.orthographic = false;
+			renderCam.transform.position = currentObserve;
+		}
 	}
 
 	void updateFov() {
-		Camera cam = renderCam.GetComponent<Camera>();
+		cam.orthographicSize = camHeight / 2;
 		float fovHorizontal = Mathf.Atan(-(Mathf.Abs(currentObserve.x) + camWidth / 2) / currentObserve.z) * 2;
 		fovHorizontal = fovHorizontal * 180 / Mathf.PI;
 		fovHorizontal = Camera.HorizontalToVerticalFieldOfView(fovHorizontal, cam.aspect);

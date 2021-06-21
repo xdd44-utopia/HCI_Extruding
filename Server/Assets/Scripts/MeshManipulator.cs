@@ -7,8 +7,6 @@ using UnityEngine.UI;
 public class MeshManipulator : MonoBehaviour
 {
 	public Camera cam;
-	[HideInInspector]
-	public Vector3 camOther;
 	private float camWidth;
 	private float camHeight;
 	public Text modeText;
@@ -179,8 +177,34 @@ public class MeshManipulator : MonoBehaviour
 		// mousePos *= Camera.main.orthographicSize / 772;
 
 		RaycastHit hit;
-		Vector3 rayStart = (Mathf.Abs(mousePos.z) < 0.01f ? cam.gameObject.transform.position : camOther);
-		if (!Physics.Raycast(cam.gameObject.transform.position, mousePos - cam.gameObject.transform.position, out hit) || touchPosition.magnitude > 10000) {
+		Vector3 rayStart;
+		Vector3 rayDirection;
+
+		float angle = sliderController.GetComponent<SliderController>().angle;
+		if (!cam.orthographic) {
+			rayStart = cam.gameObject.transform.position;
+			rayDirection = mousePos - rayStart;
+		}
+		else {
+			rayStart = mousePos;
+			if (Mathf.Abs(mousePos.z) < 0.01f) {
+				rayDirection = new Vector3(0, 0, 5);
+			}
+			else {
+				rayDirection = new Vector3(- 5 * Mathf.Cos(Mathf.PI / 2 + angle), 0, 5 * Mathf.Sin(Mathf.PI / 2 + angle));
+			}
+		}
+		debugText.text = " " + touchPosition;
+
+		Debug.DrawLine(
+			rayStart,
+			rayStart + rayDirection * 10f,
+			Color.yellow,
+			0.1f,
+			true
+		);
+
+		if (!Physics.Raycast(rayStart, rayDirection, out hit) || touchPosition.magnitude > 10000) {
 			isHit = false;
 		}
 		else {

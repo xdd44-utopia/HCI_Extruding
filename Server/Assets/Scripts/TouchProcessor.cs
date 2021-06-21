@@ -117,7 +117,6 @@ public class TouchProcessor : MonoBehaviour
 			slicePrepared = false;
 		}
 
-		debugText.text = Time.deltaTime + "";
 		touchTimer -= Time.deltaTime;
 		touchTimerOtherScreen -= Time.deltaTime;
 		doubleTapTimer -= Time.deltaTime;
@@ -254,7 +253,7 @@ public class TouchProcessor : MonoBehaviour
 				meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
 				touchPointMark.transform.position = touchPosThisScreen[0];
 
-				if (doubleTapTimer > doubleTapInterval) {
+				if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
 					meshManipulator.GetComponent<MeshManipulator>().startFocus();
 				}
 				doubleTapTimer = doubleTapTolerance;
@@ -276,7 +275,7 @@ public class TouchProcessor : MonoBehaviour
 				meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
 				touchPointMark.transform.position = touchPosOtherScreen[0];
 
-				if (doubleTapTimer > doubleTapInterval) {
+				if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
 					meshManipulator.GetComponent<MeshManipulator>().startSecondaryFocus();
 				}
 				doubleTapTimer = doubleTapTolerance;

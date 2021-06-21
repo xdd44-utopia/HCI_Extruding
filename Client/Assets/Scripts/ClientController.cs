@@ -186,13 +186,19 @@ public class ClientController : MonoBehaviour {
 					switch (receivedMessageSplit[i][0]) {
 						case 'F':
 							string[] temp1 = receivedMessageSplit[i].Split('\n');
-							string[] temp2 = temp1[1].Split(',');
-							faceTracker.GetComponent<FaceTracker>().observeOther =
-								new Vector3(
-									System.Convert.ToSingle(temp2[0]),
-									System.Convert.ToSingle(temp2[1]),
-									System.Convert.ToSingle(temp2[2])
-								);
+							if (temp1[1][0] == 'O') {
+								faceTracker.GetComponent<FaceTracker>().useOrtho = true;
+							}
+							else {
+								faceTracker.GetComponent<FaceTracker>().useOrtho = false;
+								string[] temp2 = temp1[1].Split(',');
+								faceTracker.GetComponent<FaceTracker>().observeOther =
+									new Vector3(
+										System.Convert.ToSingle(temp2[0]),
+										System.Convert.ToSingle(temp2[1]),
+										System.Convert.ToSingle(temp2[2])
+									);
+							}
 							break;
 						case 'S':
 							string[] tempSlice = receivedMessageSplit[i].Split('\n');
