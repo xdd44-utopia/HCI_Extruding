@@ -107,6 +107,7 @@ public class TouchProcessor : MonoBehaviour
 			switch (state) {
 				case Status.singleScreen2This:
 					meshManipulator.GetComponent<MeshManipulator>().startTransform(panThisScreen, 0, turnThisScreen, true);
+					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
 					break;
 				case Status.singleScreen2Other:
 					meshManipulator.GetComponent<MeshManipulator>().startTransform(panOtherScreen, 0, turnOtherScreen, false);
@@ -228,7 +229,20 @@ public class TouchProcessor : MonoBehaviour
 				else {
 					turnThisScreen = 0;
 				}
+				
+				float pinchStart = (touchPrevPosThisScreen[0] - touchPrevPosThisScreen[1]).magnitude;
+				float pinchEnd = (touchPosThisScreen[0] - touchPosThisScreen[1]).magnitude;
+
+				pinchDelta = (pinchEnd - pinchStart);
+
+				if (Mathf.Abs(pinchDelta) > minPinchDistance) {
+					pinchDelta *= 1;
+				}
+				else {
+					pinchDelta = 0;
+				}
 				break;
+
 			}
 			case Status.singleScreen2Other: {
 				Vector3 panStart = (touchPrevPosOtherScreen[0] + touchPrevPosOtherScreen[1]) / 2;

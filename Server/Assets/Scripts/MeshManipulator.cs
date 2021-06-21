@@ -372,11 +372,11 @@ public class MeshManipulator : MonoBehaviour
 		float deltaAngle = angleToFocus - Mathf.Lerp(angleToFocus, 0, focusSpeed * Time.deltaTime);
 		angleToFocus -= deltaAngle;
 		hitObj.transform.rotation = Quaternion.AngleAxis(deltaAngle, axisToFocus) * hitObj.transform.rotation;
-		selectedNormal = Quaternion.AngleAxis(deltaAngle, axisToFocus) * selectedNormal;
 		constructHighlight();
 		if (Mathf.Abs(angleToFocus) < 0.01f) {
 			angleToFocus = 0;
-			state = Status.select;
+			//state = Status.select;
+			prepareTaper();
 			isTargetFocused = true;
 			hitObj.GetComponent<ObjectController>().isFocused = true;
 		}
@@ -546,18 +546,22 @@ public class MeshManipulator : MonoBehaviour
 		taperedMesh.triangles = taperedTriangles;
 		taperedMesh.MarkModified();
 		taperedMesh.RecalculateNormals();
+		
+		hitObj.GetComponent<MeshFilter>().mesh = taperedMesh;
+		hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
+		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 
 		constructHighlight();
 
-		if(taperStarted) {
-			taperTimer -= Time.deltaTime;
-		}
-		if (taperTimer < 0) {
-			hitObj.GetComponent<MeshFilter>().mesh = taperedMesh;
-			hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
-			cancel();
-			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
-		}
+		// if(taperStarted) {
+		// 	taperTimer -= Time.deltaTime;
+		// }
+		// if (taperTimer < 0) {
+		// 	hitObj.GetComponent<MeshFilter>().mesh = taperedMesh;
+		// 	hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
+		// 	cancel();
+		// 	hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		// }
 
 	}
 
@@ -908,6 +912,7 @@ public class MeshManipulator : MonoBehaviour
 	public void startFocus() {
 		if (state == Status.select && smode == SelectMode.selectFace) {
 			state = Status.focus;
+			selectedNormal = new Vector3(0, 0, -1);
 		}
 	}
 	public void startSecondaryFocus() {
@@ -959,28 +964,30 @@ public class MeshManipulator : MonoBehaviour
 		}
 	}
 
+	public void updateTaperScale(float factor) {
+		debugText.text = factor + " " + isHit;
+		if (isHit && state == Status.taper) {
+			if (factor != 0){
+				taperStarted = true;
+			}
+			taperScale += factor / 4;
+			taperTimer = touchDelayTolerance;
+		}
+	}
+
 	public void startTransform(Vector3 panDelta, float pinchDelta, float turnDelta, bool isMainScreen) {
 
-		if (isHit) {
-			if (smode == SelectMode.selectObject) {
-				hitObj.transform.position += panDelta;
-				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-				hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
-				if (pinchDelta != 0) {
-					hitObj.GetComponent<ObjectController>().isRealMeasure = false;
-				}
-				hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-				if (!isMainScreen) {
-					isTargetFocused = false;
-					hitObj.GetComponent<ObjectController>().isFocused = false;
-				}
+		if (isHit && smode == SelectMode.selectObject) {
+			hitObj.transform.position += panDelta;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
+			if (pinchDelta != 0) {
+				hitObj.GetComponent<ObjectController>().isRealMeasure = false;
 			}
-			else if (state == Status.taper) {
-				if (pinchDelta > 0){
-					taperStarted = true;
-				}
-				taperScale += pinchDelta / 4;
-				taperTimer = touchDelayTolerance;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			if (!isMainScreen) {
+				isTargetFocused = false;
+				hitObj.GetComponent<ObjectController>().isFocused = false;
 			}
 		}
 
