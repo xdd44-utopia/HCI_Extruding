@@ -161,7 +161,9 @@ public class MeshManipulator : MonoBehaviour
 			touchTimer -= Time.deltaTime;
 		}
 		if (touchTimer < 0 && isHit) {
-			findEdge();
+			if (smode == SelectMode.selectFace) {
+				findEdge();
+			}
 			select();
 		}
 
@@ -194,7 +196,6 @@ public class MeshManipulator : MonoBehaviour
 				rayDirection = new Vector3(- 5 * Mathf.Cos(Mathf.PI / 2 + angle), 0, 5 * Mathf.Sin(Mathf.PI / 2 + angle));
 			}
 		}
-		debugText.text = " " + touchPosition;
 
 		Debug.DrawLine(
 			rayStart,
@@ -204,13 +205,28 @@ public class MeshManipulator : MonoBehaviour
 			true
 		);
 
+		MeshCollider meshCollider;
 		if (!Physics.Raycast(rayStart, rayDirection, out hit) || touchPosition.magnitude > 10000) {
-			isHit = false;
+			if (smode == SelectMode.selectObject) {
+				GameObject defaultObj = GameObject.FindGameObjectsWithTag("Object")[0];
+				meshCollider = defaultObj.GetComponent<MeshCollider>();
+			}
+			else {
+				isHit = false;
+				return;
+			}
 		}
 		else {
-			MeshCollider meshCollider = hit.collider as MeshCollider;
-			if (meshCollider != null && meshCollider.sharedMesh != null) {
-				hitObj = meshCollider.gameObject;
+			meshCollider = hit.collider as MeshCollider;
+		}
+		if (meshCollider != null && meshCollider.sharedMesh != null) {
+
+			debugText.text = " " + Time.deltaTime;
+
+			hitObj = meshCollider.gameObject;
+			hitRenderer = hitObj.GetComponent<Renderer>();
+
+			if (smode == SelectMode.selectFace) {
 				hitMesh = meshCollider.sharedMesh;
 				selectedFaceIndex = hit.triangleIndex;
 				selectedNormal = hit.normal;
@@ -220,19 +236,17 @@ public class MeshManipulator : MonoBehaviour
 				hitTriangles = hitMesh.triangles;
 				hitTrianglesNum = hitTriangles.Length;
 				hitTransform = hit.collider.transform;
-				hitRenderer = hitObj.GetComponent<Renderer>();
 				isTargetFocused = hitObj.GetComponent<ObjectController>().isFocused;
 				isTargetMeasureReal = hitObj.GetComponent<ObjectController>().isRealMeasure;
 				selectedVertices[0] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]];
 				selectedVertices[1] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 1]];
 				selectedVertices[2] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 2]];
-
 				findPosition();
 				findCoplanar();
-				constructHighlight();
 			}
-			isHit = true;
+			constructHighlight();
 		}
+		isHit = true;
 	}
 
 	private void findPosition() {
