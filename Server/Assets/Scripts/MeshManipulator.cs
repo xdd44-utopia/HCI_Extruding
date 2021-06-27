@@ -222,17 +222,17 @@ public class MeshManipulator : MonoBehaviour
 
 			hitObj = meshCollider.gameObject;
 			hitRenderer = hitObj.GetComponent<Renderer>();
+			hitMesh = meshCollider.sharedMesh;
+			hitTransform = meshCollider.transform;
+			hitVertices = hitMesh.vertices;
+			hitTriangles = hitMesh.triangles;
+			hitVerticesNum = hitVertices.Length;
+			hitTrianglesNum = hitTriangles.Length;
+			hituv = hitMesh.uv;
 
 			if (smode == SelectMode.selectFace) {
-				hitMesh = meshCollider.sharedMesh;
 				selectedFaceIndex = hit.triangleIndex;
 				selectedNormal = hit.normal;
-				hitVertices = hitMesh.vertices;
-				hitVerticesNum = hitVertices.Length;
-				hituv = hitMesh.uv;
-				hitTriangles = hitMesh.triangles;
-				hitTrianglesNum = hitTriangles.Length;
-				hitTransform = hit.collider.transform;
 				isTargetFocused = hitObj.GetComponent<ObjectController>().isFocused;
 				selectedVertices[0] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]];
 				selectedVertices[1] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 1]];
@@ -546,7 +546,7 @@ public class MeshManipulator : MonoBehaviour
 		taperedMesh.triangles = taperedTriangles;
 		taperedMesh.MarkModified();
 		taperedMesh.RecalculateNormals();
-		
+
 		hitObj.GetComponent<MeshFilter>().mesh = taperedMesh;
 		hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
 		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
@@ -590,7 +590,6 @@ public class MeshManipulator : MonoBehaviour
 	private void prepareSlice(Vector3 planePos, Vector3 planeNormal) {
 		// x ⋅ planePos - dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
-		Debug.Log(planePos + " " + planeNormal);
 		Debug.DrawLine(planePos, planePos + planeNormal * 5f, Color.white, 5000f, false);
 		planeNormalWorld = new Vector3(planeNormal.x, planeNormal.y, planeNormal.z);
 		planePos = hitTransform.InverseTransformPoint(planePos);
@@ -606,7 +605,6 @@ public class MeshManipulator : MonoBehaviour
 			avoidZeroVector.z = - (avoidZeroVector.x * planeNormal.x + avoidZeroVector.y * planeNormal.y) / planeNormal.z;
 		}
 		planePos += avoidZeroVector;
-		Debug.Log(hitTransform.position);
 
 		leftVerticesList = new List<Vector3>();
 		rightVerticesList = new List<Vector3>();
@@ -715,6 +713,12 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 
+		Vector3[] sortedEdgeVertices = new Vector3[sortedEdgeVerticesList.Count];
+		for (int i=0;i<sortedEdgeVerticesList.Count;i++){
+			sortedEdgeVertices[i] = hitTransform.TransformPoint(sortedEdgeVerticesList[i]);
+		}
+		sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(sortedEdgeVertices);
+
 		//Construct cutting plane
 		cuttingPlaneVerticesList = new List<Vector3>();
 		while (sortedEdgeVerticesList.Count > 3) {
@@ -795,7 +799,6 @@ public class MeshManipulator : MonoBehaviour
 		for (int i=0;i<cuttingPlaneVerticesList.Count;i++){
 			cuttingPlaneVertices[i] = hitTransform.TransformPoint(cuttingPlaneVerticesList[i]);
 		}
-		sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(cuttingPlaneVertices);
 	}
 	
 	public void executeSlice(){
@@ -965,7 +968,6 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void updateTaperScale(float factor) {
-		debugText.text = factor + " " + isHit;
 		if (isHit && state == Status.taper) {
 			if (factor != 0){
 				taperStarted = true;

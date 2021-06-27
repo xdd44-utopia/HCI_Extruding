@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SliceTraceVisualizer : MonoBehaviour
 {
@@ -9,6 +10,8 @@ public class SliceTraceVisualizer : MonoBehaviour
 	public Vector3 touchPointThisScreen;
 	[HideInInspector]
 	public Vector3 touchPointOtherScreen;
+
+	public Text debugText;
 	private LineRenderer lineRenderer;
 	void Start()
 	{
@@ -17,7 +20,8 @@ public class SliceTraceVisualizer : MonoBehaviour
 
 	void Update()
 	{
-		
+		// touchPointThisScreen = new Vector3(0, 0, 0);
+		// touchPointOtherScreen = new Vector3(1, 0, 0);
 	}
 
 	private bool checkVisible(Vector3 p) {
@@ -26,22 +30,10 @@ public class SliceTraceVisualizer : MonoBehaviour
 	}
 
 	private Vector3 getIntersection(Vector3 s, Vector3 t) {
-		float k1 = (touchPointThisScreen.y - touchPointOtherScreen.y) / (touchPointThisScreen.x - touchPointOtherScreen.x);
-		//y = k1 * (x - touchPointThisScreen.x) + touchPointThisScreen.y
-		float k2 = (s.y - t.y) / (s.x - t.x);
-		//y = k2 * (x - s.x) + s.y
-		float kz = (s.z - t.z) / (s.x - t.x);
-		//y = kz * (x - s.x) + s.z
-
-		//k1 * (x - touchPointThisScreen.x) + touchPointThisScreen.y = k2 * (x - s.x) + s.y
-		//(k1 - k2)x = k1 * touchPointThisScreen.x - k2 * s.x - touchPointThisScreen.y + s.y
-		//x = (k1 * touchPointThisScreen.x - k2 * s.x - touchPointThisScreen.y + s.y) / (k1 - k2)
-		//y = k2 * (x - s.x) + s.y
-		float x = (k1 * touchPointThisScreen.x - k2 * s.x - touchPointThisScreen.y + s.y) / (k1 - k2);
-		float y = k2 * (x - s.x) + s.y;
-		float z = kz * (x - s.x) + s.z;
-
-		return new Vector3(x, y, z);
+		Vector3 p1 = touchPointThisScreen - touchPointOtherScreen;
+		Vector3 p2 = new Vector3(-p1.z, 0, p1.x);
+		Vector3 pn = crossProduct(p1, p2);
+		return intersectLinePlane(s, t, (touchPointThisScreen+touchPointOtherScreen)/2, pn);
 	}
 
 	public void updateCuttingPlane(Vector3[] vertices) {
@@ -71,18 +63,21 @@ public class SliceTraceVisualizer : MonoBehaviour
 		}
 		else {
 			List<Vector3> visibleList = new List<Vector3>();
-			visibleList.Add(getIntersection(vertices[(visibleStart + count - 1) % count], vertices[visibleStart]) + new Vector3(0.005f, 0, -0.005f));
+			Vector3 startVertex = getIntersection(vertices[(visibleStart + count - 1) % count], vertices[visibleStart]) + new Vector3(0.005f, 0, -0.005f);
+			visibleList.Add(startVertex);
 			int pos = visibleStart;
 			while (isVisible[pos]) {
 				visibleList.Add(vertices[pos] + new Vector3(0.005f, 0, -0.005f));
 				pos++;
 				pos %= count;
 			}
-			visibleList.Add(getIntersection(vertices[(pos + count - 1) % count], vertices[pos]) + new Vector3(0.005f, 0, -0.005f));
+			Vector3 endVertex = getIntersection(vertices[(pos + count - 1) % count], vertices[pos]) + new Vector3(0.005f, 0, -0.005f);
+			visibleList.Add(endVertex);
 			lineRenderer.positionCount = visibleList.Count;
 			for (int i=0;i<visibleList.Count;i++) {
 				lineRenderer.SetPosition(i, visibleList[i]);
 			}
+
 		}
 
 		string msg = "Slice\n";
@@ -94,6 +89,16 @@ public class SliceTraceVisualizer : MonoBehaviour
 			msg += tv.x + "," + tv.y + "," + tv.z + "\n";
 		}
 		sender.GetComponent<ServerController>().sendMessage(msg);
+	}
+	private Vector3 crossProduct(Vector3 a, Vector3 b) {
+		return new Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+	}
+	private float dotProduct(Vector3 a, Vector3 b) {
+		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+	private Vector3 intersectLinePlane(Vector3 a, Vector3 b, Vector3 p, Vector3 n) { //line passes a and b, plane passes p with normal n
+		float t = (dotProduct(p, n) - dotProduct(a, n)) / dotProduct(n, a - b);
+		return a + t * (a - b);
 	}
 
 	public void endVisualize() {

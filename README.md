@@ -68,5 +68,4 @@ Extruding:
 
 todo
 1. debug the flickering of selection plane 
-2. finger to taper a face after snapping the face to the screen
-3. cutting: visualize the starting points or fix the first cutting points
+2. cutting: visualize the starting points or fix the first cutting points

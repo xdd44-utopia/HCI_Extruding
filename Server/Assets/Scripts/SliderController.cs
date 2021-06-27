@@ -51,7 +51,7 @@ public class SliderController : MonoBehaviour
 		angle = Mathf.Round(angle);
 		angle *= Mathf.PI / 180;
 
-		//angle = - Mathf.PI / 2;
+		// angle = - Mathf.PI / 3;
 
 		if (angle != prevAngle) {
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle + "\n");
