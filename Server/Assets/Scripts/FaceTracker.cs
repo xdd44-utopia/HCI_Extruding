@@ -19,6 +19,9 @@ public class FaceTracker : MonoBehaviour
 	private Camera cam;
 	private float camWidth;
 	private float camHeight;
+
+	[HideInInspector]
+	public Vector3 faceOther;
 	
 	[HideInInspector]
 	public bool increaseX = false;
@@ -45,6 +48,7 @@ public class FaceTracker : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
+		faceOther = Vector3.zero;
 		cam = renderCam.GetComponent<Camera>();
 		camHeight = 2f * Camera.main.orthographicSize;
 		camWidth = camHeight * Camera.main.aspect;
@@ -69,35 +73,45 @@ public class FaceTracker : MonoBehaviour
 		else {
 			if (useFaceTrack) {
 				GameObject[] objects = GameObject.FindGameObjectsWithTag("Player");
-				GameObject testObj = new GameObject();
-				Instantiate(testObj, objects[0].transform.position, Quaternion.identity);
-				testObj.transform.position = objects[0].transform.position;
-				objects = GameObject.FindGameObjectsWithTag("FacePosition");
-				testObj.transform.RotateAround(
-					new Vector3(0f, 0f, 0f),
-					new Vector3(0f, 1f, 0f),
-					-objects[0].transform.rotation.eulerAngles.y
-				);
-				testObj.transform.RotateAround(
-					new Vector3(0f, 0f, 0f),
-					new Vector3(1f, 0f, 0f),
-					-objects[0].transform.rotation.eulerAngles.x
-				);
-				testObj.transform.RotateAround(
-					new Vector3(0f, 0f, 0f),
-					new Vector3(0f, 0f, 1f),
-					-objects[0].transform.rotation.eulerAngles.z
-				);
-				observe = new Vector3(
-					-testObj.transform.position.x,
-					testObj.transform.position.y,
-					-testObj.transform.position.z
-				);
-				observe.x *= observationScalePlaner;
-				observe.y *= observationScalePlaner;
-				observe.y += correction;
-				observe.z *= observationScaleVertical;
-				Destroy(testObj, 0f);
+				if (objects.Length == 0) {
+					if (faceOther.magnitude > 0) {
+						observe = faceOther;
+					}
+				}
+				else {
+					Vector3 faceDetected = Vector3.zero;
+					GameObject testObj = new GameObject();
+					Instantiate(testObj, objects[0].transform.position, Quaternion.identity);
+					testObj.transform.position = objects[0].transform.position;
+					objects = GameObject.FindGameObjectsWithTag("FacePosition");
+					testObj.transform.RotateAround(
+						new Vector3(0f, 0f, 0f),
+						new Vector3(0f, 1f, 0f),
+						-objects[0].transform.rotation.eulerAngles.y
+					);
+					testObj.transform.RotateAround(
+						new Vector3(0f, 0f, 0f),
+						new Vector3(1f, 0f, 0f),
+						-objects[0].transform.rotation.eulerAngles.x
+					);
+					testObj.transform.RotateAround(
+						new Vector3(0f, 0f, 0f),
+						new Vector3(0f, 0f, 1f),
+						-objects[0].transform.rotation.eulerAngles.z
+					);
+					faceDetected = new Vector3(
+						-testObj.transform.position.x,
+						testObj.transform.position.y,
+						-testObj.transform.position.z
+					);
+					faceDetected.x *= observationScalePlaner;
+					faceDetected.y *= observationScalePlaner;
+					faceDetected.y += correction;
+					faceDetected.z *= observationScaleVertical;
+					Destroy(testObj, 0f);
+					observe = faceDetected;
+				}
+				facePosText.text = "Face pos: " + faceOther + " Other";
 			}
 			else {
 				if (increaseX) { observe.x += observeMoveSensitive; }
@@ -116,7 +130,6 @@ public class FaceTracker : MonoBehaviour
 			}
 			renderCam.transform.position = currentObserve;
 		}
-		facePosText.text = "Face pos: " + currentObserve;
 	}
 
 	void updateFov() {

@@ -31,7 +31,7 @@ Highlight:
 
 Face Track:
 - First line "Face"
-- Second Line Vector3
+- Second Line Vector3 or '0' for ortho
 
 Slice Visualize 
 - First line "Slice"
@@ -46,6 +46,7 @@ Angle
 
 ## From client to server:
 
+"Hello": confirm connection
 
 Touching:
 - First line "Touch"
@@ -64,8 +65,12 @@ Extruding:
 - First line "Extruding"
 - Second line extruding distance
 
+Face tracking:
+- First line "Face"
+- Second line face position or 'X'
+
 
 
 todo
-1. debug the flickering of selection plane 
-2. cutting: visualize the starting points or fix the first cutting points
+1. cutting: visualize the starting points
+2. remove “select object” or “select face” mode for now (maybe comment out don’t delete). For now we assume there is only one object to work with, we directly select a face, if no face is selected, the object is  always “selected”.

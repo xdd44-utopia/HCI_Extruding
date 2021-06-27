@@ -126,8 +126,8 @@ public class ClientController : MonoBehaviour {
 			case 'H': pointer = 0; break;
 			case 'T': pointer = 1; break;
 			case 'A': pointer = 2; break;
-			case 'C': pointer = 3; break;
-			case 'E': pointer = 4; break;
+			case 'E': pointer = 3; break;
+			case 'F': pointer = 4; break;
 		}
 		sendBuffer[pointer] = msg + "@";
 	}

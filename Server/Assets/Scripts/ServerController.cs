@@ -17,6 +17,7 @@ public class ServerController : MonoBehaviour {
 	public GameObject meshManipulator;
 	public GameObject sliderController;
 	public GameObject touchProcessor;
+	public GameObject faceTracker;
 	public Camera renderCamera;
 
 	private Color disconnectColor = new Color(0.8156f, 0.3529f, 0.4313f);
@@ -159,7 +160,7 @@ public class ServerController : MonoBehaviour {
 			if (receivedMessageSplit[i].Length > 0) {
 				try {
 					switch (receivedMessageSplit[i][0]) {
-						case 'T':
+						case 'T': {
 							string[] temp1 = receivedMessageSplit[i].Split('\n');
 							int touchCount = System.Convert.ToInt32(temp1[1]);
 							Vector3[] touchPos = new Vector3[touchCount];
@@ -178,17 +179,19 @@ public class ServerController : MonoBehaviour {
 								);
 								touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos);
 							}
-							
 							break;
-						case 'E':
+						}
+						case 'E': {
 							string extrudeDistStr = receivedMessageSplit[i].Split('\n')[1];
 							meshManipulator.GetComponent<MeshManipulator>().updateExtrude(System.Convert.ToSingle(extrudeDistStr));
 							break;
-						case 'H':
+						}
+						case 'H': {
 							isConnected = true;
 							break;
-						case 'A':
-							temp1 = receivedMessageSplit[i].Split('\n');
+						}
+						case 'A': {
+							string[] temp1 = receivedMessageSplit[i].Split('\n');
 							string[] temp2 = temp1[1].Split(',');
 							Vector3 acc =
 								new Vector3(
@@ -198,17 +201,23 @@ public class ServerController : MonoBehaviour {
 								);
 							sliderController.GetComponent<SliderController>().acceOther = acc;
 							break;
-						case 'C':
-							temp1 = receivedMessageSplit[i].Split('\n');
-							string[] temp3 = temp1[1].Split(',');
-							Vector3 camPos =
-								new Vector3(
-									System.Convert.ToSingle(temp3[0]),
-									System.Convert.ToSingle(temp3[1]),
-									System.Convert.ToSingle(temp3[2])
-								);
-							// meshManipulator.GetComponent<MeshManipulator>().camOther = camPos;
+						}
+						case 'F': {
+							string[] temp1 = receivedMessageSplit[i].Split('\n');
+							if (temp1[1][0] == 'X') {
+								faceTracker.GetComponent<FaceTracker>().faceOther = Vector3.zero;
+							}
+							else {
+								string[] temp2 = temp1[1].Split(',');
+								faceTracker.GetComponent<FaceTracker>().faceOther =
+									new Vector3(
+										System.Convert.ToSingle(temp2[0]),
+										System.Convert.ToSingle(temp2[1]),
+										System.Convert.ToSingle(temp2[2])
+									);
+							}
 							break;
+						}
 					}
 				}
 				catch (Exception e) {

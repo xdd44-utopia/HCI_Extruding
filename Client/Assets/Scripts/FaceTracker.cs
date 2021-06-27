@@ -20,6 +20,11 @@ public class FaceTracker : MonoBehaviour
 	public Vector3 observeOther = new Vector3(0, 0, -5f);
 
 	private Vector3 currentObserve = new Vector3(0, 0, -5f);
+	private Vector3 faceDetected = new Vector3(6f, -1f, -10f);
+	private float correction = 0.2f;
+	private float observationScalePlaner = 10f;
+	private float observationScaleVertical = 10f;
+	private float observeMoveSensitive = 0.05f;
 	// Start is called before the first frame update
 	void Start()
 	{
@@ -33,12 +38,53 @@ public class FaceTracker : MonoBehaviour
 		currentObserve = convertFromServer(observeOther);
 		updateObservation();
 		updateFov();
-		sender.GetComponent<ClientController>().sendMessage("Camera\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z + "\n");
 	}
 
 	// Update is called once per frame
 	void updateObservation()
 	{
+
+		GameObject[] objects = GameObject.FindGameObjectsWithTag("Player");
+		string msg;
+		if (objects.Length == 0) {
+			msg = "Face\nX\n";
+		}
+		else {
+			GameObject testObj = new GameObject();
+			Instantiate(testObj, objects[0].transform.position, Quaternion.identity);
+			testObj.transform.position = objects[0].transform.position;
+			objects = GameObject.FindGameObjectsWithTag("FacePosition");
+			testObj.transform.RotateAround(
+				new Vector3(0f, 0f, 0f),
+				new Vector3(0f, 1f, 0f),
+				-objects[0].transform.rotation.eulerAngles.y
+			);
+			testObj.transform.RotateAround(
+				new Vector3(0f, 0f, 0f),
+				new Vector3(1f, 0f, 0f),
+				-objects[0].transform.rotation.eulerAngles.x
+			);
+			testObj.transform.RotateAround(
+				new Vector3(0f, 0f, 0f),
+				new Vector3(0f, 0f, 1f),
+				-objects[0].transform.rotation.eulerAngles.z
+			);
+			faceDetected = new Vector3(
+				-testObj.transform.position.x,
+				testObj.transform.position.y,
+				-testObj.transform.position.z
+			);
+			faceDetected.x *= observationScalePlaner;
+			faceDetected.y *= observationScalePlaner;
+			faceDetected.y += correction;
+			faceDetected.z *= observationScaleVertical;
+			Destroy(testObj, 0f);
+			Vector3 faceDetectedForServer = convertToServer(faceDetected);
+			debugText.text = " " + faceDetected;
+			msg = "Face\n" + faceDetectedForServer.x + "," + faceDetectedForServer.y + "," + faceDetectedForServer.z + "\n";
+		}
+		sender.GetComponent<ClientController>().sendMessage(msg);
+
 		if (useOrtho) {
 			cam.orthographic = true;
 			renderCam.transform.position = new Vector3(0, 0, -5);
@@ -57,7 +103,6 @@ public class FaceTracker : MonoBehaviour
 		float fovVertical = Mathf.Atan(-(Mathf.Abs(currentObserve.y) + camHeight / 2) / currentObserve.z) * 2;
 		fovVertical = fovVertical * 180 / Mathf.PI;
 		cam.fieldOfView = (fovVertical > fovHorizontal ? fovVertical : fovHorizontal);
-		//debugText.text = angle + " " + renderCam.transform.position;
 	}
 
 	private Vector3 convertFromServer(Vector3 v) {
