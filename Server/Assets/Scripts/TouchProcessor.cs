@@ -52,7 +52,7 @@ public class TouchProcessor : MonoBehaviour
 
 	//double tap
 	private float doubleTapTimer = 0;
-	private float doubleTapTolerance = 0.2f;
+	private float doubleTapTolerance = 0.15f;
 	private float doubleTapInterval = 0.05f;
 
 	//cross-screen slice
@@ -157,7 +157,7 @@ public class TouchProcessor : MonoBehaviour
 		panThisScreen = new Vector3(0, 0, 0);
 		panOtherScreen = new Vector3(0, 0, 0);
 		pinchDelta = 0;
-		meshManipulator.GetComponent<MeshManipulator>().touchPosition = INF;
+		// meshManipulator.GetComponent<MeshManipulator>().touchPosition = INF;
 
 		if (touchCountThisScreen == 0 && touchCountOtherScreen == 0) {
 			state = Status.none;

@@ -125,19 +125,23 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	void Update() {
+
 		modeText.text = state + "";
 		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
 		measureButton.sprite = ((isHit && hitObj.GetComponent<ObjectController>().isRealMeasure) ? measureRecoveredSprite : measureRecoverSprite);
 		focusText.text = (isHit ? (isTargetFocused ? "Front face aligned" : "No face aligned") : "N/A");
 
-		bool usePreviousTouch = false;
-		if (touchPosition.magnitude > 10000 && touchTimer >= 0) {
-			touchPosition = prevTouchPosition;
-			usePreviousTouch = true;
-		}
+		// bool usePreviousTouch = false;
+		// if (touchPosition.magnitude > 10000 && touchTimer >= 0) {
+		// 	touchPosition = prevTouchPosition;
+		// 	usePreviousTouch = true;
+		// }
 
 		switch(state) {
 			case Status.freemove:
+				castRay();
+				break;
+			case Status.select:
 				castRay();
 				break;
 			case Status.focus:
@@ -147,24 +151,25 @@ public class MeshManipulator : MonoBehaviour
 				extrude();
 				break;
 			case Status.taper:
+				// castRay();
 				taper();
 				break;
 		}
 		mr.enabled = isHit;
 
-		if (touchPosition.magnitude < 10000 && !usePreviousTouch) {
-			prevTouchPosition = touchPosition;
-			touchTimer = touchDelayTolerance;
-		}
-		else {
-			touchTimer -= Time.deltaTime;
-		}
-		if (touchTimer < 0 && isHit) {
-			if (smode == SelectMode.selectFace) {
-				findEdge();
-			}
-			select();
-		}
+		// if (touchPosition.magnitude < 10000 && !usePreviousTouch) {
+		// 	prevTouchPosition = touchPosition;
+		// 	touchTimer = touchDelayTolerance;
+		// }
+		// else {
+		// 	touchTimer -= Time.deltaTime;
+		// }
+		// if (touchTimer < 0 && isHit) {
+		// 	if (smode == SelectMode.selectFace) {
+		// 		findEdge();
+		// 	}
+		// 	select();
+		// }
 
 	}
 	/* #endregion */
@@ -205,18 +210,14 @@ public class MeshManipulator : MonoBehaviour
 		);
 
 		MeshCollider meshCollider;
-		if (!Physics.Raycast(rayStart, rayDirection, out hit) || touchPosition.magnitude > 10000) {
-			if (smode == SelectMode.selectObject) {
-				GameObject defaultObj = GameObject.FindGameObjectsWithTag("Object")[0];
-				meshCollider = defaultObj.GetComponent<MeshCollider>();
-			}
-			else {
-				isHit = false;
-				return;
-			}
+		if (Physics.Raycast(rayStart, rayDirection, out hit)) {
+			smode = SelectMode.selectFace;
+			meshCollider = hit.collider as MeshCollider;
 		}
 		else {
-			meshCollider = hit.collider as MeshCollider;
+			smode = SelectMode.selectObject;
+			GameObject defaultObj = GameObject.FindGameObjectsWithTag("Object")[0];
+			meshCollider = defaultObj.GetComponent<MeshCollider>();
 		}
 		if (meshCollider != null && meshCollider.sharedMesh != null) {
 
@@ -239,8 +240,10 @@ public class MeshManipulator : MonoBehaviour
 				selectedVertices[2] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 2]];
 				findPosition();
 				findCoplanar();
+				findEdge();
 			}
 			constructHighlight();
+			select();
 		}
 		isHit = true;
 	}
@@ -254,7 +257,7 @@ public class MeshManipulator : MonoBehaviour
 				hitTransform.InverseTransformPoint(
 					selectedNormal + hitObj.transform.position
 				).normalized,
-				(state == Status.freemove ? hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]] : extrudedVertices[hitTriangles[selectedFaceIndex * 3 + 0]])
+				(state == Status.extrude ? extrudedVertices[hitTriangles[selectedFaceIndex * 3 + 0]] : hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]])
 			);
 		posToFocus = new Vector3(0, 0, (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude);
 	}
@@ -375,9 +378,9 @@ public class MeshManipulator : MonoBehaviour
 		constructHighlight();
 		if (Mathf.Abs(angleToFocus) < 0.01f) {
 			angleToFocus = 0;
-			//state = Status.select;
-			prepareTaper();
+			state = Status.select;
 			isTargetFocused = true;
+			touchPosition = new Vector3(0, 0, 0);
 			hitObj.GetComponent<ObjectController>().isFocused = true;
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
@@ -386,6 +389,12 @@ public class MeshManipulator : MonoBehaviour
 
 	private void constructHighlight() {
 		highlight.Clear();
+
+		GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
+		foreach (GameObject obj in allObjects) {
+			Renderer tempRenderer = obj.GetComponent<Renderer>();
+			tempRenderer.material.SetColor("_Color", Color.white);
+		}
 
 		if (smode == SelectMode.selectFace) {
 			highlight.vertices = new Vector3[faceNum * 3];
@@ -552,6 +561,11 @@ public class MeshManipulator : MonoBehaviour
 		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 
 		constructHighlight();
+
+		taperTimer -= Time.deltaTime;
+		if (taperTimer < 0) {
+			state = Status.select;
+		}
 
 		// if(taperStarted) {
 		// 	taperTimer -= Time.deltaTime;
@@ -968,6 +982,9 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void updateTaperScale(float factor) {
+		if (isHit && smode == SelectMode.selectFace && state == Status.select) {
+			prepareTaper();
+		}
 		if (isHit && state == Status.taper) {
 			if (factor != 0){
 				taperStarted = true;
@@ -1030,11 +1047,6 @@ public class MeshManipulator : MonoBehaviour
 			"Highlight\n" + 
 			"Cancel\n";
 		sender.GetComponent<ServerController>().sendMessage(msg);
-		GameObject[] allObjects = GameObject.FindGameObjectsWithTag("Object");
-		foreach (GameObject obj in allObjects) {
-			Renderer tempRenderer = obj.GetComponent<Renderer>();
-			tempRenderer.material.SetColor("_Color", Color.white);
-		}
 	}
 	/* #endregion */
 }
