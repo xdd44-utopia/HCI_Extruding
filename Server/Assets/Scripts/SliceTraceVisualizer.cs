@@ -81,8 +81,6 @@ public class SliceTraceVisualizer : MonoBehaviour
 		}
 
 		string msg = "Slice\n";
-		msg += touchPointThisScreen.x + "," + touchPointThisScreen.y + "," + touchPointThisScreen.z + "\n";
-		msg += touchPointOtherScreen.x + "," + touchPointOtherScreen.y + "," + touchPointOtherScreen.z + "\n";
 		msg += lineRenderer.positionCount + "\n";
 		for (int i=0;i < lineRenderer.positionCount;i++) {
 			Vector3 tv = lineRenderer.GetPosition(i);

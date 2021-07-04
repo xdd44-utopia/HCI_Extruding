@@ -33,12 +33,17 @@ Face Track:
 - First line "Face"
 - Second Line Vector3 or '0' for ortho
 
-Slice Visualize 
+Slice Visualize:
 - First line "Slice"
-- Second Line Vector3 touchPointThisScreen
-- Third Line Vector3 touchPointOtherScreen
 - Fourth Line n
 - Next n Vector3
+
+Cutting Plane Visualize:
+- First line "Cutting"
+- Second Line Vector3 touchPointThisScreen
+- Third Line Vector3 touchPointOtherScreen
+- Fourth Line Vector3 touchStartThisScreen
+- Fifth Line Vector3 touchStartOtherScreen
 
 Angle
 - First line "Angle"
@@ -72,5 +77,8 @@ Face tracking:
 
 
 todo
-1. cutting: visualize the starting points
-2. remove “select object” or “select face” mode for now (maybe comment out don’t delete). For now we assume there is only one object to work with, we directly select a face, if no face is selected, the object is  always “selected”.
+1. release the snapping on the first face if we snap it on the other screen
+2. implement the eye position (at the middle point of screen angle) when losing track of eyes - let’s try this and see if it works, if not we might consider fisheye solution
+3. bugs: touch point time tolerance - start making judgement about the gesture after 1s
+4. bugs: scale problem on face tracking (flickering )
+5. snapping on two screens (with different faces) consequently should align the common edge of these two faces to the intersecting line between screen. Once this edge is aligned to the screen gap, show an extrusion handle on the other screen that is not the last one being snapped.

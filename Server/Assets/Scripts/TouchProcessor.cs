@@ -7,10 +7,13 @@ public class TouchProcessor : MonoBehaviour
 {
 
 	public GameObject meshManipulator;
+	public GameObject sliderController;
+	public GameObject sender;
 	public GameObject slicePlane;
 	public GameObject touchPointMark;
 	public GameObject sliceTraceVisualizer;
 	public LineRenderer crossScreenLine;
+	public LineRenderer cutPlaneVisualizer;
 	public Text debugText;
 
 	public GameObject[] touchMarks;
@@ -120,6 +123,7 @@ public class TouchProcessor : MonoBehaviour
 		if (touchTimerOtherScreen <= 0) {
 			touchCountOtherScreen = 0;
 		}
+		cutPlaneVisualizer.enabled = (crossScreenSliceTimer >= 0 && slicePrepared);
 		if (crossScreenSliceTimer <= 0 && slicePrepared) {
 			meshManipulator.GetComponent<MeshManipulator>().executeSlice();
 			startSliceThisScreen = Vector3.zero;
@@ -290,6 +294,7 @@ public class TouchProcessor : MonoBehaviour
 					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().touchPointThisScreen = endSliceThisScreen;
 					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().touchPointOtherScreen = endSliceOtherScreen;
 					processCrossScreenSlice();
+					visualizeCrossScreenSlice();
 				}
 				crossScreenSliceTimer = crossScreenSliceTolerance;
 				break;
@@ -366,8 +371,34 @@ public class TouchProcessor : MonoBehaviour
 		meshManipulator.GetComponent<MeshManipulator>().startSlice();
 
 	}
+
+	private void visualizeCrossScreenSlice() {
+		float angle = sliderController.GetComponent<SliderController>().angle;
+		Vector3 centerPos = (startSliceThisScreen + startSliceOtherScreen) / 2;
+		Vector3 startThis = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceThisScreen, new Vector3(0, 0, 1));
+		Vector3 startOther = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceOtherScreen, new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(angle)));
+		cutPlaneVisualizer.SetPosition(0, endSliceThisScreen);
+		cutPlaneVisualizer.SetPosition(1, startThis);
+		cutPlaneVisualizer.SetPosition(2, startOther);
+		cutPlaneVisualizer.SetPosition(3, endSliceOtherScreen);
+
+		string msg = "Cutting\n";
+		msg += endSliceThisScreen.x + "," + endSliceThisScreen.y + "," + endSliceThisScreen.z + "\n";
+		msg += endSliceOtherScreen.x + "," + endSliceOtherScreen.y + "," + endSliceOtherScreen.z + "\n";
+		msg += startThis.x + "," + startThis.y + "," + startThis.z + "\n";
+		msg += startOther.x + "," + startOther.y + "," + startOther.z + "\n";
+		sender.GetComponent<ServerController>().sendMessage(msg);
+	}
 	private Vector3 crossProduct(Vector3 a, Vector3 b) {
 		return new Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+	}
+	private float dotProduct(Vector3 a, Vector3 b) {
+		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+
+	private Vector3 intersectLinePlane(Vector3 a, Vector3 b, Vector3 p, Vector3 n) { //line passes a and b, plane passes p with normal n
+		float t = (dotProduct(p, n) - dotProduct(a, n)) / dotProduct(n, a - b);
+		return a + t * (a - b);
 	}
  
 	private float Angle (Vector2 pos1, Vector2 pos2) {

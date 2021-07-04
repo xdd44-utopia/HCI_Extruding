@@ -689,6 +689,10 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 
+		if (edgeVerticesList.Count == 0) {
+			return;
+		}
+
 		//Extract edge as successive vertices
 		List<Vector3> sortedEdgeVerticesList = new List<Vector3>();
 		int curEdge = 0;
@@ -816,6 +820,11 @@ public class MeshManipulator : MonoBehaviour
 	}
 	
 	public void executeSlice(){
+
+		if (edgeVerticesList.Count == 0) {
+			sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().endVisualize();
+			return;
+		}
 
 		bool isTrim = true;
 

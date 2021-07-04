@@ -202,29 +202,45 @@ public class ClientController : MonoBehaviour {
 							break;
 						case 'S':
 							string[] tempSlice = receivedMessageSplit[i].Split('\n');
-							string[] tempThisScreen = tempSlice[1].Split(',');
-							string[] tempOtherScreen = tempSlice[2].Split(',');
-							Vector3 touchPointThisScreen = convertFromServer(new Vector3(
-								System.Convert.ToSingle(tempThisScreen[0]),
-								System.Convert.ToSingle(tempThisScreen[1]),
-								System.Convert.ToSingle(tempThisScreen[2])
-							));
-							Vector3 touchPointOtherScreen = convertFromServer(new Vector3(
-								System.Convert.ToSingle(tempOtherScreen[0]),
-								System.Convert.ToSingle(tempOtherScreen[1]),
-								System.Convert.ToSingle(tempOtherScreen[2])
-							));
-							int count = System.Convert.ToInt32(tempSlice[3]);
+							int count = System.Convert.ToInt32(tempSlice[1]);
 							Vector3[] vertices = new Vector3[count];
 							for (int j=0;j<count;j++) {
-								string[] tempVertex = tempSlice[4 + j].Split(',');
+								string[] tempVertex = tempSlice[2 + j].Split(',');
 								vertices[j] = convertFromServer(new Vector3(
 									System.Convert.ToSingle(tempVertex[0]),
 									System.Convert.ToSingle(tempVertex[1]),
 									System.Convert.ToSingle(tempVertex[2])
 								));
 							}
-							sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(vertices, touchPointThisScreen, touchPointOtherScreen);
+							sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateTrace(vertices);
+							break;
+						case 'C':
+							string[] tempPlane = receivedMessageSplit[i].Split('\n');
+							string[] tempEndThisScreen = tempPlane[1].Split(',');
+							string[] tempEndOtherScreen = tempPlane[2].Split(',');
+							string[] tempStartThisScreen = tempPlane[3].Split(',');
+							string[] tempStartOtherScreen = tempPlane[4].Split(',');
+							Vector3 touchPointThisScreen = convertFromServer(new Vector3(
+								System.Convert.ToSingle(tempEndThisScreen[0]),
+								System.Convert.ToSingle(tempEndThisScreen[1]),
+								System.Convert.ToSingle(tempEndThisScreen[2])
+							));
+							Vector3 touchPointOtherScreen = convertFromServer(new Vector3(
+								System.Convert.ToSingle(tempEndOtherScreen[0]),
+								System.Convert.ToSingle(tempEndOtherScreen[1]),
+								System.Convert.ToSingle(tempEndOtherScreen[2])
+							));
+							Vector3 touchStartThisScreen = convertFromServer(new Vector3(
+								System.Convert.ToSingle(tempStartThisScreen[0]),
+								System.Convert.ToSingle(tempStartThisScreen[1]),
+								System.Convert.ToSingle(tempStartThisScreen[2])
+							));
+							Vector3 touchStartOtherScreen = convertFromServer(new Vector3(
+								System.Convert.ToSingle(tempStartOtherScreen[0]),
+								System.Convert.ToSingle(tempStartOtherScreen[1]),
+								System.Convert.ToSingle(tempStartOtherScreen[2])
+							));
+							sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(touchPointThisScreen, touchPointOtherScreen, touchStartThisScreen, touchStartOtherScreen);
 							break;
 						case 'M':
 							objectManager.GetComponent<ObjectManager>().updateMesh(receivedMessageSplit[i]);
@@ -249,7 +265,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "192.168.0.104";
+		string address = "144.214.112.202";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
