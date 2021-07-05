@@ -21,9 +21,9 @@ public class FaceTracker : MonoBehaviour
 
 	private Vector3 currentObserve = new Vector3(0, 0, -5f);
 	private Vector3 faceDetected = new Vector3(6f, -1f, -10f);
-	private float correction = 0.2f;
-	private float observationScalePlaner = 10f;
-	private float observationScaleVertical = 10f;
+	private float correction = 3f;
+	private float observationScalePlaner = 75f;
+	private float observationScaleVertical = 50f;
 	private float observeMoveSensitive = 0.05f;
 	// Start is called before the first frame update
 	void Start()
@@ -47,7 +47,9 @@ public class FaceTracker : MonoBehaviour
 		GameObject[] objects = GameObject.FindGameObjectsWithTag("Player");
 		string msg;
 		if (objects.Length == 0) {
-			msg = "Face\nX\n";
+			Vector3 temp = new Vector3(0, 0, -10);
+			temp = (temp + convertToServer(temp)) / 2;
+			msg = "Face\n" + temp.x + "," + 100 + "," + temp.z + "\n";
 		}
 		else {
 			GameObject testObj = new GameObject();

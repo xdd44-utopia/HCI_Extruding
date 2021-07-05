@@ -37,13 +37,14 @@ public class FaceTracker : MonoBehaviour
 	public bool decreaseZ = false;
 
 	private Vector3 currentObserve = new Vector3(6f, -1f, -10f);
+	private Vector3 previousObserve = new Vector3(6f, -1f, -10f);
 	private Vector3 observe = new Vector3(6f, -1f, -10f);
 	private Vector3 defaultObserve = new Vector3(6f, -1f, -10f);
-	private float correction = 0.2f;
+	private float correction = 3f;
 	private float smoothSpeed = 20f;
 	private float smoothTolerance = 0.01f;
-	private float observationScalePlaner = 10f;
-	private float observationScaleVertical = 10f;
+	private float observationScalePlaner = 75f;
+	private float observationScaleVertical = 50f;
 	private float observeMoveSensitive = 0.05f;
 	// Start is called before the first frame update
 	void Start()
@@ -73,9 +74,19 @@ public class FaceTracker : MonoBehaviour
 		else {
 			if (useFaceTrack) {
 				GameObject[] objects = GameObject.FindGameObjectsWithTag("Player");
+				facePosText.text = "No face";
 				if (objects.Length == 0) {
 					if (faceOther.magnitude > 0) {
-						observe = faceOther;
+						if (faceOther.y < 99) {
+							observe = faceOther;
+							facePosText.text = "Face pos: " + faceOther + " Other";
+						}
+						else {
+							float xt = (faceOther.x - camWidth / 2) * Mathf.Sqrt((previousObserve.x - camWidth / 2) * (previousObserve.x - camWidth / 2) + previousObserve.z * previousObserve.z) / Mathf.Sqrt((faceOther.x - camWidth / 2) * (faceOther.x - camWidth / 2) + faceOther.z * faceOther.z) + camWidth / 2;
+							float zt = faceOther.z * Mathf.Sqrt((previousObserve.x - camWidth / 2) * (previousObserve.x - camWidth / 2) + previousObserve.z * previousObserve.z) / Mathf.Sqrt((faceOther.x - camWidth / 2) * (faceOther.x - camWidth / 2) + faceOther.z * faceOther.z);
+							observe = new Vector3(xt, previousObserve.y, zt);
+							facePosText.text = "Face pos: " + observe + " Middle";
+						}
 					}
 				}
 				else {
@@ -110,8 +121,8 @@ public class FaceTracker : MonoBehaviour
 					faceDetected.z *= observationScaleVertical;
 					Destroy(testObj, 0f);
 					observe = faceDetected;
+					facePosText.text = "Face pos: " + faceDetected + " This";
 				}
-				facePosText.text = "Face pos: " + faceOther + " Other";
 			}
 			else {
 				if (increaseX) { observe.x += observeMoveSensitive; }
@@ -125,6 +136,7 @@ public class FaceTracker : MonoBehaviour
 			
 			if (Vector3.Distance(currentObserve, observe) > smoothTolerance) {
 				currentObserve = Vector3.Lerp(currentObserve, observe, smoothSpeed * Time.deltaTime);
+				previousObserve = observe;
 				string msg = "Face\n" + currentObserve.x + "," + currentObserve.y + "," + currentObserve.z + "\n";
 				sender.GetComponent<ServerController>().sendMessage(msg);
 			}
