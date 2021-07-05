@@ -131,19 +131,7 @@ public class MeshManipulator : MonoBehaviour
 		measureButton.sprite = ((isHit && hitObj.GetComponent<ObjectController>().isRealMeasure) ? measureRecoveredSprite : measureRecoverSprite);
 		focusText.text = (isHit ? (isTargetFocused ? "Front face aligned" : "No face aligned") : "N/A");
 
-		// bool usePreviousTouch = false;
-		// if (touchPosition.magnitude > 10000 && touchTimer >= 0) {
-		// 	touchPosition = prevTouchPosition;
-		// 	usePreviousTouch = true;
-		// }
-
 		switch(state) {
-			case Status.freemove:
-				castRay();
-				break;
-			case Status.select:
-				castRay();
-				break;
 			case Status.focus:
 				focus();
 				break;
@@ -157,25 +145,11 @@ public class MeshManipulator : MonoBehaviour
 		}
 		mr.enabled = isHit;
 
-		// if (touchPosition.magnitude < 10000 && !usePreviousTouch) {
-		// 	prevTouchPosition = touchPosition;
-		// 	touchTimer = touchDelayTolerance;
-		// }
-		// else {
-		// 	touchTimer -= Time.deltaTime;
-		// }
-		// if (touchTimer < 0 && isHit) {
-		// 	if (smode == SelectMode.selectFace) {
-		// 		findEdge();
-		// 	}
-		// 	select();
-		// }
-
 	}
 	/* #endregion */
 
 	/* #region Construct highlight */
-	private void castRay() {
+	public void castRay() {
 
 		Vector3 mousePos = touchPosition;
 		// mousePos = Input.mousePosition;
@@ -566,16 +540,6 @@ public class MeshManipulator : MonoBehaviour
 		if (taperTimer < 0) {
 			state = Status.select;
 		}
-
-		// if(taperStarted) {
-		// 	taperTimer -= Time.deltaTime;
-		// }
-		// if (taperTimer < 0) {
-		// 	hitObj.GetComponent<MeshFilter>().mesh = taperedMesh;
-		// 	hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
-		// 	cancel();
-		// 	hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
-		// }
 
 	}
 

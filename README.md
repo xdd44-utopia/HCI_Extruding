@@ -78,7 +78,5 @@ Face tracking:
 
 todo
 1. release the snapping on the first face if we snap it on the other screen
-2. implement the eye position (at the middle point of screen angle) when losing track of eyes - let’s try this and see if it works, if not we might consider fisheye solution
-3. bugs: touch point time tolerance - start making judgement about the gesture after 1s
-4. bugs: scale problem on face tracking (flickering )
-5. snapping on two screens (with different faces) consequently should align the common edge of these two faces to the intersecting line between screen. Once this edge is aligned to the screen gap, show an extrusion handle on the other screen that is not the last one being snapped.
+2. bugs: touch point time tolerance - start making judgement about the gesture after 1s
+3. snapping on two screens (with different faces) consequently should align the common edge of these two faces to the intersecting line between screen. Once this edge is aligned to the screen gap, show an extrusion handle on the other screen that is not the last one being snapped.

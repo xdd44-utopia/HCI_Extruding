@@ -302,6 +302,7 @@ public class TouchProcessor : MonoBehaviour
 			case Status.singleScreen1This: {
 				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
 					meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
+					meshManipulator.GetComponent<MeshManipulator>().castRay();
 					touchPointMark.transform.position = touchPosThisScreen[0];
 
 					if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
@@ -324,6 +325,7 @@ public class TouchProcessor : MonoBehaviour
 			case Status.singleScreen1Other: {
 				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2) {
 					meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
+					meshManipulator.GetComponent<MeshManipulator>().castRay();
 					touchPointMark.transform.position = touchPosOtherScreen[0];
 
 					if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
