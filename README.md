@@ -57,6 +57,7 @@ Touching:
 - First line "Touch"
 - Second line n
 - Next n line Vector3 position + previous position
+- Next n line touch phase (Began, Moved, Stationary, Ended, Canceled)
 
 Acceleration:
 - First line "Acc"

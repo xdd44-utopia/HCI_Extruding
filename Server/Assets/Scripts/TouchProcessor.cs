@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -49,9 +50,12 @@ public class TouchProcessor : MonoBehaviour
 	private int touchCountThisScreen = 0;
 	private Vector3[] touchPosThisScreen;
 	private Vector3[] touchPrevPosThisScreen;
+	private TouchPhase[] touchPhaseThisScreen;
 	private int touchCountOtherScreen = 0;
 	private Vector3[] touchPosOtherScreen;
 	private Vector3[] touchPrevPosOtherScreen;
+	private TouchPhase[] touchPhaseOtherScreen;
+	private float endGestureLock = 0.1f;
 
 	//double tap
 	private float doubleTapTimer = 0;
@@ -92,6 +96,7 @@ public class TouchProcessor : MonoBehaviour
 		if(touchCountThisScreen > 0) {
 			touchPosThisScreen = new Vector3[touchCountThisScreen];
 			touchPrevPosThisScreen = new Vector3[touchCountThisScreen];
+			touchPhaseThisScreen = new TouchPhase[touchCountThisScreen];
 			for (int i=0;i<touchCountThisScreen;i++) {
 				Touch tch = Input.touches[i];
 				touchPosThisScreen[i] = tch.position;
@@ -99,7 +104,8 @@ public class TouchProcessor : MonoBehaviour
 				touchPosThisScreen[i] *= Camera.main.orthographicSize / 772;
 				touchPrevPosThisScreen[i] = tch.position - tch.deltaPosition;
 				touchPrevPosThisScreen[i] -= new Vector3(360, 772, 0);
-				touchPrevPosThisScreen[i] *= Camera.main.orthographicSize / 772; 
+				touchPrevPosThisScreen[i] *= Camera.main.orthographicSize / 772;
+				touchPhaseThisScreen[i] = tch.phase;
 			}
 		}
 
@@ -138,7 +144,7 @@ public class TouchProcessor : MonoBehaviour
 		touchTimerOtherScreen -= Time.deltaTime;
 		doubleTapTimer -= Time.deltaTime;
 		crossScreenSliceTimer -= Time.deltaTime;
-
+		endGestureLock -= Time.deltaTime;
 	}
 	private void visualize() {
 		for (int i=0;i<touchCountThisScreen;i++) {
@@ -245,8 +251,9 @@ public class TouchProcessor : MonoBehaviour
 				else {
 					pinchDelta = 0;
 				}
-				break;
 
+				endGestureLock = 0.1f;
+				break;
 			}
 			case Status.singleScreen2Other: {
 				Vector3 panStart = (touchPrevPosOtherScreen[0] + touchPrevPosOtherScreen[1]) / 2;
@@ -281,6 +288,7 @@ public class TouchProcessor : MonoBehaviour
 				else {
 					turnOtherScreen = 0;
 				}
+				endGestureLock = 0.1f;
 				break;
 			}
 			case Status.crossScreen2: {
@@ -297,10 +305,11 @@ public class TouchProcessor : MonoBehaviour
 					visualizeCrossScreenSlice();
 				}
 				crossScreenSliceTimer = crossScreenSliceTolerance;
+				endGestureLock = 0.1f;
 				break;
 			}
 			case Status.singleScreen1This: {
-				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
+				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2 && touchPhaseThisScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
 					meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
 					meshManipulator.GetComponent<MeshManipulator>().castRay();
 					touchPointMark.transform.position = touchPosThisScreen[0];
@@ -323,7 +332,7 @@ public class TouchProcessor : MonoBehaviour
 				break;
 			}
 			case Status.singleScreen1Other: {
-				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2) {
+				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2 && touchPhaseOtherScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
 					meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
 					meshManipulator.GetComponent<MeshManipulator>().castRay();
 					touchPointMark.transform.position = touchPosOtherScreen[0];
@@ -417,7 +426,7 @@ public class TouchProcessor : MonoBehaviour
 		return result;
 	}
 	
-	public void updateTouchPoint(int touchCount, Vector3[] touchPos, Vector3[] touchPrevPos) {
+	public void updateTouchPoint(int touchCount, Vector3[] touchPos, Vector3[] touchPrevPos, TouchPhase[] phases) {
 		touchTimerOtherScreen = touchDelayTolerance;
 		touchCountOtherScreen = touchCount;
 		touchPosOtherScreen = new Vector3[touchCount];
@@ -426,6 +435,7 @@ public class TouchProcessor : MonoBehaviour
 		for (int i=0;i<touchCountOtherScreen;i++) {
 			touchPosOtherScreen[i] = touchPos[i];
 			touchPrevPosOtherScreen[i] = touchPrevPos[i];
+			touchPhaseOtherScreen[i] = phases[i];
 		}
 	}
 	

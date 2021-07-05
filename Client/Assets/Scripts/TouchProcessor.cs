@@ -66,6 +66,26 @@ public class TouchProcessor : MonoBehaviour
 				Vector3 prevPos = convertToServer(touchPrevPosThisScreen[i]);
 				msg += currPos.x + "," + currPos.y + "," + currPos.z + "," + prevPos.x + "," + prevPos.y + "," + prevPos.z + "\n";
 			}
+			for (int i=0;i<touchCountThisScreen;i++) {
+				string phase = "";
+				switch (Input.touches[i].phase) {
+					case TouchPhase.Began:
+						msg += "B\n";
+						break;
+					case TouchPhase.Moved:
+						msg += "M\n";
+						break;
+					case TouchPhase.Stationary:
+						msg += "S\n";
+						break;
+					case TouchPhase.Ended:
+						msg += "E\n";
+						break;
+					case TouchPhase.Canceled:
+						msg += "C\n";
+						break;
+				}
+			}
 			sender.GetComponent<ClientController>().sendMessage(msg);
 		}
 	}

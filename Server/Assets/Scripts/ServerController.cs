@@ -65,7 +65,7 @@ public class ServerController : MonoBehaviour {
 		}
 
 		if (refreshed) {
-			if (receivedMessage[0] == 'A') {
+			if (receivedMessage[0] == 'T') {
 				rcvText.text = receivedMessage;
 			}
 			refreshed = false;
@@ -166,6 +166,7 @@ public class ServerController : MonoBehaviour {
 							int touchCount = System.Convert.ToInt32(temp1[1]);
 							Vector3[] touchPos = new Vector3[touchCount];
 							Vector3[] touchPrevPos = new Vector3[touchCount];
+							TouchPhase[] phases = new TouchPhase[touchCount];
 							for (int j=0;j<touchCount;j++) {
 								string[] posStr = temp1[j+2].Split(',');
 								touchPos[j] = new Vector3(
@@ -178,8 +179,27 @@ public class ServerController : MonoBehaviour {
 									System.Convert.ToSingle(posStr[4]),
 									System.Convert.ToSingle(posStr[5])
 								);
-								touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos);
 							}
+							for (int j=touchCount;j<2*touchCount;j++) {
+								switch (temp1[j+2][0]) {
+									case 'B':
+										phases[j-touchCount] = TouchPhase.Began;
+										break;
+									case 'M':
+										phases[j-touchCount] = TouchPhase.Moved;
+										break;
+									case 'S':
+										phases[j-touchCount] = TouchPhase.Stationary;
+										break;
+									case 'E':
+										phases[j-touchCount] = TouchPhase.Ended;
+										break;
+									case 'C':
+										phases[j-touchCount] = TouchPhase.Canceled;
+										break;
+								}
+							}
+							touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos, phases);
 							break;
 						}
 						case 'E': {
