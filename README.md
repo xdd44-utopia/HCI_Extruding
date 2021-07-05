@@ -78,6 +78,4 @@ Face tracking:
 
 
 todo
-1. release the snapping on the first face if we snap it on the other screen
-2. bugs: touch point time tolerance - start making judgement about the gesture after 1s
-3. snapping on two screens (with different faces) consequently should align the common edge of these two faces to the intersecting line between screen. Once this edge is aligned to the screen gap, show an extrusion handle on the other screen that is not the last one being snapped.
+1. extrude

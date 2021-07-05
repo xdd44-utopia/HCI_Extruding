@@ -13,7 +13,9 @@ public class ObjectController : MonoBehaviour
 	[HideInInspector]
 	public int index;
 	[HideInInspector]
-	public bool isFocused;
+	public bool isThisScreenFocused;
+	[HideInInspector]
+	public bool isOtherScreenFocused;
 	[HideInInspector]
 	public bool isRealMeasure;
 	[HideInInspector]
@@ -24,7 +26,8 @@ public class ObjectController : MonoBehaviour
 		isTransformUpdated = true;
 		isMeshUpdated = true;
 		index = 0;
-		isFocused = false;
+		isThisScreenFocused = false;
+		isOtherScreenFocused = false;
 		isRealMeasure = false;
 	}
 

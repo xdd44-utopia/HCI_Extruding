@@ -12,6 +12,7 @@ public class MeshManipulator : MonoBehaviour
 	public Text modeText;
 	public Text focusText;
 	public Text debugText;
+	public Text debugText2;
 	public Image selectButton;
 	public Sprite selectFaceSprite;
 	public Sprite selectObjectSprite;
@@ -23,14 +24,15 @@ public class MeshManipulator : MonoBehaviour
 	public GameObject objectManager;
 	public GameObject sliderController;
 	public GameObject sender;
-
+	//interaction
 	[HideInInspector]
 	public Vector3 touchPosition;
 	private Vector3 prevTouchPosition;
 	private float touchTimer = 0;
 	private float touchDelayTolerance = 0.1f;
 	private Vector3 INF = new Vector3(10000, 10000, 10000);
-	
+	private float angle = 0;
+	private float prevAngle = 0;
 	//hit
 	
 	[HideInInspector]
@@ -43,8 +45,13 @@ public class MeshManipulator : MonoBehaviour
 	private int hitVerticesNum;
 	private int hitTrianglesNum;
 	private Renderer hitRenderer;
+	//Focus
 	private Vector3 centerToHitFace;
-	private bool isTargetFocused = false;
+	private bool isTargetFocusedThisScreen = false;
+	private bool isTargetFocusedOtherScreen = false;
+	private bool focusingThisScreen = false;
+	private bool focusingOtherScreen = false;
+	private Vector3 footDrop;
 
 	private Mesh highlight;
 	private MeshRenderer mr;
@@ -59,6 +66,7 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3[] selectedVertices = new Vector3[3];
 
 	private List<int> edgeVertices;
+	private List<int> prevEdgeVertices;
 	private int edgeLength;
 	
 	//focus
@@ -118,6 +126,7 @@ public class MeshManipulator : MonoBehaviour
 		highlight.triangles = new int[]{0, 1, 2};
 
 		touchPosition = INF;
+		prevEdgeVertices = new List<int>();
 
 		Camera cam = Camera.main;
 		camHeight = 2f * cam.orthographicSize;
@@ -129,7 +138,18 @@ public class MeshManipulator : MonoBehaviour
 		modeText.text = state + "";
 		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
 		measureButton.sprite = ((isHit && hitObj.GetComponent<ObjectController>().isRealMeasure) ? measureRecoveredSprite : measureRecoverSprite);
-		focusText.text = (isHit ? (isTargetFocused ? "Front face aligned" : "No face aligned") : "N/A");
+		focusText.text = (isHit ? ((isTargetFocusedThisScreen || isTargetFocusedOtherScreen) ? "Front face aligned" : "No face aligned") : "N/A");
+
+		angle = sliderController.GetComponent<SliderController>().angle;
+		if (Mathf.Abs(angle - prevAngle) > 0.01f && isHit) {
+			if (smode == SelectMode.selectFace) {
+				constructHighlight();
+			}
+			if (isTargetFocusedOtherScreen) {
+				isTargetFocusedOtherScreen = false;
+				hitObj.GetComponent<ObjectController>().isOtherScreenFocused = false;
+			}
+		}
 
 		switch(state) {
 			case Status.focus:
@@ -144,6 +164,8 @@ public class MeshManipulator : MonoBehaviour
 				break;
 		}
 		mr.enabled = isHit;
+
+		prevAngle = angle;
 
 	}
 	/* #endregion */
@@ -160,7 +182,6 @@ public class MeshManipulator : MonoBehaviour
 		Vector3 rayStart;
 		Vector3 rayDirection;
 
-		float angle = sliderController.GetComponent<SliderController>().angle;
 		if (!cam.orthographic) {
 			rayStart = cam.gameObject.transform.position;
 			rayDirection = mousePos - rayStart;
@@ -204,11 +225,12 @@ public class MeshManipulator : MonoBehaviour
 			hitVerticesNum = hitVertices.Length;
 			hitTrianglesNum = hitTriangles.Length;
 			hituv = hitMesh.uv;
+			isTargetFocusedThisScreen = hitObj.GetComponent<ObjectController>().isThisScreenFocused;
+			isTargetFocusedOtherScreen = hitObj.GetComponent<ObjectController>().isOtherScreenFocused;
 
 			if (smode == SelectMode.selectFace) {
 				selectedFaceIndex = hit.triangleIndex;
 				selectedNormal = hit.normal;
-				isTargetFocused = hitObj.GetComponent<ObjectController>().isFocused;
 				selectedVertices[0] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]];
 				selectedVertices[1] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 1]];
 				selectedVertices[2] = hitVertices[hitTriangles[selectedFaceIndex * 3 + 2]];
@@ -233,7 +255,7 @@ public class MeshManipulator : MonoBehaviour
 				).normalized,
 				(state == Status.extrude ? extrudedVertices[hitTriangles[selectedFaceIndex * 3 + 0]] : hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]])
 			);
-		posToFocus = new Vector3(0, 0, (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude);
+		// posToFocus = new Vector3(0, 0, (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude);
 	}
 
 	private void findCoplanar() {
@@ -275,8 +297,6 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 		faceNum = selected.Count;
-		axisToFocus = crossProduct(selectedNormal, new Vector3(0, 0, -1));
-		angleToFocus = Vector3.Angle(selectedNormal, new Vector3(0, 0, -1));
 	}
 
 	private void findEdge() {
@@ -352,10 +372,49 @@ public class MeshManipulator : MonoBehaviour
 		constructHighlight();
 		if (Mathf.Abs(angleToFocus) < 0.01f) {
 			angleToFocus = 0;
-			state = Status.select;
-			isTargetFocused = true;
-			touchPosition = new Vector3(0, 0, 0);
-			hitObj.GetComponent<ObjectController>().isFocused = true;
+			hitObj.transform.position = posToFocus;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			prevEdgeVertices.Clear();
+			for (int i=0;i<edgeVertices.Count;i++) {
+				prevEdgeVertices.Add(edgeVertices[i]);
+			}
+			if (focusingThisScreen) {
+				if (isTargetFocusedOtherScreen) {
+					Vector3 angleStart = hitTransform.TransformPoint(footDrop) - hitTransform.TransformPoint(centerToHitFace);
+					Vector3 angleEnd = new Vector3(1, 0, 0);
+					angleToFocus = Vector3.Angle(angleStart, angleEnd);
+					axisToFocus = new Vector3(0, 0, 1) * ((angleStart - angleEnd).y > 0 ? -1 : 1);
+					hitObj.GetComponent<ObjectController>().isOtherScreenFocused = false;
+					isTargetFocusedOtherScreen = false;
+					touchPosition = new Vector3(camWidth / 2 - 0.1f, 0, 0);
+				}
+				else {
+					state = Status.select;
+					focusingThisScreen = false;
+					touchPosition = new Vector3(0, 0, 0);
+				}
+				isTargetFocusedThisScreen = true;
+				hitObj.GetComponent<ObjectController>().isThisScreenFocused = true;
+			}
+			else if (focusingOtherScreen) {
+				if (isTargetFocusedThisScreen) {
+					Vector3 otherScreenCenter = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * camWidth / 2, 0, Mathf.Sin(-angle) * camWidth / 2);
+					Vector3 angleStart = hitTransform.TransformPoint(footDrop) - hitTransform.TransformPoint(centerToHitFace);
+					Vector3 angleEnd = new Vector3(camWidth / 2, 0, 0) - otherScreenCenter;
+					angleToFocus = Vector3.Angle(angleStart, angleEnd);
+					axisToFocus = new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle)) * ((angleStart - angleEnd).y > 0 ? -1 : 1);
+					hitObj.GetComponent<ObjectController>().isThisScreenFocused = false;
+					isTargetFocusedThisScreen = false;
+					touchPosition = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * 0.25f, 0, Mathf.Sin(-angle) * 0.25f);
+				}
+				else {
+					state = Status.select;
+					focusingOtherScreen = false;
+					touchPosition = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * camWidth / 2, 0, Mathf.Sin(-angle) * camWidth / 2);
+				}
+				isTargetFocusedOtherScreen = true;
+				hitObj.GetComponent<ObjectController>().isOtherScreenFocused = true;
+			}
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -899,27 +958,63 @@ public class MeshManipulator : MonoBehaviour
 			state = Status.select;
 		}
 	}
-	public void startFocus() {
+	public void startFocus(bool isThisScreen) {
 		if (state == Status.select && smode == SelectMode.selectFace) {
-			state = Status.focus;
-			selectedNormal = new Vector3(0, 0, -1);
-		}
-	}
-	public void startSecondaryFocus() {
-		if (state == Status.select && smode == SelectMode.selectFace && isTargetFocused) {
-			angleToFocus = Vector3.Angle(new Vector3(selectedNormal.x, selectedNormal.y, 0), new Vector3(1, 0, 0));
-			if (selectedNormal.y < 0) {
-				angleToFocus = -angleToFocus;
+			axisToFocus = crossProduct(selectedNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
+			angleToFocus = Vector3.Angle(selectedNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
+			centerToHitFace =
+				hitTransform.InverseTransformPoint(
+						selectedNormal + hitObj.transform.position
+					).normalized *
+				dotProduct(
+					hitTransform.InverseTransformPoint(
+						selectedNormal + hitObj.transform.position
+					).normalized,
+					(state == Status.extrude ? extrudedVertices[hitTriangles[selectedFaceIndex * 3 + 0]] : hitVertices[hitTriangles[selectedFaceIndex * 3 + 0]])
+				);
+
+			float depth = (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude * 1.025f;
+			float offset = camWidth / 2;
+			if ((isThisScreen && isTargetFocusedOtherScreen) || (!isThisScreen && isTargetFocusedThisScreen)) {
+				Vector3[] commonVertices = new Vector3[2];
+				int cnt = 0;
+				for (int i=0;i<edgeVertices.Count;i++) {
+					for (int j=0;j<prevEdgeVertices.Count;j++) {
+						if ((hitVertices[edgeVertices[i]] - hitVertices[prevEdgeVertices[j]]).magnitude < 0.01f) {
+							commonVertices[cnt] = hitVertices[edgeVertices[i]];
+							cnt++;
+						}
+						if (cnt == 2) {
+							break;
+						}
+					}
+					if (cnt == 2) {
+						break;
+					}
+				}
+				Vector3 edgePoint = (commonVertices[0] + commonVertices[1]) / 2;
+				float k =
+					- ((commonVertices[0].x - centerToHitFace.x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[0].y - centerToHitFace.y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[0].z - centerToHitFace.z) * (commonVertices[1].z - commonVertices[0].z)) /
+					((commonVertices[1].x - commonVertices[0].x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[1].y - commonVertices[0].y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[1].z - commonVertices[0].z) * (commonVertices[1].z - commonVertices[0].z));
+				footDrop = new Vector3(k * (commonVertices[1].x - commonVertices[0].x) + commonVertices[0].x, k * (commonVertices[1].y - commonVertices[0].y) + commonVertices[0].y, k * (commonVertices[1].z - commonVertices[0].z) + commonVertices[0].z);
+				offset = (hitTransform.TransformPoint(centerToHitFace) - hitTransform.TransformPoint(footDrop)).magnitude;
+				debugText.text = commonVertices[0].x + " " + commonVertices[0].y + " " + commonVertices[0].z + "\n" +
+					commonVertices[1].x + " " + commonVertices[1].y + " " + commonVertices[1].z + "\n" +
+					centerToHitFace.x + " " + centerToHitFace.y + " " + centerToHitFace.z + "\n" +
+					footDrop.x + " " + footDrop.y + " " + footDrop.z;
 			}
-			axisToFocus = new Vector3(0, 0, -1);
-			float angle = sliderController.GetComponent<SliderController>().angle;
-			debugText.text = camWidth / 2 + " " + hitObj.transform.position.z / Mathf.Tan(-angle) + " " + (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude / Mathf.Sin(-angle);
-			posToFocus = new Vector3(
-				camWidth / 2 + hitObj.transform.position.z / Mathf.Tan(-angle) - (hitTransform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude / Mathf.Sin(-angle) - 0.01f,
-				hitObj.transform.position.y,
-				hitObj.transform.position.z
-			);
+
+			
+			if (isThisScreen) {
+				posToFocus = new Vector3(camWidth / 2 - offset, 0, depth);
+				focusingThisScreen = true;
+			}
+			else {
+				posToFocus = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * offset - Mathf.Sin(-angle) * depth, 0, Mathf.Sin(-angle) * offset + Mathf.Cos(-angle) * depth);
+				focusingOtherScreen = true;
+			}
 			state = Status.focus;
+			selectedNormal = (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(-Mathf.Sin(angle), 0, -Mathf.Cos(-angle)));
 		}
 	}
 
@@ -978,8 +1073,12 @@ public class MeshManipulator : MonoBehaviour
 			}
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			if (!isMainScreen) {
-				isTargetFocused = false;
-				hitObj.GetComponent<ObjectController>().isFocused = false;
+				isTargetFocusedThisScreen = false;
+				hitObj.GetComponent<ObjectController>().isThisScreenFocused = false;
+			}
+			else {
+				isTargetFocusedOtherScreen = false;
+				hitObj.GetComponent<ObjectController>().isOtherScreenFocused = false;
 			}
 		}
 
@@ -1013,7 +1112,8 @@ public class MeshManipulator : MonoBehaviour
 	public void cancel() {
 		state = Status.freemove;
 		isHit = false;
-		isTargetFocused = false;
+		isTargetFocusedThisScreen = false;
+		isTargetFocusedOtherScreen = false;
 		touchPosition = INF;
 		prevTouchPosition = INF;
 		string msg =

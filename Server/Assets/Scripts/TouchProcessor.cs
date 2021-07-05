@@ -129,6 +129,7 @@ public class TouchProcessor : MonoBehaviour
 		if (touchTimerOtherScreen <= 0) {
 			touchCountOtherScreen = 0;
 		}
+
 		cutPlaneVisualizer.enabled = (crossScreenSliceTimer >= 0 && slicePrepared);
 		if (crossScreenSliceTimer <= 0 && slicePrepared) {
 			meshManipulator.GetComponent<MeshManipulator>().executeSlice();
@@ -310,12 +311,15 @@ public class TouchProcessor : MonoBehaviour
 			}
 			case Status.singleScreen1This: {
 				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2 && touchPhaseThisScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
-					meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
-					meshManipulator.GetComponent<MeshManipulator>().castRay();
-					touchPointMark.transform.position = touchPosThisScreen[0];
+					if (doubleTapTimer < 0) {
+						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
+						meshManipulator.GetComponent<MeshManipulator>().castRay();
+						touchPointMark.transform.position = touchPosThisScreen[0];
+					}
 
 					if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
-						meshManipulator.GetComponent<MeshManipulator>().startFocus();
+						meshManipulator.GetComponent<MeshManipulator>().startFocus(true);
+						endGestureLock = 0.1f;
 					}
 					doubleTapTimer = doubleTapTolerance;
 
@@ -333,12 +337,15 @@ public class TouchProcessor : MonoBehaviour
 			}
 			case Status.singleScreen1Other: {
 				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2 && touchPhaseOtherScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
-					meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
-					meshManipulator.GetComponent<MeshManipulator>().castRay();
-					touchPointMark.transform.position = touchPosOtherScreen[0];
+					if (doubleTapTimer < 0) {
+						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
+						meshManipulator.GetComponent<MeshManipulator>().castRay();
+						touchPointMark.transform.position = touchPosOtherScreen[0];
+					}
 
 					if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
-						meshManipulator.GetComponent<MeshManipulator>().startSecondaryFocus();
+						meshManipulator.GetComponent<MeshManipulator>().startFocus(false);
+						endGestureLock = 0.1f;
 					}
 					doubleTapTimer = doubleTapTolerance;
 					
@@ -431,6 +438,7 @@ public class TouchProcessor : MonoBehaviour
 		touchCountOtherScreen = touchCount;
 		touchPosOtherScreen = new Vector3[touchCount];
 		touchPrevPosOtherScreen = new Vector3[touchCount];
+		touchPhaseOtherScreen = new TouchPhase[touchCount];
 
 		for (int i=0;i<touchCountOtherScreen;i++) {
 			touchPosOtherScreen[i] = touchPos[i];

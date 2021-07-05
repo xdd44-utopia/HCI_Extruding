@@ -8,6 +8,7 @@ public class FaceTracker : MonoBehaviour
 	public GameObject sender;
 	public GameObject renderCam;
 	public Text facePosText;
+	public Text debugText;
 	public Image observeButton;
 	public Image perspectiveButton;
 	public Sprite observeFaceTrackingSprite;
