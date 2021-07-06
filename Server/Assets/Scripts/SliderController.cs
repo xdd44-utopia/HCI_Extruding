@@ -47,9 +47,9 @@ public class SliderController : MonoBehaviour
 		angle = angle > minAngle ? angle : minAngle;
 		angle = angle < maxAngle ? angle : maxAngle;
 
-		angle *= 10;
+		angle *= 125;
 		angle = Mathf.Round(angle);
-		angle /= 10;
+		angle /= 125;
 
 		// angle = - Mathf.PI / 3;
 

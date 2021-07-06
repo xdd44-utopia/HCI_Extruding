@@ -126,8 +126,7 @@ public class ClientController : MonoBehaviour {
 			case 'H': pointer = 0; break;
 			case 'T': pointer = 1; break;
 			case 'A': pointer = 2; break;
-			case 'E': pointer = 3; break;
-			case 'F': pointer = 4; break;
+			case 'F': pointer = 3; break;
 		}
 		sendBuffer[pointer] = msg + "@";
 	}
@@ -258,7 +257,7 @@ public class ClientController : MonoBehaviour {
 					}
 				}
 				catch (Exception e) {
-					errorText.text = receivedMessageSplit[i] + "\n" + e.Message;
+					errorText.text = receivedMessageSplit[i][0] + "\n" + e.Message;
 				}
 			}
 		}

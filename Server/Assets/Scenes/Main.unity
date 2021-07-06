@@ -865,7 +865,7 @@ Transform:
   m_GameObject: {fileID: 173118145}
   m_LocalRotation: {x: 0, y: 0, z: 0.38268343, w: 0.92387956}
   m_LocalPosition: {x: 0, y: 0, z: 3}
-  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_LocalScale: {x: 4, y: 4, z: 4}
   m_Children:
   - {fileID: 297741898}
   m_Father: {fileID: 0}
@@ -889,6 +889,7 @@ MonoBehaviour:
   index: 0
   isThisScreenFocused: 0
   isOtherScreenFocused: 0
+  isEdgeAligned: 0
   isRealMeasure: 0
   realMeasure: {x: 1, y: 1, z: 1}
 --- !u!1 &173392927

@@ -17,6 +17,8 @@ public class ObjectController : MonoBehaviour
 	[HideInInspector]
 	public bool isOtherScreenFocused;
 	[HideInInspector]
+	public bool isEdgeAligned;
+	[HideInInspector]
 	public bool isRealMeasure;
 	[HideInInspector]
 	public Vector3 realMeasure = new Vector3(1, 1, 1);
@@ -28,6 +30,7 @@ public class ObjectController : MonoBehaviour
 		index = 0;
 		isThisScreenFocused = false;
 		isOtherScreenFocused = false;
+		isEdgeAligned = false;
 		isRealMeasure = false;
 	}
 

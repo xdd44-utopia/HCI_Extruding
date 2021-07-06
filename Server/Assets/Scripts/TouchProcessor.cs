@@ -27,21 +27,17 @@ public class TouchProcessor : MonoBehaviour
 	private Vector3 INF = new Vector3(10000, 10000, 10000);
  
 	private const float panRatio = 1;
-	private const float minPanDistance = 0;
 
+	private float dragDelta;
+	private Vector3 dragStartPoint;
 	private const float dragRatio = 0.01f;
-	private const float minDragDist = 0;
 
 	private Vector3 panThisScreen;
 	private Vector3 panOtherScreen;
 	private float pinchDelta;
 	private float turnThisScreen;
 	private float turnOtherScreen;
-	private const float minPinchDistance = 0;
-	private const float minTurnDistance = 0.05f;
 
-	private float dragDelta;
-	private Vector3 dragStartPoint;
 
 	private float touchTimer = 0;
 	private float touchTimerOtherScreen = 0;
@@ -59,7 +55,7 @@ public class TouchProcessor : MonoBehaviour
 
 	//double tap
 	private float doubleTapTimer = 0;
-	private float doubleTapTolerance = 0.15f;
+	private float doubleTapTolerance = 0.25f;
 	private float doubleTapInterval = 0.05f;
 
 	//cross-screen slice
@@ -114,12 +110,19 @@ public class TouchProcessor : MonoBehaviour
 
 		if (touchTimer > 0) {
 			switch (state) {
+				case Status.singleScreen1This:
+					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, true);
+					break;
+				case Status.singleScreen1Other:
+					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, false);
+					break;
 				case Status.singleScreen2This:
 					meshManipulator.GetComponent<MeshManipulator>().startTransform(panThisScreen, 0, turnThisScreen, true);
 					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
 					break;
 				case Status.singleScreen2Other:
 					meshManipulator.GetComponent<MeshManipulator>().startTransform(panOtherScreen, 0, turnOtherScreen, false);
+					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
 					break;
 				case Status.crossScreen3:
 					meshManipulator.GetComponent<MeshManipulator>().startTransform(Vector3.zero, pinchDelta, 0, false);
@@ -203,13 +206,7 @@ public class TouchProcessor : MonoBehaviour
 				float pinchEnd = (touchPosThisScreen[0] - touchPosOtherScreen[0]).magnitude;
 
 				pinchDelta = (pinchEnd - pinchStart);
-
-				if (Mathf.Abs(pinchDelta) > minPinchDistance) {
-					pinchDelta *= 1;
-				}
-				else {
-					pinchDelta = 0;
-				}
+				
 				break;
 			}
 			case Status.singleScreen2This: {
@@ -217,13 +214,6 @@ public class TouchProcessor : MonoBehaviour
 				Vector3 panEnd = (touchPosThisScreen[0] + touchPosThisScreen[1]) / 2;
 
 				panThisScreen = panEnd - panStart;
-
-				if (panThisScreen.magnitude > minPanDistance) {
-					panThisScreen *= 1;
-				}
-				else {
-					panThisScreen = new Vector3(0, 0, 0);
-				}
 
 				Vector3 startVec = touchPrevPosThisScreen[0] - touchPrevPosThisScreen[1];
 				Vector3 endVec = touchPosThisScreen[0] - touchPosThisScreen[1];
@@ -233,25 +223,11 @@ public class TouchProcessor : MonoBehaviour
 				turnEnd = (endVec.y >= 0 ? turnEnd : -turnEnd);
 
 				turnThisScreen = turnEnd - turnStart;
-
-				if (Mathf.Abs(turnThisScreen) > minTurnDistance) {
-					turnThisScreen *= 1;
-				}
-				else {
-					turnThisScreen = 0;
-				}
 				
 				float pinchStart = (touchPrevPosThisScreen[0] - touchPrevPosThisScreen[1]).magnitude;
 				float pinchEnd = (touchPosThisScreen[0] - touchPosThisScreen[1]).magnitude;
 
 				pinchDelta = (pinchEnd - pinchStart);
-
-				if (Mathf.Abs(pinchDelta) > minPinchDistance) {
-					pinchDelta *= 1;
-				}
-				else {
-					pinchDelta = 0;
-				}
 
 				endGestureLock = 0.1f;
 				break;
@@ -261,13 +237,6 @@ public class TouchProcessor : MonoBehaviour
 				Vector3 panEnd = (touchPosOtherScreen[0] + touchPosOtherScreen[1]) / 2;
 
 				panOtherScreen = panEnd - panStart;
-
-				if (panOtherScreen.magnitude > minPanDistance) {
-					panOtherScreen *= 1;
-				}
-				else {
-					panOtherScreen = new Vector3(0, 0, 0);
-				}
 
 				Vector3 startVec = touchPrevPosOtherScreen[0] - touchPrevPosOtherScreen[1];
 				Vector3 endVec = touchPosOtherScreen[0] - touchPosOtherScreen[1];
@@ -282,13 +251,12 @@ public class TouchProcessor : MonoBehaviour
 				turnEnd = (endVec.y >= 0 ? turnEnd : -turnEnd);
 
 				turnOtherScreen = turnEnd - turnStart;
+				
+				float pinchStart = (touchPrevPosOtherScreen[0] - touchPrevPosOtherScreen[1]).magnitude;
+				float pinchEnd = (touchPosOtherScreen[0] - touchPosOtherScreen[1]).magnitude;
 
-				if (Mathf.Abs(turnOtherScreen) > minTurnDistance) {
-					turnOtherScreen *= 1;
-				}
-				else {
-					turnOtherScreen = 0;
-				}
+				pinchDelta = (pinchEnd - pinchStart);
+
 				endGestureLock = 0.1f;
 				break;
 			}
@@ -310,53 +278,48 @@ public class TouchProcessor : MonoBehaviour
 				break;
 			}
 			case Status.singleScreen1This: {
-				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2 && touchPhaseThisScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
-					if (doubleTapTimer < 0) {
-						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
-						meshManipulator.GetComponent<MeshManipulator>().castRay();
-						touchPointMark.transform.position = touchPosThisScreen[0];
+				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
+					if (touchPhaseThisScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
+						if (doubleTapTimer < 0) {
+							meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
+							meshManipulator.GetComponent<MeshManipulator>().castRay();
+							touchPointMark.transform.position = touchPosThisScreen[0];
+						}
+
+						if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
+							meshManipulator.GetComponent<MeshManipulator>().startFocus(true);
+							endGestureLock = 0.1f;
+						}
+						doubleTapTimer = doubleTapTolerance;
 					}
 
-					if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
-						meshManipulator.GetComponent<MeshManipulator>().startFocus(true);
+					if ((touchPhaseThisScreen[0] == TouchPhase.Moved || touchPhaseThisScreen[0] == TouchPhase.Stationary) && doubleTapTimer < 0 && endGestureLock < 0) {
+						dragDelta = (touchPrevPosThisScreen[0] - touchPosThisScreen[0]).x;
 						endGestureLock = 0.1f;
 					}
-					doubleTapTimer = doubleTapTolerance;
 
-					float currentDist = Vector2.Distance(touchPosThisScreen[0], dragStartPoint);
-					float prevDist = Vector2.Distance(touchPrevPosThisScreen[0], dragStartPoint);
-					dragDelta = currentDist - prevDist;
-
-					if (Mathf.Abs(dragDelta) > minDragDist) {
-						dragDelta *= dragRatio;
-					} else {
-						dragDelta = 0;
-					}
 				}
 				break;
 			}
 			case Status.singleScreen1Other: {
-				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2 && touchPhaseOtherScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
-					if (doubleTapTimer < 0) {
-						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
-						meshManipulator.GetComponent<MeshManipulator>().castRay();
-						touchPointMark.transform.position = touchPosOtherScreen[0];
-					}
+				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2) {
+					if (touchPhaseOtherScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
+						if (doubleTapTimer < 0) {
+							meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
+							meshManipulator.GetComponent<MeshManipulator>().castRay();
+							touchPointMark.transform.position = touchPosOtherScreen[0];
+						}
 
-					if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
-						meshManipulator.GetComponent<MeshManipulator>().startFocus(false);
-						endGestureLock = 0.1f;
+						if (doubleTapTolerance - doubleTapTimer > doubleTapInterval && doubleTapTimer > 0) {
+							meshManipulator.GetComponent<MeshManipulator>().startFocus(false);
+							endGestureLock = 0.1f;
+						}
+						doubleTapTimer = doubleTapTolerance;
 					}
-					doubleTapTimer = doubleTapTolerance;
 					
-					float currentDist = Vector2.Distance(touchPosOtherScreen[0], dragStartPoint);
-					float prevDist = Vector2.Distance(touchPrevPosOtherScreen[0], dragStartPoint);
-					dragDelta = currentDist - prevDist;
-
-					if (Mathf.Abs(dragDelta) > minDragDist) {
-						dragDelta *= dragRatio;
-					} else {
-						dragDelta = 0;
+					if ((touchPhaseOtherScreen[0] == TouchPhase.Moved || touchPhaseOtherScreen[0] == TouchPhase.Stationary) && doubleTapTimer < 0 && endGestureLock < 0) {
+						dragDelta = (touchPosOtherScreen[0] - touchPrevPosOtherScreen[0]).x;
+						endGestureLock = 0.1f;
 					}
 				}
 				break;

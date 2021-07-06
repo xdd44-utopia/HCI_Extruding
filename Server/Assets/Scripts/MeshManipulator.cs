@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using UnityEditor;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
@@ -49,6 +50,7 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3 centerToHitFace;
 	private bool isTargetFocusedThisScreen = false;
 	private bool isTargetFocusedOtherScreen = false;
+	private bool isEdgeAligned = false;
 	private bool focusingThisScreen = false;
 	private bool focusingOtherScreen = false;
 	private Vector3 footDrop;
@@ -77,6 +79,8 @@ public class MeshManipulator : MonoBehaviour
 
 	//extrude
 	private Mesh extrudedMesh;
+	private Vector3 extrudeDir = new Vector3(0, 0, 0);
+	private Vector3 extrudeStartPos = new Vector3(0, 0, 0);
 	private float extrudeDist = 0f;
 	private Vector3[] extrudedVertices;
 	private int[] extrudedTriangles;
@@ -141,6 +145,9 @@ public class MeshManipulator : MonoBehaviour
 		focusText.text = (isHit ? ((isTargetFocusedThisScreen || isTargetFocusedOtherScreen) ? "Front face aligned" : "No face aligned") : "N/A");
 
 		angle = sliderController.GetComponent<SliderController>().angle;
+
+		debugText2.text = "" + (angle * 180 / Mathf.PI);
+
 		if (Mathf.Abs(angle - prevAngle) > 0.01f && isHit) {
 			if (smode == SelectMode.selectFace) {
 				constructHighlight();
@@ -156,7 +163,12 @@ public class MeshManipulator : MonoBehaviour
 				focus();
 				break;
 			case Status.extrude:
-				extrude();
+				try {
+					extrude();
+				}
+				catch (Exception e) {
+					state = Status.select;
+				}
 				break;
 			case Status.taper:
 				// castRay();
@@ -227,6 +239,7 @@ public class MeshManipulator : MonoBehaviour
 			hituv = hitMesh.uv;
 			isTargetFocusedThisScreen = hitObj.GetComponent<ObjectController>().isThisScreenFocused;
 			isTargetFocusedOtherScreen = hitObj.GetComponent<ObjectController>().isOtherScreenFocused;
+			isEdgeAligned = hitObj.GetComponent<ObjectController>().isEdgeAligned;
 
 			if (smode == SelectMode.selectFace) {
 				selectedFaceIndex = hit.triangleIndex;
@@ -386,6 +399,8 @@ public class MeshManipulator : MonoBehaviour
 					axisToFocus = new Vector3(0, 0, 1) * ((angleStart - angleEnd).y > 0 ? -1 : 1);
 					hitObj.GetComponent<ObjectController>().isOtherScreenFocused = false;
 					isTargetFocusedOtherScreen = false;
+					hitObj.GetComponent<ObjectController>().isEdgeAligned = true;
+					isEdgeAligned = true;
 					touchPosition = new Vector3(camWidth / 2 - 0.1f, 0, 0);
 				}
 				else {
@@ -405,6 +420,8 @@ public class MeshManipulator : MonoBehaviour
 					axisToFocus = new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle)) * ((angleStart - angleEnd).y > 0 ? -1 : 1);
 					hitObj.GetComponent<ObjectController>().isThisScreenFocused = false;
 					isTargetFocusedThisScreen = false;
+					hitObj.GetComponent<ObjectController>().isEdgeAligned = true;
+					isEdgeAligned = true;
 					touchPosition = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * 0.25f, 0, Mathf.Sin(-angle) * 0.25f);
 				}
 				else {
@@ -488,10 +505,16 @@ public class MeshManipulator : MonoBehaviour
 	/* #region Extrude */
 	private void extrude() {
 
+		if (smode != SelectMode.selectFace) {
+			state = Status.select;
+			return;
+		}
+
 		extrudedVertices = extrudedMesh.vertices;
 		extrudedTriangles = extrudedMesh.triangles;
 
-		Vector3 localNormal = hitTransform.InverseTransformPoint(selectedNormal);
+		Vector3 localNormal = hitTransform.InverseTransformPoint(hitObj.transform.position - extrudeDir);
+		localNormal = localNormal.normalized;
 		for (int i=0;i<edgeLength;i++) {
 			extrudedVertices[hitVerticesNum + i * 6 + 2] = hitVertices[edgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 4] = hitVertices[edgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
@@ -509,25 +532,36 @@ public class MeshManipulator : MonoBehaviour
 		extrudedMesh.MarkModified();
 		extrudedMesh.RecalculateNormals();
 
+		extrudeDir = extrudeDir.normalized * hitObj.transform.localScale.x;
+
+		hitObj.transform.position = extrudeStartPos + extrudeDir * extrudeDist;
 		constructHighlight();
-		findPosition();
-		hitObj.transform.position = posToFocus;
-		if(extrudeStarted) {
-			extrudeTimer -= Time.deltaTime;
-			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
-		}
+
+		hitObj.GetComponent<MeshFilter>().mesh = extrudedMesh;
+		hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
+		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+
+		extrudeTimer -= Time.deltaTime;
 		if (extrudeTimer < 0) {
-			hitObj.GetComponent<MeshFilter>().mesh = extrudedMesh;
-			hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
+			state = Status.select;
 			cancel();
-			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 		}
+
+		debugText.text = extrudeDist + " " + (angle * 180 / Mathf.PI) + " " + extrudeDir;
 	}
 	
-	private void prepareExtrude() {
+	private void prepareExtrude(bool isThisScreen) {
 		
+		extrudeDist = 0;
+		extrudeStartPos = hitObj.transform.position;
+		if (isThisScreen) {
+			extrudeDir = new Vector3(-1, 0, 0);
+		}
+		else {
+			extrudeDir = new Vector3(Mathf.Cos(-angle), 0, Mathf.Sin(-angle));
+		}
+
 		extrudedMesh = hitObj.GetComponent<MeshFilter>().mesh;
 		extrudedMesh.vertices = new Vector3[hitVerticesNum + edgeLength * 6];
 		extrudedMesh.triangles = new int[hitTrianglesNum + edgeLength * 6];
@@ -598,6 +632,7 @@ public class MeshManipulator : MonoBehaviour
 		taperTimer -= Time.deltaTime;
 		if (taperTimer < 0) {
 			state = Status.select;
+			cancel();
 		}
 
 	}
@@ -631,7 +666,7 @@ public class MeshManipulator : MonoBehaviour
 		planeNormalWorld = new Vector3(planeNormal.x, planeNormal.y, planeNormal.z);
 		planePos = hitTransform.InverseTransformPoint(planePos);
 		planeNormal = hitTransform.InverseTransformPoint(planeNormal + hitTransform.position);
-		Vector3 avoidZeroVector = new Vector3(Random.Range(0.01f, 0.02f), Random.Range(0.01f, 0.02f), Random.Range(0.01f, 0.02f));
+		Vector3 avoidZeroVector = new Vector3(UnityEngine.Random.Range(0.01f, 0.02f), UnityEngine.Random.Range(0.01f, 0.02f), UnityEngine.Random.Range(0.01f, 0.02f));
 		if (planeNormal.x != 0) {
 			avoidZeroVector.x = - (avoidZeroVector.y * planeNormal.y + avoidZeroVector.z * planeNormal.z) / planeNormal.x;
 		}
@@ -765,7 +800,7 @@ public class MeshManipulator : MonoBehaviour
 		while (sortedEdgeVerticesList.Count > 3) {
 			int prevCount = sortedEdgeVerticesList.Count;
 			int loopCount = 0;
-			int i = Random.Range(0, sortedEdgeVerticesList.Count);
+			int i = UnityEngine.Random.Range(0, sortedEdgeVerticesList.Count);
 			while (loopCount < prevCount) {
 				int prev1 = (i + sortedEdgeVerticesList.Count - 1) % sortedEdgeVerticesList.Count;
 				int prev2 = (i + sortedEdgeVerticesList.Count - 2) % sortedEdgeVerticesList.Count;
@@ -992,16 +1027,14 @@ public class MeshManipulator : MonoBehaviour
 						break;
 					}
 				}
-				Vector3 edgePoint = (commonVertices[0] + commonVertices[1]) / 2;
-				float k =
-					- ((commonVertices[0].x - centerToHitFace.x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[0].y - centerToHitFace.y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[0].z - centerToHitFace.z) * (commonVertices[1].z - commonVertices[0].z)) /
-					((commonVertices[1].x - commonVertices[0].x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[1].y - commonVertices[0].y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[1].z - commonVertices[0].z) * (commonVertices[1].z - commonVertices[0].z));
-				footDrop = new Vector3(k * (commonVertices[1].x - commonVertices[0].x) + commonVertices[0].x, k * (commonVertices[1].y - commonVertices[0].y) + commonVertices[0].y, k * (commonVertices[1].z - commonVertices[0].z) + commonVertices[0].z);
-				offset = (hitTransform.TransformPoint(centerToHitFace) - hitTransform.TransformPoint(footDrop)).magnitude;
-				debugText.text = commonVertices[0].x + " " + commonVertices[0].y + " " + commonVertices[0].z + "\n" +
-					commonVertices[1].x + " " + commonVertices[1].y + " " + commonVertices[1].z + "\n" +
-					centerToHitFace.x + " " + centerToHitFace.y + " " + centerToHitFace.z + "\n" +
-					footDrop.x + " " + footDrop.y + " " + footDrop.z;
+				if (cnt == 2) {
+					Vector3 edgePoint = (commonVertices[0] + commonVertices[1]) / 2;
+					float k =
+						- ((commonVertices[0].x - centerToHitFace.x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[0].y - centerToHitFace.y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[0].z - centerToHitFace.z) * (commonVertices[1].z - commonVertices[0].z)) /
+						((commonVertices[1].x - commonVertices[0].x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[1].y - commonVertices[0].y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[1].z - commonVertices[0].z) * (commonVertices[1].z - commonVertices[0].z));
+					footDrop = new Vector3(k * (commonVertices[1].x - commonVertices[0].x) + commonVertices[0].x, k * (commonVertices[1].y - commonVertices[0].y) + commonVertices[0].y, k * (commonVertices[1].z - commonVertices[0].z) + commonVertices[0].z);
+					offset = (hitTransform.TransformPoint(centerToHitFace) - hitTransform.TransformPoint(footDrop)).magnitude;
+				}
 			}
 
 			
@@ -1021,7 +1054,7 @@ public class MeshManipulator : MonoBehaviour
 	public void startExtrude() {
 		if (state == Status.select && smode == SelectMode.selectFace) {
 			state = Status.extrude;
-			prepareExtrude();
+			prepareExtrude(false);
 		}
 	}
 
@@ -1052,6 +1085,8 @@ public class MeshManipulator : MonoBehaviour
 	public void updateTaperScale(float factor) {
 		if (isHit && smode == SelectMode.selectFace && state == Status.select) {
 			prepareTaper();
+			isEdgeAligned = false;
+			hitObj.GetComponent<ObjectController>().isEdgeAligned = false;
 		}
 		if (isHit && state == Status.taper) {
 			if (factor != 0){
@@ -1059,6 +1094,22 @@ public class MeshManipulator : MonoBehaviour
 			}
 			taperScale += factor / 4;
 			taperTimer = touchDelayTolerance;
+		}
+	}
+
+	public void updateExtrudeScale(float factor, bool isThisScreen) {
+		if (isHit && smode == SelectMode.selectFace && isEdgeAligned && state == Status.select) {
+			if ((isTargetFocusedThisScreen && !isThisScreen) || (isTargetFocusedOtherScreen && isThisScreen)) {
+				prepareExtrude(isThisScreen);
+			}
+		}
+		if (isHit && state == Status.extrude) {
+			if (factor != 0){
+				extrudeStarted = true;
+			}
+			extrudeDist += factor;
+			extrudeDist = extrudeDist > 0 ? extrudeDist : 0;
+			extrudeTimer = touchDelayTolerance;
 		}
 	}
 
@@ -1080,6 +1131,8 @@ public class MeshManipulator : MonoBehaviour
 				isTargetFocusedOtherScreen = false;
 				hitObj.GetComponent<ObjectController>().isOtherScreenFocused = false;
 			}
+			isEdgeAligned = false;
+			hitObj.GetComponent<ObjectController>().isEdgeAligned = false;
 		}
 
 		if (isHit && smode == SelectMode.selectObject) {
@@ -1089,11 +1142,11 @@ public class MeshManipulator : MonoBehaviour
 		}
 	}
 
-	public void updateExtrude(float newValue) {
-		extrudeDist = newValue;
-		extrudeTimer = touchDelayTolerance;
-		extrudeStarted = true;
-	}
+	// public void updateExtrude(float newValue) {
+	// 	extrudeDist = newValue;
+	// 	extrudeTimer = touchDelayTolerance;
+	// 	extrudeStarted = true;
+	// }
 
 	public void recordRealMeasure() {
 		if (isHit) {
@@ -1110,16 +1163,12 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void cancel() {
-		state = Status.freemove;
 		isHit = false;
 		isTargetFocusedThisScreen = false;
 		isTargetFocusedOtherScreen = false;
+		isEdgeAligned = false;
 		touchPosition = INF;
 		prevTouchPosition = INF;
-		string msg =
-			"Highlight\n" + 
-			"Cancel\n";
-		sender.GetComponent<ServerController>().sendMessage(msg);
 	}
 	/* #endregion */
 }

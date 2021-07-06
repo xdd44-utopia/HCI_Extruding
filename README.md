@@ -67,10 +67,6 @@ Cutting:
 - First line "Cutting"
 - Second line touch point in server's space
 
-Extruding:
-- First line "Extruding"
-- Second line extruding distance
-
 Face tracking:
 - First line "Face"
 - Second line face position or 'X'

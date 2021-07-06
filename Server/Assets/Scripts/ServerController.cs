@@ -202,11 +202,6 @@ public class ServerController : MonoBehaviour {
 							touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos, phases);
 							break;
 						}
-						case 'E': {
-							string extrudeDistStr = receivedMessageSplit[i].Split('\n')[1];
-							meshManipulator.GetComponent<MeshManipulator>().updateExtrude(System.Convert.ToSingle(extrudeDistStr));
-							break;
-						}
 						case 'H': {
 							isConnected = true;
 							break;
