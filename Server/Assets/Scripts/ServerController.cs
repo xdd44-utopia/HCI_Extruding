@@ -29,14 +29,13 @@ public class ServerController : MonoBehaviour {
 	private TcpClient connectedTcpClient;
 	private string receivedMessage;
 	private string rcvBuffer = "";
-	private const int msgTypes = 7;
+	private const int msgTypes = 8;
 	private string[] sendBuffer = new string[msgTypes];
 	private bool refreshed = false;
 	
 	private float sendTimer = 0;
 	private const float sendInterval = 0.04f;
 
-	private bool isConnected = false;
 	
 	void Start () {
 		tcpListenerThread = new Thread (new ThreadStart(ListenForIncommingRequests));
@@ -114,6 +113,7 @@ public class ServerController : MonoBehaviour {
 			case 'S': pointer = 4; break;
 			case 'A': pointer = 5; break;
 			case 'C': pointer = 6; break;
+			case 'G': pointer = 7; break;
 		}
 		sendBuffer[pointer] = msg + "@";
 	}
@@ -203,7 +203,6 @@ public class ServerController : MonoBehaviour {
 							break;
 						}
 						case 'H': {
-							isConnected = true;
 							break;
 						}
 						case 'A': {

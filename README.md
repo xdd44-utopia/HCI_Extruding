@@ -8,7 +8,6 @@ By Unity
 
 Mesh:
 - First line "Mesh"
-- Second Line $n$ for $n$th mesh
 - Third line $nv$ for $nv$ vertices
 - Followed by one line of vertices separated by comma
 - Fourth line $nt$ for $nt$ triangle indices
@@ -23,11 +22,7 @@ Transform:
 
 Highlight:
 - First line "Highlight"
-- Second line "Object" or "Face"
-- Third line $n$ for nth object OR $nv$ for $nv$ vertices
-- Followed by one line of vertices separated by comma
-- Fourth line $nt$ for $nt$ triangle indices
-- Followed by one line of indices separated by comma
+- Second line -1 or highlight face index
 
 Face Track:
 - First line "Face"
@@ -48,6 +43,10 @@ Cutting Plane Visualize:
 Angle
 - First line "Angle"
 - Second line angle in radius
+
+Grid scale
+- First line "Grid"
+- Second line float point number
 
 ## From client to server:
 
@@ -74,4 +73,9 @@ Face tracking:
 
 
 todo
-1. extrude
+1. cut a diamond (video)
+2. add extrude handle
+3. tap surface to select/deselect, tap elsewhere does nothing
+4. keep snapping when scale, no scale without snap
+5. three fingers "rolling" rotation
+6. cover the lines coplanar

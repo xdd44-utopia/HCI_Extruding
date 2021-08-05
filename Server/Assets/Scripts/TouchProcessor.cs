@@ -38,7 +38,6 @@ public class TouchProcessor : MonoBehaviour
 	private float turnThisScreen;
 	private float turnOtherScreen;
 
-
 	private float touchTimer = 0;
 	private float touchTimerOtherScreen = 0;
 	private float touchDelayTolerance = 0.1f;
@@ -79,6 +78,8 @@ public class TouchProcessor : MonoBehaviour
 		crossScreen3
 	}
 
+	private float angle;
+
 	void Start()
 	{
 		
@@ -87,6 +88,7 @@ public class TouchProcessor : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
+		angle = sliderController.GetComponent<SliderController>().angle;
 
 		touchCountThisScreen = Input.touchCount;
 		if(touchCountThisScreen > 0) {
@@ -117,15 +119,15 @@ public class TouchProcessor : MonoBehaviour
 					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, false);
 					break;
 				case Status.singleScreen2This:
-					meshManipulator.GetComponent<MeshManipulator>().startTransform(panThisScreen, 0, turnThisScreen, true);
+					meshManipulator.GetComponent<MeshManipulator>().startTransform(panThisScreen, pinchDelta, 0, true);
 					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
 					break;
 				case Status.singleScreen2Other:
-					meshManipulator.GetComponent<MeshManipulator>().startTransform(panOtherScreen, 0, turnOtherScreen, false);
+					meshManipulator.GetComponent<MeshManipulator>().startTransform(panOtherScreen, pinchDelta, 0, false);
 					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
 					break;
 				case Status.crossScreen3:
-					meshManipulator.GetComponent<MeshManipulator>().startTransform(Vector3.zero, pinchDelta, 0, false);
+					meshManipulator.GetComponent<MeshManipulator>().startTransform(Vector3.zero, 0, turnThisScreen, true);
 					break;
 			}
 		}
@@ -171,7 +173,7 @@ public class TouchProcessor : MonoBehaviour
 		panThisScreen = new Vector3(0, 0, 0);
 		panOtherScreen = new Vector3(0, 0, 0);
 		pinchDelta = 0;
-		// meshManipulator.GetComponent<MeshManipulator>().touchPosition = INF;
+		meshManipulator.GetComponent<MeshManipulator>().touchPosition = INF;
 
 		if (touchCountThisScreen == 0 && touchCountOtherScreen == 0) {
 			state = Status.none;
@@ -202,10 +204,12 @@ public class TouchProcessor : MonoBehaviour
 		switch (state) {
 			case Status.crossScreen3: {
 				
-				float pinchStart = (touchPrevPosThisScreen[0] - touchPrevPosOtherScreen[0]).magnitude;
-				float pinchEnd = (touchPosThisScreen[0] - touchPosOtherScreen[0]).magnitude;
+				Vector3 panStart = (touchPrevPosThisScreen[0] + touchPrevPosThisScreen[1]) / 2;
+				Vector3 panEnd = (touchPosThisScreen[0] + touchPosThisScreen[1]) / 2;
 
-				pinchDelta = (pinchEnd - pinchStart);
+				panThisScreen = panEnd - panStart;
+
+				//turnThisScreen = panThisScreen * 0.1f;
 				
 				break;
 			}
@@ -333,8 +337,9 @@ public class TouchProcessor : MonoBehaviour
 			return;
 		}
 
-		Vector3 centerPos = (startSliceThisScreen + startSliceOtherScreen) / 2;
-		Vector3 normal = crossProduct(centerPos - endSliceOtherScreen, centerPos - endSliceThisScreen);
+		Vector3 centerPos = (endSliceThisScreen + endSliceOtherScreen) / 2;
+		Vector3 normal = crossProduct(endSliceThisScreen - endSliceOtherScreen, new Vector3(0, 1, 0));
+		// Vector3 normal = crossProduct(centerPos - endSliceOtherScreen, centerPos - endSliceThisScreen);
 
 		if (normal.z < 0) {
 			normal = -normal;
@@ -354,10 +359,11 @@ public class TouchProcessor : MonoBehaviour
 	}
 
 	private void visualizeCrossScreenSlice() {
-		float angle = sliderController.GetComponent<SliderController>().angle;
 		Vector3 centerPos = (startSliceThisScreen + startSliceOtherScreen) / 2;
-		Vector3 startThis = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceThisScreen, new Vector3(0, 0, 1));
-		Vector3 startOther = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceOtherScreen, new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(angle)));
+		// Vector3 startThis = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceThisScreen, new Vector3(0, 0, 1));
+		// Vector3 startOther = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceOtherScreen, new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(angle)));
+		Vector3 startThis = new Vector3(endSliceThisScreen.x, 10, endSliceThisScreen.z);
+		Vector3 startOther = new Vector3(endSliceOtherScreen.x, 10, endSliceOtherScreen.z);
 		cutPlaneVisualizer.SetPosition(0, endSliceThisScreen);
 		cutPlaneVisualizer.SetPosition(1, startThis);
 		cutPlaneVisualizer.SetPosition(2, startOther);

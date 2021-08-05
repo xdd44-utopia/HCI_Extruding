@@ -6,6 +6,7 @@ TagManager:
   tags:
   - FacePosition
   - Object
+  - ObjectSolid
   layers:
   - Default
   - TransparentFX

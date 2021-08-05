@@ -82,7 +82,6 @@ public class FaceTracker : MonoBehaviour
 			faceDetected.z *= observationScaleVertical;
 			Destroy(testObj, 0f);
 			Vector3 faceDetectedForServer = convertToServer(faceDetected);
-			debugText.text = " " + faceDetected;
 			msg = "Face\n" + faceDetectedForServer.x + "," + faceDetectedForServer.y + "," + faceDetectedForServer.z + "\n";
 		}
 		sender.GetComponent<ClientController>().sendMessage(msg);

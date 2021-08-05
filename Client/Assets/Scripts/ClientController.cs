@@ -12,9 +12,9 @@ public class ClientController : MonoBehaviour {
 
 	public GameObject touchProcessor;
 	public GameObject faceTracker;
-	public GameObject objectManager;
-	public GameObject highlightManager;
+	public GameObject objectController;
 	public GameObject sliceTraceVisualizer;
+	public GameObject gridController;
 	public Camera renderCamera;
 	public Text debugText;
 	public Text errorText;
@@ -242,17 +242,21 @@ public class ClientController : MonoBehaviour {
 							sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(touchPointThisScreen, touchPointOtherScreen, touchStartThisScreen, touchStartOtherScreen);
 							break;
 						case 'M':
-							objectManager.GetComponent<ObjectManager>().updateMesh(receivedMessageSplit[i]);
+							objectController.GetComponent<ObjectController>().updateMesh(receivedMessageSplit[i]);
 							break;
 						case 'T':
-							objectManager.GetComponent<ObjectManager>().updateTransform(receivedMessageSplit[i]);
+							objectController.GetComponent<ObjectController>().updateTransform(receivedMessageSplit[i]);
 							break;
 						case 'H':
-							highlightManager.GetComponent<HighlightManager>().updateHighlight(receivedMessageSplit[i]);
+							objectController.GetComponent<ObjectController>().updateHighlight(receivedMessageSplit[i]);
 							break;
 						case 'A':
 							temp1 = receivedMessageSplit[i].Split('\n');
 							GameObject.Find("Angles").GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
+							break;
+						case 'G':
+							temp1 = receivedMessageSplit[i].Split('\n');
+							gridController.GetComponent<GridController>().scale = System.Convert.ToSingle(temp1[1]);
 							break;
 					}
 				}
@@ -264,7 +268,8 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "192.168.0.104";
+		string address = "192.168.30.79";
+		//string address = "192.168.0.101";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
