@@ -75,7 +75,9 @@ Face tracking:
 todo
 1. cut a diamond (video)
 2. add extrude handle
-3. tap surface to select/deselect, tap elsewhere does nothing
-4. keep snapping when scale, no scale without snap
-5. three fingers "rolling" rotation
-6. cover the lines coplanar
+
+problems
+1. what is scaling view
+2. no highlighting object feels a bit weird
+3. a lagging select response due to waiting for duoble tap
+4. give a different color to current snapped surface and current selected surface

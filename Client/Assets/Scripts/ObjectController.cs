@@ -191,18 +191,9 @@ public class ObjectController : MonoBehaviour
 		string[] temp1 = msg.Split('\n');
 
 		int selectFaceIndex = System.Convert.ToInt32(temp1[1]);
-
-		if (selectFaceIndex == -1) {
-			for (int i=0;i<faceNum;i++) {
-				Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
-				tempRenderer.material.SetColor("_Color", new Color(0f, 1f, 0f, 1f));
-			}
-		}
-		else {
-			for (int i=0;i<faceNum;i++) {
-				Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
-				tempRenderer.material.SetColor("_Color", (i == selectFaceIndex ? new Color(1f, 1f, 0f, 1f) : new Color(1f, 1f, 1f, 1f)));
-			}
+		for (int i=0;i<faceNum;i++) {
+			Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
+			tempRenderer.material.SetColor("_Color", (i == selectFaceIndex ? new Color(1f, 1f, 0f, 1f) : new Color(1f, 1f, 1f, 1f)));
 		}
 	}
 

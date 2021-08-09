@@ -6,7 +6,6 @@ using UnityEngine.UI;
 public class SliderController : MonoBehaviour
 {
 	public GameObject sender;
-	public GameObject objectManager;
 	public Text debugText;
 
 	[HideInInspector]
@@ -55,7 +54,7 @@ public class SliderController : MonoBehaviour
 
 		if (Mathf.Abs(angle - prevAngle) > 0f) {
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle + "\n");
-			objectManager.GetComponent<ObjectManager>().angleChanged();
+			// objectManager.GetComponent<ObjectManager>().angleChanged();
 		}
 		prevAngle = angle;
 	}

@@ -15,14 +15,6 @@ public class ObjectController : MonoBehaviour
 	[HideInInspector]
 	public bool isMeshUpdated;
 	[HideInInspector]
-	public int index;
-	[HideInInspector]
-	public bool isThisScreenFocused;
-	[HideInInspector]
-	public bool isOtherScreenFocused;
-	[HideInInspector]
-	public bool isEdgeAligned;
-	[HideInInspector]
 	public bool isRealMeasure;
 	[HideInInspector]
 	public Vector3 realMeasure = new Vector3(1, 1, 1);
@@ -38,7 +30,6 @@ public class ObjectController : MonoBehaviour
 	private int[] meshToFacePointers;
 	private List<GameObject> faceObj = new List<GameObject>();
 	public GameObject facePrefab;
-	private bool isInitialized = false;
 
 	//Selected face
 	private int selectTriangleIndex = -1; //-1: select object, >=0: select face
@@ -48,16 +39,14 @@ public class ObjectController : MonoBehaviour
 	{
 		isTransformUpdated = true;
 		isMeshUpdated = true;
-		index = 0;
-		isThisScreenFocused = false;
-		isOtherScreenFocused = false;
-		isEdgeAligned = false;
 		isRealMeasure = false;
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
+		selectFaceIndex = (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]);
+		updateHighlight();
 		if (isMeshUpdated) {
 			inside.GetComponent<MeshFilter>().mesh = GetComponent<MeshFilter>().mesh;
 			updateCover();
@@ -240,11 +229,6 @@ public class ObjectController : MonoBehaviour
 			edges.Add(edgeVertices);
 		}
 
-		if (!isInitialized) {
-			isInitialized = true;
-			updateHighlight();
-		}
-
 		//Send out mesh
 		string msg = "Mesh\n";
 		msg += vertices.Length + "\n";
@@ -263,39 +247,45 @@ public class ObjectController : MonoBehaviour
 	}
 
 	private void updateHighlight() {
-		debugText.text = "" + selectFaceIndex + " " + Time.deltaTime;
-
 		string msg = "Highlight\n" + selectFaceIndex;
 		sender.GetComponent<ServerController>().sendMessage(msg);
-
-		if (selectFaceIndex == -1) {
-			for (int i=0;i<faceNum;i++) {
-				Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
-				tempRenderer.material.SetColor("_Color", new Color(0f, 1f, 0f, 1f));
-			}
-		}
-		else {
-			for (int i=0;i<faceNum;i++) {
-				Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
-				tempRenderer.material.SetColor("_Color", (i == selectFaceIndex ? new Color(1f, 1f, 0f, 1f) : new Color(1f, 1f, 1f, 1f)));
-			}
+		for (int i=0;i<faceNum;i++) {
+			Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
+			tempRenderer.material.SetColor("_Color", (i == selectFaceIndex ? new Color(1f, 1f, 0f, 1f) : new Color(1f, 1f, 1f, 1f)));
 		}
 	}
 
 	public int selectFace(int si) {
+		debugText.text = "Current selected face: " + selectFaceIndex + "\n";
 		int tempFace = meshToFacePointers[si];
+		debugText.text += "Try to select face: " + tempFace + "\n";
 		if (selectFaceIndex == tempFace) {
-			selectFaceIndex = -1;
 			selectTriangleIndex = -1;
 		}
 		else {
-			selectFaceIndex = tempFace;
 			selectTriangleIndex = si;
-			meshManipulator.GetComponent<MeshManipulator>().selectTriangles = faceToMeshPointers[tempFace];
-			meshManipulator.GetComponent<MeshManipulator>().selectEdgeVertices = edges[tempFace];
 		}
-		updateHighlight();
-		return selectTriangleIndex;
+		debugText.text += "Result: " + (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]) + "\n";
+		return findFirstTriangle(selectTriangleIndex);
+	}
+
+	public void newFocus() {
+		int tempFace = meshToFacePointers[selectTriangleIndex];
+		meshManipulator.GetComponent<MeshManipulator>().selectTriangles = faceToMeshPointers[tempFace];
+		meshManipulator.GetComponent<MeshManipulator>().selectEdgeVertices = edges[tempFace];
+		meshManipulator.GetComponent<MeshManipulator>().focusTriangleIndex = findFirstTriangle(selectTriangleIndex);
+	}
+
+	private int findFirstTriangle(int idx) {
+		if (idx == -1) {
+			return -1;
+		}
+		for (int i=0;i<meshToFacePointers.Length;i++) {
+			if (meshToFacePointers[i] == meshToFacePointers[idx]) {
+				return i;
+			}
+		}
+		return -1;
 	}
 
 	private Vector3 crossProduct(Vector3 a, Vector3 b) {
