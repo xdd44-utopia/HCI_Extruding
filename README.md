@@ -48,6 +48,10 @@ Grid scale
 - First line "Grid"
 - Second line float point number
 
+Extrude handle
+- First line "Extrude"
+- Second line extrude distance
+
 ## From client to server:
 
 "Hello": confirm connection

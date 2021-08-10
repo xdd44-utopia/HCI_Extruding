@@ -29,7 +29,7 @@ public class ServerController : MonoBehaviour {
 	private TcpClient connectedTcpClient;
 	private string receivedMessage;
 	private string rcvBuffer = "";
-	private const int msgTypes = 8;
+	private const int msgTypes = 9;
 	private string[] sendBuffer = new string[msgTypes];
 	private bool refreshed = false;
 	
@@ -114,6 +114,7 @@ public class ServerController : MonoBehaviour {
 			case 'T': pointer = 5; break;
 			case 'C': pointer = 6; break;
 			case 'G': pointer = 7; break;
+			case 'E': pointer = 8; break;
 		}
 		sendBuffer[pointer] = msg + "@";
 	}

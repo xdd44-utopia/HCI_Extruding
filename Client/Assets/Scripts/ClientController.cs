@@ -15,6 +15,7 @@ public class ClientController : MonoBehaviour {
 	public GameObject objectController;
 	public GameObject sliceTraceVisualizer;
 	public GameObject gridController;
+	public GameObject extrudeHandle;
 	public Camera renderCamera;
 	public Text debugText;
 	public Text errorText;
@@ -243,7 +244,6 @@ public class ClientController : MonoBehaviour {
 							break;
 						case 'M':
 							objectController.GetComponent<ObjectController>().updateMesh(receivedMessageSplit[i]);
-							errorText.text = receivedMessageSplit[i] + "\n";
 							break;
 						case 'T':
 							objectController.GetComponent<ObjectController>().updateTransform(receivedMessageSplit[i]);
@@ -259,10 +259,14 @@ public class ClientController : MonoBehaviour {
 							temp1 = receivedMessageSplit[i].Split('\n');
 							gridController.GetComponent<GridController>().scale = System.Convert.ToSingle(temp1[1]);
 							break;
+						case 'E':
+							temp1 = receivedMessageSplit[i].Split('\n');
+							extrudeHandle.GetComponent<ExtrudeHandle>().updateDist(System.Convert.ToSingle(temp1[1]));
+							break;
 					}
 				}
 				catch (Exception e) {
-					errorText.text = receivedMessageSplit[i] + "\n" + e.Message;
+					errorText.text = receivedMessageSplit[i][0] + "\n" + e.Message;
 				}
 			}
 		}

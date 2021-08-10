@@ -24,6 +24,7 @@ public class MeshManipulator : MonoBehaviour
 	public GameObject sliceTraceVisualizer;
 	public GameObject sliderController;
 	public GameObject sender;
+	public GameObject extrudeHandle;
 	//interaction
 	[HideInInspector]
 	public Vector3 touchPosition;
@@ -126,6 +127,21 @@ public class MeshManipulator : MonoBehaviour
 
 		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
 		measureButton.sprite = (hitObj.GetComponent<ObjectController>().isRealMeasure ? measureRecoveredSprite : measureRecoverSprite);
+
+		if (isEdgeAligned) {
+			if (isThisScreenFocused) {
+				string msg = "Extrude\n" + extrudeDist;
+				sender.GetComponent<ServerController>().sendMessage(msg);
+			}
+			else {
+				extrudeHandle.SetActive(isOtherScreenFocused);
+				extrudeHandle.GetComponent<RectTransform>().anchoredPosition = new Vector2(360 - extrudeDist / camWidth * 772, 0);
+			}
+		}
+		else {
+			extrudeHandle.SetActive(false);
+		}
+
 		if (isThisScreenFocused) {
 			focusText.text = "Snapped on this screen";
 		}
@@ -276,6 +292,7 @@ public class MeshManipulator : MonoBehaviour
 		extrudeTimer -= Time.deltaTime;
 		if (extrudeTimer < 0) {
 			state = Status.select;
+			extrudeDist = 0;
 		}
 
 		// debugText.text = extrudeDist + " " + (angle * 180 / Mathf.PI) + " " + extrudeDir;
