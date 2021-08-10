@@ -1,12 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ObjectController : MonoBehaviour
 {
 	public GameObject inside;
 	[HideInInspector]
 	public bool isMeshUpdated;
+	public Text debugText;
 
 	private float angle = - Mathf.PI / 2;
 	private float camWidth;
@@ -30,6 +32,7 @@ public class ObjectController : MonoBehaviour
 	void Update()
 	{
 		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
+		
 	}
 
 	public void updateMesh(string msg) {
@@ -137,12 +140,20 @@ public class ObjectController : MonoBehaviour
 			int triangleNum = faceToMeshPointers[i].Count;
 			Vector3[] faceVertices = new Vector3[triangleNum * 3];
 			int[] faceTriangles = new int[triangleNum * 3];
+			Vector3 faceCenter = new Vector3(0, 0, 0);
 			for (int j=0;j<triangleNum;j++) {
 				Vector3 localNormal = crossProduct(vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 1]], vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 2]]);
 				localNormal = localNormal.normalized;
 				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.01f * localNormal;
+					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]];
 					faceTriangles[j * 3 + k] = j * 3 + k;
+					faceCenter += faceVertices[j * 3 + k];
+				}
+			}
+			faceCenter /= triangleNum * 3;
+			for (int j=0;j<triangleNum;j++) {
+				for (int k=0;k<3;k++) {
+					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.99f + faceCenter;
 				}
 			}
 			Mesh faceMesh = faceObj[i].GetComponent<MeshFilter>().mesh;

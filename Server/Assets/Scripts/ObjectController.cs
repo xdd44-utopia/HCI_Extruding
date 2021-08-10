@@ -143,12 +143,20 @@ public class ObjectController : MonoBehaviour
 			int triangleNum = faceToMeshPointers[i].Count;
 			Vector3[] faceVertices = new Vector3[triangleNum * 3];
 			int[] faceTriangles = new int[triangleNum * 3];
+			Vector3 faceCenter = new Vector3(0, 0, 0);
 			for (int j=0;j<triangleNum;j++) {
 				Vector3 localNormal = crossProduct(vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 1]], vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 2]]);
 				localNormal = localNormal.normalized;
 				for (int k=0;k<3;k++) {
 					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.01f * localNormal;
 					faceTriangles[j * 3 + k] = j * 3 + k;
+					faceCenter += faceVertices[j * 3 + k];
+				}
+			}
+			faceCenter /= triangleNum * 3;
+			for (int j=0;j<triangleNum;j++) {
+				for (int k=0;k<3;k++) {
+					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.99f + faceCenter;
 				}
 			}
 			Mesh mesh = faceObj[i].GetComponent<MeshFilter>().mesh;
@@ -256,16 +264,13 @@ public class ObjectController : MonoBehaviour
 	}
 
 	public int selectFace(int si) {
-		debugText.text = "Current selected face: " + selectFaceIndex + "\n";
 		int tempFace = meshToFacePointers[si];
-		debugText.text += "Try to select face: " + tempFace + "\n";
 		if (selectFaceIndex == tempFace) {
 			selectTriangleIndex = -1;
 		}
 		else {
 			selectTriangleIndex = si;
 		}
-		debugText.text += "Result: " + (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]) + "\n";
 		return findFirstTriangle(selectTriangleIndex);
 	}
 

@@ -124,33 +124,41 @@ public class MeshManipulator : MonoBehaviour
 
 	void Update() {
 
-		modeText.text = state + "";
 		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
 		measureButton.sprite = (hitObj.GetComponent<ObjectController>().isRealMeasure ? measureRecoveredSprite : measureRecoverSprite);
-		focusText.text = (isThisScreenFocused || isOtherScreenFocused) ? "Front face aligned" : "No face aligned";
+		if (isThisScreenFocused) {
+			focusText.text = "Snapped on this screen";
+		}
+		else if (isOtherScreenFocused) {
+			focusText.text = "Snapped on the other screen";
+		}
+		else {
+			focusText.text = "No snapping";
+		}
+		if (isEdgeAligned) {
+			focusText.text += "\nEdge snapped";
+		}
 
 		angle = sliderController.GetComponent<SliderController>().angle;
-		hitVertices = hitObj.GetComponent<MeshFilter>().mesh.vertices;
-		hitTriangles = hitObj.GetComponent<MeshFilter>().mesh.triangles;
-		hitVerticesNum = hitVertices.Length;
-		hitTrianglesNum = hitTriangles.Length;
-
-		if (Mathf.Abs(angle - prevAngle) > 0.01f && isOtherScreenFocused) {
-			startFocus(false, false);
+		if (state == Status.select) {
+			updateMesh();
 		}
+
+		if (Mathf.Abs(angle - prevAngle) > 0.01f) {
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			if (isOtherScreenFocused) {
+				startFocus(false, false);
+			}
+		}
+
+		modeText.text = state + "";
 
 		switch(state) {
 			case Status.focus:
 				focus();
 				break;
 			case Status.extrude:
-				try {
-					extrude();
-				}
-				catch (Exception e) {
-					cancel();
-					state = Status.select;
-				}
+				extrude();
 				break;
 			case Status.taper:
 				taper();
@@ -202,9 +210,6 @@ public class MeshManipulator : MonoBehaviour
 		if (Physics.Raycast(rayStart, rayDirection, out hit)) {
 			
 			prevEdgeVertices = new List<int>();
-			for (int i=0;i<selectEdgeVertices.Count;i++) {
-				prevEdgeVertices.Add(selectEdgeVertices[i]);
-			}
 			selectTriangleIndex = hitObj.GetComponent<ObjectController>().selectFace(hit.triangleIndex);
 			smode = (selectTriangleIndex == -1 ? SelectMode.selectObject : SelectMode.selectFace);
 
@@ -216,22 +221,36 @@ public class MeshManipulator : MonoBehaviour
 	/* #region Extrude */
 	private void extrude() {
 
+		debugText.text = "Enter\n";
+
 		if (smode != SelectMode.selectFace) {
 			state = Status.select;
 			return;
 		}
 
+
 		extrudedVertices = extrudedMesh.vertices;
 		extrudedTriangles = extrudedMesh.triangles;
 		int faceNum = selectTriangles.Count;
 		int edgeLength = selectEdgeVertices.Count;
-
 		Vector3 localNormal = hitObj.transform.InverseTransformPoint(hitObj.transform.position - extrudeDir);
+
+		try{
+
 		localNormal = localNormal.normalized;
+		debugText.text = "edge Length " + edgeLength + "\n";
+		debugText.text += "extrudedVertices " + extrudedVertices.Length + "\n";
+		debugText.text += "hitVertices " + hitVertices.Length + "\n";
 		for (int i=0;i<edgeLength;i++) {
+			debugText.text += " " + i;
 			extrudedVertices[hitVerticesNum + i * 6 + 2] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 4] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 5] = hitVertices[selectEdgeVertices[i]] + localNormal * extrudeDist;
+		}
+
+		}
+		catch (Exception e) {
+			debugText.text += "\n" + e.Message;
 		}
 
 		for (int i=0;i<faceNum;i++) {
@@ -257,10 +276,9 @@ public class MeshManipulator : MonoBehaviour
 		extrudeTimer -= Time.deltaTime;
 		if (extrudeTimer < 0) {
 			state = Status.select;
-			cancel();
 		}
 
-		debugText.text = extrudeDist + " " + (angle * 180 / Mathf.PI) + " " + extrudeDir;
+		// debugText.text = extrudeDist + " " + (angle * 180 / Mathf.PI) + " " + extrudeDir;
 	}
 	
 	private void prepareExtrude(bool isThisScreen) {
@@ -706,23 +724,6 @@ public class MeshManipulator : MonoBehaviour
 
 	/* #region Public */
 
-	public void startExtrude() {
-		if (state == Status.select && smode == SelectMode.selectFace) {
-			state = Status.extrude;
-			prepareExtrude(false);
-		}
-	}
-
-	public void startTaper() {
-		if (state != Status.select || smode != SelectMode.selectFace) {
-			return;
-		}
-		if (selectTriangleIndex != focusTriangleIndex) {
-			return;
-		}
-		prepareTaper();
-	}
-
 	public void startSlice() {
 		GameObject slicePlane = GameObject.Find("SlicePlane");
 		if (state == Status.select && smode == SelectMode.selectObject) {
@@ -742,20 +743,34 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void updateTaperScale(float factor) {
-		if (smode == SelectMode.selectFace && state == Status.select) {
+
+		if (smode != SelectMode.selectFace) {
+			return;
+		}
+		if (selectTriangleIndex != focusTriangleIndex) {
+			return;
+		}
+		if (state == Status.select) {
 			prepareTaper();
 			isEdgeAligned = false;
 		}
-		if (state == Status.taper) {
+		else if (state == Status.taper) {
 			taperScale += factor / 2.5f;
 			taperTimer = touchDelayTolerance;
 		}
 	}
 
 	public void updateExtrudeScale(float factor, bool isThisScreen) {
+		if (smode != SelectMode.selectFace) {
+			return;
+		}
+		if (selectTriangleIndex != focusTriangleIndex || !isEdgeAligned) {
+			return;
+		}
 		if (smode == SelectMode.selectFace && isEdgeAligned && state == Status.select) {
 			if ((isThisScreenFocused && !isThisScreen) || (isOtherScreenFocused && isThisScreen)) {
 				prepareExtrude(isThisScreen);
+				debugText2.text = Time.deltaTime + "";
 			}
 		}
 		if (state == Status.extrude) {
@@ -793,7 +808,7 @@ public class MeshManipulator : MonoBehaviour
 			return;
 		}
 		hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
-		startFocus(isMainScreen, false);
+		startFocus(isThisScreenFocused, false);
 	}
 
 	public void startRotating(float turnDelta, bool isMainScreen) {
@@ -860,11 +875,13 @@ public class MeshManipulator : MonoBehaviour
 	public void startFocus(bool isThisScreen, bool isNewFocus) {
 
 		if (isNewFocus) {
-			prevEdgeVertices = selectEdgeVertices;
+			for (int i=0;i<selectEdgeVertices.Count;i++) {
+				prevEdgeVertices.Add(selectEdgeVertices[i]);
+			}
 			hitObj.GetComponent<ObjectController>().newFocus();
 		}
 
-		if (state == Status.select && smode == SelectMode.selectFace) {
+		if (state == Status.select && (smode == SelectMode.selectFace || !isNewFocus)) {
 			axisToFocus = crossProduct(hit.normal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
 			angleToFocus = Vector3.Angle(hit.normal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
 			centerToHitFace =
@@ -921,6 +938,13 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	/* #endregion */
+
+	private void updateMesh() {
+		hitVertices = hitObj.GetComponent<MeshFilter>().mesh.vertices;
+		hitTriangles = hitObj.GetComponent<MeshFilter>().mesh.triangles;
+		hitVerticesNum = hitVertices.Length;
+		hitTrianglesNum = hitTriangles.Length;
+	}
 
 	public void recordRealMeasure() {
 		hitObj.GetComponent<ObjectController>().isRealMeasure = true;

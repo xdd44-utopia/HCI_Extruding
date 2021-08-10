@@ -19,11 +19,6 @@ public class TouchProcessor : MonoBehaviour
 	private Vector3[] touchPosThisScreen;
 	private Vector3[] touchPrevPosThisScreen;
 
-	//extrude
-	private bool isExtruding = false;
-	private float verticalScale;
-	private float maxVerticalScale = 1;
-
 
 	void Start()
 	{
@@ -114,15 +109,5 @@ public class TouchProcessor : MonoBehaviour
 
 	private float multXZ(Vector3 from, Vector3 to) {
 		return from.x * to.x + from.z * to.z;
-	}
-	
-	public void startExtruding() {
-		isExtruding = true;
-		verticalScale = 0;
-	}
-
-	public void endExtruding() {
-		isExtruding = false;
-		extrudeSlider.value = 0;
 	}
 }

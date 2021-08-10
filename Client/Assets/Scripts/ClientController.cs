@@ -243,6 +243,7 @@ public class ClientController : MonoBehaviour {
 							break;
 						case 'M':
 							objectController.GetComponent<ObjectController>().updateMesh(receivedMessageSplit[i]);
+							errorText.text = receivedMessageSplit[i] + "\n";
 							break;
 						case 'T':
 							objectController.GetComponent<ObjectController>().updateTransform(receivedMessageSplit[i]);
@@ -261,7 +262,7 @@ public class ClientController : MonoBehaviour {
 					}
 				}
 				catch (Exception e) {
-					errorText.text = receivedMessageSplit[i][0] + "\n" + e.Message;
+					errorText.text = receivedMessageSplit[i] + "\n" + e.Message;
 				}
 			}
 		}

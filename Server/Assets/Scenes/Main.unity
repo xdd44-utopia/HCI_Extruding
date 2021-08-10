@@ -996,8 +996,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 157.89, y: -570}
-  m_SizeDelta: {x: 1000, y: 50}
+  m_AnchoredPosition: {x: 157.89, y: -610}
+  m_SizeDelta: {x: 1000, y: 120}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &183795810
 MonoBehaviour:
@@ -1025,7 +1025,7 @@ MonoBehaviour:
     m_BestFit: 0
     m_MinSize: 0
     m_MaxSize: 40
-    m_Alignment: 4
+    m_Alignment: 1
     m_AlignByGeometry: 0
     m_RichText: 1
     m_HorizontalOverflow: 0
@@ -4340,7 +4340,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sender: {fileID: 892375413}
-  objectManager: {fileID: 0}
   debugText: {fileID: 869907688}
   acceOther: {x: 0, y: 0, z: 0}
   angle: 0
@@ -4496,13 +4495,13 @@ MonoBehaviour:
   measureRecoveredSprite: {fileID: 21300000, guid: 23540ac5351be4f678c4a5a799629f03,
     type: 3}
   sliceTraceVisualizer: {fileID: 170067178}
-  objectManager: {fileID: 0}
   sliderController: {fileID: 1829497068}
   sender: {fileID: 892375413}
   touchPosition: {x: 0, y: 0, z: 0}
   hitObj: {fileID: 173118145}
   selectEdgeVertices: 
   selectTriangles: 
+  focusTriangleIndex: 0
 --- !u!23 &1929075838
 MeshRenderer:
   m_ObjectHideFlags: 0

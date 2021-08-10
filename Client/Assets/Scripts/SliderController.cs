@@ -27,12 +27,10 @@ public class SliderController : MonoBehaviour
 	void Update()
 	{
 
-		// float size = cam.GetComponent<Camera>().orthographicSize;
-		// slider.transform.localScale = new Vector3(size * 0.025f, size * 0.025f, size * 0.025f);
+		float size = cam.GetComponent<Camera>().orthographicSize;
+		slider.transform.localScale = new Vector3(size * 0.025f, size * 0.025f, size * 0.025f);
 
-		// debugText.text = "" + 180 * angle / Mathf.PI;
-
-		// float pos = leftMost - (leftMost - rightMost) * (angle + Mathf.PI / 2) / (Mathf.PI / 2);
-		// transform.localPosition = new Vector3(pos, transform.localPosition.y, 0);
+		float pos = leftMost - (leftMost - rightMost) * (angle + Mathf.PI / 2) / (Mathf.PI / 2);
+		transform.localPosition = new Vector3(pos, transform.localPosition.y, 0);
 	}
 }

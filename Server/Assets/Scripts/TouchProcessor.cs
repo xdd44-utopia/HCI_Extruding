@@ -61,8 +61,8 @@ public class TouchProcessor : MonoBehaviour
 	private float doubleTapTimer = 0;
 	private bool tapThisScreen = true;
 	private Vector3 tapPositionBuffer;
-	private float doubleTapTolerance = 0.25f;
-	private float doubleTapInterval = 0.05f;
+	private float doubleTapTolerance = 0.4f;
+	private float doubleTapInterval = 0.125f;
 
 	//cross-screen slice
 	private float crossScreenSliceTimer = 0;
@@ -119,13 +119,12 @@ public class TouchProcessor : MonoBehaviour
 		visualize();
 		calculate();
 
-		touchText.text = pinchDelta + "";
-
 		if (touchTimer > 0) {
 			switch (state) {
 				case Status.singleScreen1This:
 					meshManipulator.GetComponent<MeshManipulator>().startMoving(panThisScreen, true);
 					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, true);
+					touchText.text = dragDelta + " " + Time.deltaTime;
 					break;
 				case Status.singleScreen1Other:
 					meshManipulator.GetComponent<MeshManipulator>().startMoving(panOtherScreen, false);
@@ -188,6 +187,8 @@ public class TouchProcessor : MonoBehaviour
 		dragDelta = 0;
 		panThisScreen = new Vector3(0, 0, 0);
 		panOtherScreen = new Vector3(0, 0, 0);
+		turnThisScreen = 0;
+		turnOtherScreen = 0;
 		pinchDelta = 0;
 		meshManipulator.GetComponent<MeshManipulator>().touchPosition = INF;
 
@@ -221,21 +222,21 @@ public class TouchProcessor : MonoBehaviour
 		}
 
 		switch (state) {
-			case Status.crossScreen2This1Other: {
+			case Status.crossScreen1This2Other: {
 				
 				Vector3 panStart = (touchPrevPosOtherScreen[0] + touchPrevPosOtherScreen[1]) / 2;
 				Vector3 panEnd = (touchPosOtherScreen[0] + touchPosOtherScreen[1]) / 2;
 
-				turnThisScreen = (panEnd - panStart).magnitude * 0.1f;
+				turnThisScreen = (panEnd - panStart).y * 5;
 				
 				break;
 			}
-			case Status.crossScreen1This2Other: {
+			case Status.crossScreen2This1Other: {
 				
 				Vector3 panStart = (touchPrevPosThisScreen[0] + touchPrevPosThisScreen[1]) / 2;
 				Vector3 panEnd = (touchPosThisScreen[0] + touchPosThisScreen[1]) / 2;
 
-				turnOtherScreen = (panEnd - panStart).magnitude * 0.1f;
+				turnOtherScreen = - (panEnd - panStart).y * 5;
 				
 				break;
 			}

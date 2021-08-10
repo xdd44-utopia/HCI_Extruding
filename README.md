@@ -81,3 +81,4 @@ problems
 2. no highlighting object feels a bit weird
 3. a lagging select response due to waiting for duoble tap
 4. give a different color to current snapped surface and current selected surface
+5. three-finger rotation is easy to conflict with cutting

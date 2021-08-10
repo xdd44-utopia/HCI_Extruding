@@ -107,11 +107,11 @@ public class ServerController : MonoBehaviour {
 		int pointer = -1;
 		switch (msg[0]) {
 			case 'M': pointer = 0; break;
-			case 'T': pointer = 1; break;
+			case 'A': pointer = 1; break;
 			case 'H': pointer = 2; break;
 			case 'F': pointer = 3; break;
 			case 'S': pointer = 4; break;
-			case 'A': pointer = 5; break;
+			case 'T': pointer = 5; break;
 			case 'C': pointer = 6; break;
 			case 'G': pointer = 7; break;
 		}
