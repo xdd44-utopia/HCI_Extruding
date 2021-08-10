@@ -78,11 +78,9 @@ Face tracking:
 
 todo
 1. cut a diamond (video)
-2. add extrude handle
-
-problems
-1. what is scaling view
-2. no highlighting object feels a bit weird
-3. a lagging select response due to waiting for duoble tap
-4. give a different color to current snapped surface and current selected surface
-5. three-finger rotation is easy to conflict with cutting
+2. Change edge snapping to edge align when moving towards the edge
+3. Change rotating gesture to two-finger together with scaling
+4. Add highlight to snapped face and indication of fit angle between two faces
+5. Change snapping gesture to button
+6. Show a cutting "blade" when the edge is aligned and the angle fits
+7. Remove constrains of edge snapping
