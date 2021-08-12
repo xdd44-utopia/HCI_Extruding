@@ -7,7 +7,7 @@ public class TouchProcessor : MonoBehaviour
 {
 
 	public GameObject sender;
-	public Slider extrudeSlider;
+	public GameObject sliderController;
 	public GameObject[] touchMarks;
 	
 	//standard
@@ -30,7 +30,7 @@ public class TouchProcessor : MonoBehaviour
 	void Update()
 	{
 
-		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
+		angle = sliderController.GetComponent<SliderController>().angle;
 		
 		touchCountThisScreen = Input.touchCount;
 		if(touchCountThisScreen > 0) {

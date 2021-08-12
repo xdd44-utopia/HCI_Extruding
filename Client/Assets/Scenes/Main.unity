@@ -1105,6 +1105,50 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 926851365}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &955487785
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 955487786}
+  - component: {fileID: 955487787}
+  m_Layer: 0
+  m_Name: SliderController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &955487786
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 955487785}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1198758397}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &955487787
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 955487785}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 35f9d4d040ef94fe7aaf1f2c3c7ac437, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  angle: 0
 --- !u!1 &1051099035
 GameObject:
   m_ObjectHideFlags: 0
@@ -1322,6 +1366,7 @@ Transform:
   - {fileID: 1819280226625799065}
   - {fileID: 2045804480}
   - {fileID: 1841196192}
+  - {fileID: 955487786}
   m_Father: {fileID: 0}
   m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1686,6 +1731,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1469623186}
   - component: {fileID: 1469623187}
+  - component: {fileID: 1469623188}
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -1700,13 +1746,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1469623185}
-  m_LocalRotation: {x: 0.21130908, y: -0.7848856, z: 0.36599815, w: 0.45315382}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 7
-  m_LocalEulerAnglesHint: {x: 50, y: -120, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!108 &1469623187
 Light:
   m_ObjectHideFlags: 0
@@ -1719,7 +1765,7 @@ Light:
   m_Type: 1
   m_Shape: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 1
+  m_Intensity: 2.5
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -1768,6 +1814,20 @@ Light:
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+--- !u!114 &1469623188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1469623185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3984ec420a7db47cf98e307b8bddafa7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sliderController: {fileID: 955487785}
+  debugText: {fileID: 112596419}
 --- !u!1 &1493159661
 GameObject:
   m_ObjectHideFlags: 0
@@ -2406,6 +2466,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   renderCam: {fileID: 1500225672639526389}
   sender: {fileID: 1819280226625799064}
+  sliderController: {fileID: 955487785}
   debugText: {fileID: 112596419}
   useOrtho: 0
   observeOther: {x: 0, y: 0, z: -5}
@@ -2819,7 +2880,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sender: {fileID: 1819280226625799064}
-  extrudeSlider: {fileID: 0}
+  sliderController: {fileID: 955487785}
   touchMarks:
   - {fileID: 465444074}
   - {fileID: 1540459846}
@@ -3084,9 +3145,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 35f9d4d040ef94fe7aaf1f2c3c7ac437, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  slider: {fileID: 0}
-  cam: {fileID: 0}
-  debugText: {fileID: 0}
   angle: 0
 --- !u!212 &1741550549654076599
 SpriteRenderer:
@@ -3217,6 +3275,7 @@ MonoBehaviour:
   faceTracker: {fileID: 1841196191}
   objectController: {fileID: 4576259660094311914}
   sliceTraceVisualizer: {fileID: 1515624768}
+  sliderController: {fileID: 955487785}
   gridController: {fileID: 87057083}
   extrudeHandle: {fileID: 1127431593}
   renderCamera: {fileID: 1500225672639526283}
@@ -3504,6 +3563,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   inside: {fileID: 4576259660166836578}
+  sliderController: {fileID: 955487785}
   isMeshUpdated: 0
   debugText: {fileID: 112596419}
   facePrefab: {fileID: 4956307745498296045, guid: 368fa57533d7d4d0e86050ed4fe42d74,

@@ -7,6 +7,7 @@ public class FaceTracker : MonoBehaviour
 {
 	public GameObject renderCam;
 	public GameObject sender;
+	public GameObject sliderController;
 	public Text debugText;
 
 	private Camera cam;
@@ -34,7 +35,7 @@ public class FaceTracker : MonoBehaviour
 	}
 
 	void Update() {
-		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
+		angle = sliderController.GetComponent<SliderController>().angle;
 		currentObserve = convertFromServer(observeOther);
 		updateObservation();
 		updateFov();

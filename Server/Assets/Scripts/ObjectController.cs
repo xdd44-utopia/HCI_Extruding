@@ -34,6 +34,13 @@ public class ObjectController : MonoBehaviour
 	//Selected face
 	private int selectTriangleIndex = -1; //-1: select object, >=0: select face
 	private int selectFaceIndex = -1;
+	private int snappedTriangleIndex = -1;
+	private int snappedFaceIndex = -1;
+
+	//Colors
+	private Color generalColor = new Color(0.25f, 0.25f, 0.25f, 1f);
+	private Color selectColor = new Color(1f, 1f, 0f, 1f);
+	private Color snappedColor = new Color(1f, 1f, 1f, 1f);
 
 	void Start()
 	{
@@ -46,6 +53,7 @@ public class ObjectController : MonoBehaviour
 	void Update()
 	{
 		selectFaceIndex = (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]);
+		snappedFaceIndex = (snappedTriangleIndex == -1 ? -1 : meshToFacePointers[snappedTriangleIndex]);
 		updateHighlight();
 		if (isMeshUpdated) {
 			inside.GetComponent<MeshFilter>().mesh = GetComponent<MeshFilter>().mesh;
@@ -255,11 +263,17 @@ public class ObjectController : MonoBehaviour
 	}
 
 	private void updateHighlight() {
-		string msg = "Highlight\n" + selectFaceIndex;
+		string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex;
 		sender.GetComponent<ServerController>().sendMessage(msg);
 		for (int i=0;i<faceNum;i++) {
 			Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
-			tempRenderer.material.SetColor("_Color", (i == selectFaceIndex ? new Color(1f, 1f, 0f, 1f) : new Color(1f, 1f, 1f, 1f)));
+			tempRenderer.material.SetColor("_Color", generalColor);
+			if (i == snappedFaceIndex) {
+				tempRenderer.material.SetColor("_Color", snappedColor);
+			}
+			if (i == selectFaceIndex) {
+				tempRenderer.material.SetColor("_Color", selectColor);
+			} 
 		}
 	}
 
@@ -275,10 +289,15 @@ public class ObjectController : MonoBehaviour
 	}
 
 	public void newFocus() {
+		snappedTriangleIndex = selectTriangleIndex;
 		int tempFace = meshToFacePointers[selectTriangleIndex];
 		meshManipulator.GetComponent<MeshManipulator>().selectTriangles = faceToMeshPointers[tempFace];
 		meshManipulator.GetComponent<MeshManipulator>().selectEdgeVertices = edges[tempFace];
 		meshManipulator.GetComponent<MeshManipulator>().focusTriangleIndex = findFirstTriangle(selectTriangleIndex);
+	}
+
+	public void removeFocus() {
+		snappedTriangleIndex = -1;
 	}
 
 	private int findFirstTriangle(int idx) {

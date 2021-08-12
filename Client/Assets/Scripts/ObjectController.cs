@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class ObjectController : MonoBehaviour
 {
 	public GameObject inside;
+	public GameObject sliderController;
 	[HideInInspector]
 	public bool isMeshUpdated;
 	public Text debugText;
@@ -20,7 +21,12 @@ public class ObjectController : MonoBehaviour
 	private int[] meshToFacePointers;
 	private List<GameObject> faceObj = new List<GameObject>();
 	public GameObject facePrefab;
-	// Start is called before the first frame update
+
+	//Colors
+	private Color generalColor = new Color(0.25f, 0.25f, 0.25f, 1f);
+	private Color selectColor = new Color(1f, 1f, 0f, 1f);
+	private Color snappedColor = new Color(1f, 1f, 1f, 1f);
+
 	void Start()
 	{
 		Camera cam = Camera.main;
@@ -31,8 +37,7 @@ public class ObjectController : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
-		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
-		
+		angle = sliderController.GetComponent<SliderController>().angle;
 	}
 
 	public void updateMesh(string msg) {
@@ -202,9 +207,16 @@ public class ObjectController : MonoBehaviour
 		string[] temp1 = msg.Split('\n');
 
 		int selectFaceIndex = System.Convert.ToInt32(temp1[1]);
+		int snappedFaceIndex = System.Convert.ToInt32(temp1[2]);
 		for (int i=0;i<faceNum;i++) {
 			Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
-			tempRenderer.material.SetColor("_Color", (i == selectFaceIndex ? new Color(1f, 1f, 0f, 1f) : new Color(1f, 1f, 1f, 1f)));
+			tempRenderer.material.SetColor("_Color", generalColor);
+			if (i == snappedFaceIndex) {
+				tempRenderer.material.SetColor("_Color", snappedColor);
+			}
+			if (i == selectFaceIndex) {
+				tempRenderer.material.SetColor("_Color", selectColor);
+			} 
 		}
 	}
 

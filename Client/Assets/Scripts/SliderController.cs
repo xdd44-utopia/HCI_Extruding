@@ -5,10 +5,10 @@ using UnityEngine.UI;
 
 public class SliderController : MonoBehaviour
 {
-	public GameObject slider;
-	public GameObject cam;
+	// public GameObject slider;
+	// public GameObject cam;
 
-	public Text debugText;
+	// public Text debugText;
 
 	[HideInInspector]
 	public float angle;
@@ -26,11 +26,12 @@ public class SliderController : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
+		// Debug.Log("lol");
 
-		float size = cam.GetComponent<Camera>().orthographicSize;
-		slider.transform.localScale = new Vector3(size * 0.025f, size * 0.025f, size * 0.025f);
+		// float size = cam.GetComponent<Camera>().orthographicSize;
+		// slider.transform.localScale = new Vector3(size * 0.025f, size * 0.025f, size * 0.025f);
 
-		float pos = leftMost - (leftMost - rightMost) * (angle + Mathf.PI / 2) / (Mathf.PI / 2);
-		transform.localPosition = new Vector3(pos, transform.localPosition.y, 0);
+		// float pos = leftMost - (leftMost - rightMost) * (angle + Mathf.PI / 2) / (Mathf.PI / 2);
+		// transform.localPosition = new Vector3(pos, transform.localPosition.y, 0);
 	}
 }

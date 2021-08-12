@@ -14,6 +14,7 @@ public class ClientController : MonoBehaviour {
 	public GameObject faceTracker;
 	public GameObject objectController;
 	public GameObject sliceTraceVisualizer;
+	public GameObject sliderController;
 	public GameObject gridController;
 	public GameObject extrudeHandle;
 	public Camera renderCamera;
@@ -254,7 +255,7 @@ public class ClientController : MonoBehaviour {
 							break;
 						case 'A':
 							temp1 = receivedMessageSplit[i].Split('\n');
-							GameObject.Find("Angles").GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
+							sliderController.GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
 							break;
 						case 'G':
 							temp1 = receivedMessageSplit[i].Split('\n');

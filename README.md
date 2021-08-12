@@ -22,7 +22,8 @@ Transform:
 
 Highlight:
 - First line "Highlight"
-- Second line -1 or highlight face index
+- Second line -1 or select face index
+- Third line -1 or snapped face index
 
 Face Track:
 - First line "Face"
