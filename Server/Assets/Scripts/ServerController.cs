@@ -234,6 +234,10 @@ public class ServerController : MonoBehaviour {
 							}
 							break;
 						}
+						case 'S': {
+							meshManipulator.GetComponent<MeshManipulator>().startNewFocusOtherScreen();
+							break;
+						}
 					}
 				}
 				catch (Exception e) {

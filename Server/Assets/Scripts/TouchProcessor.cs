@@ -57,13 +57,6 @@ public class TouchProcessor : MonoBehaviour
 	private TouchPhase[] touchPhaseOtherScreen;
 	private float endGestureLock = 0.1f;
 
-	//double tap
-	private float doubleTapTimer = 0;
-	private bool tapThisScreen = true;
-	private Vector3 tapPositionBuffer;
-	private float doubleTapTolerance = 0.4f;
-	private float doubleTapInterval = 0.125f;
-
 	//cross-screen slice
 	private float crossScreenSliceTimer = 0;
 	private float crossScreenSliceTolerance = 0.15f;
@@ -90,7 +83,7 @@ public class TouchProcessor : MonoBehaviour
 
 	void Start()
 	{
-		tapPositionBuffer = INF;
+		
 	}
 
 	// Update is called once per frame
@@ -124,7 +117,6 @@ public class TouchProcessor : MonoBehaviour
 				case Status.singleScreen1This:
 					meshManipulator.GetComponent<MeshManipulator>().startMoving(panThisScreen, true);
 					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, true);
-					touchText.text = dragDelta + " " + Time.deltaTime;
 					break;
 				case Status.singleScreen1Other:
 					meshManipulator.GetComponent<MeshManipulator>().startMoving(panOtherScreen, false);
@@ -133,15 +125,11 @@ public class TouchProcessor : MonoBehaviour
 				case Status.singleScreen2This:
 					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, true);
 					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
+					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnThisScreen, true);
 					break;
 				case Status.singleScreen2Other:
 					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, false);
 					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
-					break;
-				case Status.crossScreen1This2Other:
-					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnThisScreen, true);
-					break;
-				case Status.crossScreen2This1Other:
 					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnOtherScreen, false);
 					break;
 			}
@@ -163,7 +151,6 @@ public class TouchProcessor : MonoBehaviour
 
 		touchTimer -= Time.deltaTime;
 		touchTimerOtherScreen -= Time.deltaTime;
-		doubleTapTimer += Time.deltaTime;
 		crossScreenSliceTimer -= Time.deltaTime;
 		endGestureLock -= Time.deltaTime;
 	}
@@ -246,6 +233,15 @@ public class TouchProcessor : MonoBehaviour
 				float pinchEnd = (touchPosThisScreen[0] - touchPosThisScreen[1]).magnitude;
 
 				pinchDelta = (pinchEnd - pinchStart);
+				
+				Vector3 startVec = touchPrevPosThisScreen[0] - touchPrevPosThisScreen[1];
+				Vector3 endVec = touchPosThisScreen[0] - touchPosThisScreen[1];
+				float turnStart = Vector3.Angle(new Vector3(1, 0, 0), startVec);
+				turnStart = (startVec.y >= 0 ? turnStart : -turnStart);
+				float turnEnd = Vector3.Angle(new Vector3(1, 0, 0), endVec);
+				turnEnd = (endVec.y >= 0 ? turnEnd : -turnEnd);
+
+				turnThisScreen = turnEnd - turnStart;
 
 				endGestureLock = 0.1f;
 				break;
@@ -256,6 +252,15 @@ public class TouchProcessor : MonoBehaviour
 				float pinchEnd = (touchPosOtherScreen[0] - touchPosOtherScreen[1]).magnitude;
 
 				pinchDelta = (pinchEnd - pinchStart);
+				
+				Vector3 startVec = touchPrevPosOtherScreen[0] - touchPrevPosOtherScreen[1];
+				Vector3 endVec = touchPosOtherScreen[0] - touchPosOtherScreen[1];
+				float turnStart = Vector3.Angle(new Vector3(1, 0, 0), startVec);
+				turnStart = (startVec.y >= 0 ? turnStart : -turnStart);
+				float turnEnd = Vector3.Angle(new Vector3(1, 0, 0), endVec);
+				turnEnd = (endVec.y >= 0 ? turnEnd : -turnEnd);
+
+				turnOtherScreen = turnEnd - turnStart;
 
 				endGestureLock = 0.1f;
 				break;
@@ -280,16 +285,9 @@ public class TouchProcessor : MonoBehaviour
 			case Status.singleScreen1This: {
 				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
 					if (touchPhaseThisScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
-						if (tapPositionBuffer == INF) {
-							tapThisScreen = true;
-							tapPositionBuffer = touchPosThisScreen[0];
-							doubleTapTimer = 0;
-						}
-						else if (doubleTapTimer > doubleTapInterval && doubleTapTimer <= doubleTapTolerance) {
-							tapPositionBuffer = INF;
-							meshManipulator.GetComponent<MeshManipulator>().startFocus(tapThisScreen, true);
-							endGestureLock = 0.1f;
-						}
+						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
+						meshManipulator.GetComponent<MeshManipulator>().castRay();
+						endGestureLock = 0.1f;
 					}
 					else if ((touchPhaseThisScreen[0] == TouchPhase.Moved || touchPhaseThisScreen[0] == TouchPhase.Stationary) && endGestureLock < 0) {
 						dragDelta = (touchPrevPosThisScreen[0] - touchPosThisScreen[0]).x;
@@ -298,23 +296,17 @@ public class TouchProcessor : MonoBehaviour
 						panThisScreen = panEnd - panStart;
 						endGestureLock = 0.1f;
 					}
-
 				}
 				break;
 			}
 			case Status.singleScreen1Other: {
+				touchText.text = "detected " + endGestureLock;
 				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2) {
 					if (touchPhaseOtherScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
-						if (tapPositionBuffer == INF) {
-							tapThisScreen = false;
-							tapPositionBuffer = touchPosOtherScreen[0];
-							doubleTapTimer = 0;
-						}
-						else if (doubleTapTimer > doubleTapInterval && doubleTapTimer <= doubleTapTolerance) {
-							tapPositionBuffer = INF;
-							meshManipulator.GetComponent<MeshManipulator>().startFocus(tapThisScreen, true);
-							endGestureLock = 0.1f;
-						}
+						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
+						meshManipulator.GetComponent<MeshManipulator>().castRay();
+						touchText.text = "executed " + Time.deltaTime;
+						endGestureLock = 0.25f;
 					}
 					else if ((touchPhaseOtherScreen[0] == TouchPhase.Moved || touchPhaseOtherScreen[0] == TouchPhase.Stationary) && endGestureLock < 0) {
 						dragDelta = (touchPosOtherScreen[0] - touchPrevPosOtherScreen[0]).x;
@@ -326,21 +318,6 @@ public class TouchProcessor : MonoBehaviour
 				}
 				break;
 			}
-				// calculate rotation angle
-				// Vector3 startVec = touchPrevPosThisScreen[0] - touchPrevPosThisScreen[1];
-				// Vector3 endVec = touchPosThisScreen[0] - touchPosThisScreen[1];
-				// float turnStart = Vector3.Angle(new Vector3(1, 0, 0), startVec);
-				// turnStart = (startVec.y >= 0 ? turnStart : -turnStart);
-				// float turnEnd = Vector3.Angle(new Vector3(1, 0, 0), endVec);
-				// turnEnd = (endVec.y >= 0 ? turnEnd : -turnEnd);
-
-				// turnThisScreen = turnEnd - turnStart;
-		}
-
-		if (tapPositionBuffer != INF && doubleTapTimer > doubleTapTolerance) {
-			meshManipulator.GetComponent<MeshManipulator>().touchPosition = tapPositionBuffer;
-			meshManipulator.GetComponent<MeshManipulator>().castRay();
-			tapPositionBuffer = INF;
 		}
 	}
 

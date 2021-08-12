@@ -62,7 +62,6 @@ public class TouchProcessor : MonoBehaviour
 				msg += currPos.x + "," + currPos.y + "," + currPos.z + "," + prevPos.x + "," + prevPos.y + "," + prevPos.z + "\n";
 			}
 			for (int i=0;i<touchCountThisScreen;i++) {
-				string phase = "";
 				switch (Input.touches[i].phase) {
 					case TouchPhase.Began:
 						msg += "B\n";

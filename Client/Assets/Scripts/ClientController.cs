@@ -128,6 +128,7 @@ public class ClientController : MonoBehaviour {
 			case 'T': pointer = 1; break;
 			case 'A': pointer = 2; break;
 			case 'F': pointer = 3; break;
+			case 'S': pointer = 4; break;
 		}
 		sendBuffer[pointer] = msg + "@";
 	}
@@ -270,6 +271,10 @@ public class ClientController : MonoBehaviour {
 				}
 			}
 		}
+	}
+
+	public void snap() {
+		sendMessage("Snap");
 	}
 
 	public void connect() {

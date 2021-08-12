@@ -379,7 +379,7 @@ public class MeshManipulator : MonoBehaviour
 		hitObj.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
 		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
 
-		taperScale = 1;
+		// taperScale = 1;
 
 		taperTimer -= Time.deltaTime;
 		if (taperTimer < 0) {
@@ -808,13 +808,11 @@ public class MeshManipulator : MonoBehaviour
 		}
 		else {
 			hitObj.transform.position += new Vector3(0, panDelta.y, 0);
-			if (!isEdgeAligned) {
-				if (isThisScreenFocused && isMainScreen) {
-					hitObj.transform.position += new Vector3(panDelta.x, 0, 0);
-				}
-				if (isOtherScreenFocused && !isMainScreen) {
-					hitObj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
-				}
+			if (isThisScreenFocused && isMainScreen) {
+				hitObj.transform.position += new Vector3(panDelta.x, 0, 0);
+			}
+			if (isOtherScreenFocused && !isMainScreen) {
+				hitObj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
 			}
 		}
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -824,12 +822,14 @@ public class MeshManipulator : MonoBehaviour
 		if ((smode != SelectMode.selectObject) || (!isThisScreenFocused && !isOtherScreenFocused)) {
 			return;
 		}
-		hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
+		if (hitObj.transform.localScale.x + pinchDelta > 0) {
+			hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
+		}
 		startFocus(isThisScreenFocused, false);
 	}
 
 	public void startRotating(float turnDelta, bool isMainScreen) {
-		if ((smode != SelectMode.selectObject) || isEdgeAligned || (isThisScreenFocused && !isMainScreen) || (isOtherScreenFocused && isMainScreen)) {
+		if ((smode != SelectMode.selectObject) || (isThisScreenFocused && !isMainScreen) || (isOtherScreenFocused && isMainScreen)) {
 			return;
 		}
 		Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(-1, 0, 0)));
@@ -889,7 +889,7 @@ public class MeshManipulator : MonoBehaviour
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 	}
 
-	public void startFocus(bool isThisScreen, bool isNewFocus) {
+	private void startFocus(bool isThisScreen, bool isNewFocus) {
 
 		if (isNewFocus) {
 			for (int i=0;i<selectEdgeVertices.Count;i++) {
@@ -952,6 +952,14 @@ public class MeshManipulator : MonoBehaviour
 			state = Status.focus;
 			hit.normal = (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(-Mathf.Sin(angle), 0, -Mathf.Cos(-angle)));
 		}
+	}
+
+	public void startNewFocusThisScreen() {
+		startFocus(true, true);
+	}
+
+	public void startNewFocusOtherScreen() {
+		startFocus(false, true);
 	}
 
 	/* #endregion */
