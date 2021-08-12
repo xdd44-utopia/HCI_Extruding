@@ -274,7 +274,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void snap() {
-		sendMessage("Snap");
+		sendMessage("Snap\n");
 	}
 
 	public void connect() {

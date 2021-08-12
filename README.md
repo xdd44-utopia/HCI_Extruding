@@ -74,13 +74,12 @@ Face tracking:
 - First line "Face"
 - Second line face position or 'X'
 
+Snap
+
 
 
 todo
 1. cut a diamond (video)
 2. Change edge snapping to edge align when moving towards the edge
-3. Change rotating gesture to two-finger together with scaling
-4. Add highlight to snapped face and indication of fit angle between two faces
-5. Change snapping gesture to button
-6. Show a cutting "blade" when the edge is aligned and the angle fits
-7. Remove constrains of edge snapping
+3. Add highlight to snapped face and indication of fit angle between two faces
+4. Show a cutting "blade" when the edge is aligned and the angle fits
