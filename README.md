@@ -84,3 +84,6 @@ todo
 2. Change edge snapping to edge align when moving towards the edge
 3. Add highlight to snapped face and indication of fit angle between two faces
 4. Show a cutting "blade" when the edge is aligned and the angle fits
+
+Problems:
+1. The cutting "blade" is conflict with physical hinge

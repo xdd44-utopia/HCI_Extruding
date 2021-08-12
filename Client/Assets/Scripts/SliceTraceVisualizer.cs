@@ -1,11 +1,13 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class SliceTraceVisualizer : MonoBehaviour
 {
 	public LineRenderer crossScreenLine;
 	public LineRenderer cuttingPlane;
+	public Text debugText;
 	private LineRenderer lineRenderer;
 	private float traceTimer = 0;
 	private float planeTimer = 0;

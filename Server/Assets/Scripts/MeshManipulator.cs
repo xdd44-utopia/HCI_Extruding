@@ -164,7 +164,7 @@ public class MeshManipulator : MonoBehaviour
 			updateMesh();
 		}
 
-		if (Mathf.Abs(angle - prevAngle) > 0.01f) {
+		if (Mathf.Abs(angle - prevAngle) > 0.005f) {
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 			if (isOtherScreenFocused) {
 				startFocus(false, false);
@@ -713,6 +713,18 @@ public class MeshManipulator : MonoBehaviour
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 
+	private float multXZ(Vector3 from, Vector3 to) {
+		return from.x * to.x + from.z * to.z;
+	}
+
+	private Vector3 convertFromServer(Vector3 v) {
+		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, - Mathf.Sin(angle));
+		Vector3 z = new Vector3(Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
+		v -= origin;
+		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
+	}
+
 	private Vector3 intersectLinePlane(Vector3 a, Vector3 b, Vector3 p, Vector3 n) { //line passes a and b, plane passes p with normal n
 		float t = (dotProduct(p, n) - dotProduct(a, n)) / dotProduct(n, a - b);
 		return a + t * (a - b);
@@ -899,44 +911,17 @@ public class MeshManipulator : MonoBehaviour
 			angleToFocus = 0;
 			hitObj.transform.position = posToFocus;
 			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-			prevEdgeVertices.Clear();
-			for (int i=0;i<selectEdgeVertices.Count;i++) {
-				prevEdgeVertices.Add(selectEdgeVertices[i]);
-			}
 			if (focusingThisScreen) {
-				if (isOtherScreenFocused) {
-					Vector3 angleStart = hitObj.transform.TransformPoint(footDrop) - hitObj.transform.TransformPoint(centerToHitFace);
-					Vector3 angleEnd = new Vector3(1, 0, 0);
-					angleToFocus = Vector3.Angle(angleStart, angleEnd);
-					axisToFocus = new Vector3(0, 0, 1) * ((angleStart - angleEnd).y > 0 ? -1 : 1);
-					isOtherScreenFocused = false;
-					isEdgeAligned = true;
-					touchPosition = new Vector3(camWidth / 2 - 0.1f, 0, 0);
-				}
-				else {
-					state = Status.select;
-					focusingThisScreen = false;
-					touchPosition = new Vector3(0, 0, 0);
-				}
+				state = Status.select;
+				focusingThisScreen = false;
 				isThisScreenFocused = true;
+				isOtherScreenFocused = false;
 			}
 			else if (focusingOtherScreen) {
-				if (isThisScreenFocused) {
-					Vector3 otherScreenCenter = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * camWidth / 2, 0, Mathf.Sin(-angle) * camWidth / 2);
-					Vector3 angleStart = hitObj.transform.TransformPoint(footDrop) - hitObj.transform.TransformPoint(centerToHitFace);
-					Vector3 angleEnd = new Vector3(camWidth / 2, 0, 0) - otherScreenCenter;
-					angleToFocus = Vector3.Angle(angleStart, angleEnd);
-					axisToFocus = new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle)) * ((angleStart - angleEnd).y > 0 ? -1 : 1);
-					isThisScreenFocused = false;
-					isEdgeAligned = true;
-					touchPosition = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * 0.25f, 0, Mathf.Sin(-angle) * 0.25f);
-				}
-				else {
-					state = Status.select;
-					focusingOtherScreen = false;
-					touchPosition = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * camWidth / 2, 0, Mathf.Sin(-angle) * camWidth / 2);
-				}
+				state = Status.select;
+				focusingOtherScreen = false;
 				isOtherScreenFocused = true;
+				isThisScreenFocused = false;
 			}
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
@@ -968,39 +953,48 @@ public class MeshManipulator : MonoBehaviour
 
 			float depth = (hitObj.transform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude * 1.025f;
 			float offset = camWidth / 2;
-			if ((isThisScreen && isOtherScreenFocused) || (!isThisScreen && isThisScreenFocused)) {
-				Vector3[] commonVertices = new Vector3[2];
-				int cnt = 0;
-				for (int i=0;i<selectEdgeVertices.Count;i++) {
-					for (int j=0;j<prevEdgeVertices.Count;j++) {
-						if ((hitVertices[selectEdgeVertices[i]] - hitVertices[prevEdgeVertices[j]]).magnitude < 0.01f) {
-							commonVertices[cnt] = hitVertices[selectEdgeVertices[i]];
-							cnt++;
-						}
-						if (cnt == 2) {
-							break;
-						}
-					}
-					if (cnt == 2) {
-						break;
-					}
+			if (!isNewFocus) {
+				if (isThisScreen) {
+					offset = camWidth / 2 - hitObj.transform.position.x;
 				}
-				if (cnt == 2) {
-					Vector3 edgePoint = (commonVertices[0] + commonVertices[1]) / 2;
-					float k =
-						- ((commonVertices[0].x - centerToHitFace.x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[0].y - centerToHitFace.y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[0].z - centerToHitFace.z) * (commonVertices[1].z - commonVertices[0].z)) /
-						((commonVertices[1].x - commonVertices[0].x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[1].y - commonVertices[0].y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[1].z - commonVertices[0].z) * (commonVertices[1].z - commonVertices[0].z));
-					footDrop = new Vector3(k * (commonVertices[1].x - commonVertices[0].x) + commonVertices[0].x, k * (commonVertices[1].y - commonVertices[0].y) + commonVertices[0].y, k * (commonVertices[1].z - commonVertices[0].z) + commonVertices[0].z);
-					offset = (hitObj.transform.TransformPoint(centerToHitFace) - hitObj.transform.TransformPoint(footDrop)).magnitude;
+				else {
+					offset = camWidth / 2 + convertFromServer(hitObj.transform.position).x;
 				}
 			}
+			
+			// if ((isThisScreen && isOtherScreenFocused) || (!isThisScreen && isThisScreenFocused)) {
+			// 	Vector3[] commonVertices = new Vector3[2];
+			// 	int cnt = 0;
+			// 	for (int i=0;i<selectEdgeVertices.Count;i++) {
+			// 		for (int j=0;j<prevEdgeVertices.Count;j++) {
+			// 			if ((hitVertices[selectEdgeVertices[i]] - hitVertices[prevEdgeVertices[j]]).magnitude < 0.01f) {
+			// 				commonVertices[cnt] = hitVertices[selectEdgeVertices[i]];
+			// 				cnt++;
+			// 			}
+			// 			if (cnt == 2) {
+			// 				break;
+			// 			}
+			// 		}
+			// 		if (cnt == 2) {
+			// 			break;
+			// 		}
+			// 	}
+			// 	if (cnt == 2) {
+			// 		Vector3 edgePoint = (commonVertices[0] + commonVertices[1]) / 2;
+			// 		float k =
+			// 			- ((commonVertices[0].x - centerToHitFace.x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[0].y - centerToHitFace.y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[0].z - centerToHitFace.z) * (commonVertices[1].z - commonVertices[0].z)) /
+			// 			((commonVertices[1].x - commonVertices[0].x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[1].y - commonVertices[0].y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[1].z - commonVertices[0].z) * (commonVertices[1].z - commonVertices[0].z));
+			// 		footDrop = new Vector3(k * (commonVertices[1].x - commonVertices[0].x) + commonVertices[0].x, k * (commonVertices[1].y - commonVertices[0].y) + commonVertices[0].y, k * (commonVertices[1].z - commonVertices[0].z) + commonVertices[0].z);
+			// 		offset = (hitObj.transform.TransformPoint(centerToHitFace) - hitObj.transform.TransformPoint(footDrop)).magnitude;
+			// 	}
+			// }
 
 			if (isThisScreen) {
-				posToFocus = new Vector3(camWidth / 2 - offset, 0, depth);
+				posToFocus = new Vector3(camWidth / 2 - offset, isNewFocus ? 0 : hitObj.transform.position.y, depth);
 				focusingThisScreen = true;
 			}
 			else {
-				posToFocus = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * offset - Mathf.Sin(-angle) * depth, 0, Mathf.Sin(-angle) * offset + Mathf.Cos(-angle) * depth);
+				posToFocus = new Vector3(camWidth / 2 + Mathf.Cos(-angle) * offset - Mathf.Sin(-angle) * depth, isNewFocus ? 0 : hitObj.transform.position.y, Mathf.Sin(-angle) * offset + Mathf.Cos(-angle) * depth);
 				focusingOtherScreen = true;
 			}
 			state = Status.focus;

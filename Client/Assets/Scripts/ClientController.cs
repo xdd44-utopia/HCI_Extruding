@@ -53,7 +53,7 @@ public class ClientController : MonoBehaviour {
 	}
 	
 	void Update () {
-		angle = GameObject.Find("Angles").GetComponent<SliderController>().angle;
+		angle = sliderController.GetComponent<SliderController>().angle;
 		if (!isConnected && socketConnection != null) {
 			renderCamera.backgroundColor = connectColor;
 			isConnected = true;
@@ -268,7 +268,7 @@ public class ClientController : MonoBehaviour {
 					}
 				}
 				catch (Exception e) {
-					errorText.text = receivedMessageSplit[i][0] + "\n" + e.Message;
+					errorText.text = receivedMessageSplit[i][0] + " " + Time.deltaTime + "\n" + e.Message;
 				}
 			}
 		}

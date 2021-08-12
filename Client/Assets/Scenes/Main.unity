@@ -877,7 +877,7 @@ LineRenderer:
   m_Positions:
   - {x: 0, y: 0, z: 0}
   - {x: 0, y: 0, z: 1}
-  - {x: 0, y: 0, z: 1}
+  - {x: 1, y: 0, z: 1}
   - {x: 0, y: 0, z: 1}
   m_Parameters:
     serializedVersion: 3
@@ -2121,6 +2121,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   crossScreenLine: {fileID: 1929175542}
   cuttingPlane: {fileID: 810867526}
+  debugText: {fileID: 112596419}
 --- !u!1 &1527445788
 GameObject:
   m_ObjectHideFlags: 0
@@ -2542,7 +2543,7 @@ LineRenderer:
   m_SortingOrder: 0
   m_Positions:
   - {x: 0, y: 0, z: 0}
-  - {x: 0, y: 0, z: 1}
+  - {x: 0, y: 1, z: 1}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 1

@@ -19,6 +19,5 @@ public class GridController : MonoBehaviour
 	{
 		this.transform.localScale = new Vector3(scale, scale, scale);
 		this.transform.position = new Vector3(43.5f * scale - 2.5f, 83.5f * scale - 5f, 0);
-		debugText.text = scale + " ";
 	}
 }
