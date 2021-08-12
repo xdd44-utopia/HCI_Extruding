@@ -95,6 +95,10 @@ public class MeshManipulator : MonoBehaviour
 	private bool isOtherScreenFocused = false;
 	private bool isEdgeAligned = false;
 
+	//Edge align
+	private int closestVertex = -1;
+	private int secondVertex = -1;
+
 	private Status state = Status.select;
 	private enum Status {
 		select,
@@ -237,8 +241,6 @@ public class MeshManipulator : MonoBehaviour
 	/* #region Extrude */
 	private void extrude() {
 
-		debugText.text = "Enter\n";
-
 		if (smode != SelectMode.selectFace) {
 			state = Status.select;
 			return;
@@ -254,11 +256,7 @@ public class MeshManipulator : MonoBehaviour
 		try{
 
 		localNormal = localNormal.normalized;
-		debugText.text = "edge Length " + edgeLength + "\n";
-		debugText.text += "extrudedVertices " + extrudedVertices.Length + "\n";
-		debugText.text += "hitVertices " + hitVertices.Length + "\n";
 		for (int i=0;i<edgeLength;i++) {
-			debugText.text += " " + i;
 			extrudedVertices[hitVerticesNum + i * 6 + 2] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 4] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 5] = hitVertices[selectEdgeVertices[i]] + localNormal * extrudeDist;
@@ -295,7 +293,6 @@ public class MeshManipulator : MonoBehaviour
 			extrudeDist = 0;
 		}
 
-		// debugText.text = extrudeDist + " " + (angle * 180 / Mathf.PI) + " " + extrudeDir;
 	}
 	
 	private void prepareExtrude(bool isThisScreen) {
@@ -770,6 +767,8 @@ public class MeshManipulator : MonoBehaviour
 		if (state == Status.select) {
 			prepareTaper();
 			isEdgeAligned = false;
+			closestVertex = -1;
+			secondVertex = -1;
 		}
 		else if (state == Status.taper) {
 			taperScale += factor / 2.5f;
@@ -809,7 +808,18 @@ public class MeshManipulator : MonoBehaviour
 		else {
 			hitObj.transform.position += new Vector3(0, panDelta.y, 0);
 			if (isThisScreenFocused && isMainScreen) {
-				hitObj.transform.position += new Vector3(panDelta.x, 0, 0);
+				if (isEdgeAligned) {
+					if (panDelta.x < 0) {
+						hitObj.transform.position += new Vector3(panDelta.x, 0, 0);
+						isEdgeAligned = false;
+						closestVertex = -1;
+						secondVertex = -1;
+					}
+				}
+				else {
+					hitObj.transform.position += new Vector3(panDelta.x, 0, 0);
+					adjustAlign(true);
+				}
 			}
 			if (isOtherScreenFocused && !isMainScreen) {
 				hitObj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
@@ -824,6 +834,9 @@ public class MeshManipulator : MonoBehaviour
 		}
 		if (hitObj.transform.localScale.x + pinchDelta > 0) {
 			hitObj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
+			isEdgeAligned = false;
+			closestVertex = -1;
+			secondVertex = -1;
 		}
 		startFocus(isThisScreenFocused, false);
 	}
@@ -832,9 +845,50 @@ public class MeshManipulator : MonoBehaviour
 		if ((smode != SelectMode.selectObject) || (isThisScreenFocused && !isMainScreen) || (isOtherScreenFocused && isMainScreen)) {
 			return;
 		}
-		Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(-1, 0, 0)));
+		Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(-Mathf.Sin(-angle), 0, Mathf.Cos(-angle))));
 		hitObj.transform.rotation = rot * hitObj.transform.rotation;
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+	}
+
+	private void adjustAlign(bool isMainScreen) {
+		if (isMainScreen) {
+			int faceNum = selectEdgeVertices.Count;
+			closestVertex = -1;
+			secondVertex = -1;
+			for (int i=0;i<faceNum;i++) {
+				if (closestVertex == -1 || hitObj.transform.TransformPoint(hitVertices[closestVertex]).x < hitObj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]]).x) {
+					closestVertex = selectEdgeVertices[i];
+				}
+			}
+			for (int i=0;i<faceNum;i++) {
+				if ((secondVertex == -1 || hitObj.transform.TransformPoint(hitVertices[secondVertex]).x < hitObj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]]).x) && selectEdgeVertices[i] != closestVertex) {
+					secondVertex = selectEdgeVertices[i];
+				}
+			}
+			Vector3 closestVector = hitObj.transform.TransformPoint(hitVertices[closestVertex]);
+			Vector3 secondVector = hitObj.transform.TransformPoint(hitVertices[secondVertex]);
+			if (closestVector.x > camWidth / 2 && secondVector.x > camWidth / 2) {
+				if (closestVector.x != secondVector.x) {
+					float k = (closestVector.y - secondVector.y) / (closestVector.x - secondVector.x);
+					k = 1/k;
+					float deltaAngle = Mathf.Atan(k);
+					Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(0, 0, 1));
+					hitObj.transform.rotation = rot * hitObj.transform.rotation;
+				}
+				closestVector = hitObj.transform.TransformPoint(hitVertices[closestVertex]);
+				hitObj.transform.position -= new Vector3(closestVector.x - camWidth / 2, 0, 0);
+				isEdgeAligned = true;
+			}
+			else if (closestVector.x > camWidth / 2) {
+				float dist = (closestVector - new Vector3(hitObj.transform.position.x, hitObj.transform.position.y, 0)).magnitude;
+				Vector3 targetVector = new Vector3(camWidth / 2, Mathf.Sqrt(dist * dist - (camWidth / 2 - hitObj.transform.position.x) * (camWidth / 2 - hitObj.transform.position.x)) * (closestVector.y > hitObj.transform.position.y ? 1 : -1), 0);
+				Vector3 a = targetVector - new Vector3(hitObj.transform.position.x, hitObj.transform.position.y, 0);
+				Vector3 b = closestVector - new Vector3(hitObj.transform.position.x, hitObj.transform.position.y, 0);
+				float deltaAngle = Mathf.Acos(dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > hitObj.transform.position.y ? 1 : -1);
+				Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(0, 0, 1));
+				hitObj.transform.rotation = rot * hitObj.transform.rotation;
+			}
+		}
 	}
 
 	private void focus() {
@@ -989,6 +1043,8 @@ public class MeshManipulator : MonoBehaviour
 		isEdgeAligned = false;
 		selectTriangleIndex = -1;
 		focusTriangleIndex = -1;
+		closestVertex = -1;
+		secondVertex = -1;
 		touchPosition = INF;
 		prevTouchPosition = INF;
 	}

@@ -287,14 +287,16 @@ public class TouchProcessor : MonoBehaviour
 					if (touchPhaseThisScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
 						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
 						meshManipulator.GetComponent<MeshManipulator>().castRay();
-						endGestureLock = 0.1f;
+						endGestureLock = 0.25f;
 					}
-					else if ((touchPhaseThisScreen[0] == TouchPhase.Moved || touchPhaseThisScreen[0] == TouchPhase.Stationary) && endGestureLock < 0) {
+					else {
 						dragDelta = (touchPrevPosThisScreen[0] - touchPosThisScreen[0]).x;
 						Vector3 panStart = touchPrevPosThisScreen[0];
 						Vector3 panEnd = touchPosThisScreen[0];
 						panThisScreen = panEnd - panStart;
-						endGestureLock = 0.1f;
+						if (panThisScreen.magnitude > 0.05f) {
+							endGestureLock = 0.25f;
+						}
 					}
 				}
 				break;
@@ -313,7 +315,7 @@ public class TouchProcessor : MonoBehaviour
 						Vector3 panStart = touchPrevPosOtherScreen[0];
 						Vector3 panEnd = touchPosOtherScreen[0];
 						panOtherScreen = panEnd - panStart;
-						endGestureLock = 0.1f;
+						endGestureLock = 0.25f;
 					}
 				}
 				break;
