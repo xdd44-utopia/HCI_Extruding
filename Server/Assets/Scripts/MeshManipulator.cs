@@ -36,7 +36,8 @@ public class MeshManipulator : MonoBehaviour
 
 	//hit
 	public GameObject hitObj;
-	public RaycastHit hit;
+	public Mesh defaultMesh;
+	private RaycastHit hit;
 	private Vector3[] hitVertices;
 	private int[] hitTriangles;
 	private int hitVerticesNum;
@@ -236,6 +237,28 @@ public class MeshManipulator : MonoBehaviour
 		}
 		
 	}
+
+	// private void checkAngleFit() {
+	// 	int targetTriangle = -1;
+	// 	if (isThisScreenFocused) {
+	// 		for (int i=0;i<hitTriangles.Count;i++) {
+	// 			int edgeCnt = 0;
+	// 			int notCoplanarCnt = 0;
+	// 			for (int j=0;j<3;j++) {
+	// 				if ((hitVertices[closestVertex] - hitVertices[hitTriangles[i + j]]).magnitude < 0.001f || (hitVertices[secondVertex] - hitVertices[hitTriangles[i + j]]).magnitude < 0.001f) {
+	// 					edgeCnt++;
+	// 				}
+	// 				if (Mathf.Abs(hitVertices[hitTriangles[i + j]].z) < 0.001f) {
+	// 					notCoplanarCnt++;
+	// 				}
+	// 			}
+	// 			if (edgeCnt == 2 && notCoplanarCnt == 1) {
+	// 				targetTriangle = i;
+	// 			}
+	// 		}
+	// 	}
+
+	// }
 	/* #endregion */
 
 	/* #region Extrude */
@@ -253,18 +276,11 @@ public class MeshManipulator : MonoBehaviour
 		int edgeLength = selectEdgeVertices.Count;
 		Vector3 localNormal = hitObj.transform.InverseTransformPoint(hitObj.transform.position - extrudeDir);
 
-		try{
-
 		localNormal = localNormal.normalized;
 		for (int i=0;i<edgeLength;i++) {
 			extrudedVertices[hitVerticesNum + i * 6 + 2] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 4] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
 			extrudedVertices[hitVerticesNum + i * 6 + 5] = hitVertices[selectEdgeVertices[i]] + localNormal * extrudeDist;
-		}
-
-		}
-		catch (Exception e) {
-			debugText.text += "\n" + e.Message;
 		}
 
 		for (int i=0;i<faceNum;i++) {
@@ -811,7 +827,7 @@ public class MeshManipulator : MonoBehaviour
 	/* #region Transform */
 
 	public void startMoving(Vector3 panDelta, bool isMainScreen) {
-		if (smode != SelectMode.selectObject) {
+		if (state != Status.select) {
 			return;
 		}
 		if (!isThisScreenFocused && !isOtherScreenFocused) {
@@ -841,7 +857,10 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void startScaling(float pinchDelta, bool isMainScreen) {
-		if ((smode != SelectMode.selectObject) || (!isThisScreenFocused && !isOtherScreenFocused)) {
+		if (state != Status.select) {
+			return;
+		}
+		if (!isThisScreenFocused && !isOtherScreenFocused) {
 			return;
 		}
 		if (hitObj.transform.localScale.x + pinchDelta > 0) {
@@ -854,7 +873,10 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void startRotating(float turnDelta, bool isMainScreen) {
-		if ((smode != SelectMode.selectObject) || (isThisScreenFocused && !isMainScreen) || (isOtherScreenFocused && isMainScreen)) {
+		if (state != Status.select) {
+			return;
+		}
+		if ((isThisScreenFocused && !isMainScreen) || (isOtherScreenFocused && isMainScreen)) {
 			return;
 		}
 		Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(-Mathf.Sin(-angle), 0, Mathf.Cos(-angle))));
@@ -961,33 +983,6 @@ public class MeshManipulator : MonoBehaviour
 					offset = camWidth / 2 + convertFromServer(hitObj.transform.position).x;
 				}
 			}
-			
-			// if ((isThisScreen && isOtherScreenFocused) || (!isThisScreen && isThisScreenFocused)) {
-			// 	Vector3[] commonVertices = new Vector3[2];
-			// 	int cnt = 0;
-			// 	for (int i=0;i<selectEdgeVertices.Count;i++) {
-			// 		for (int j=0;j<prevEdgeVertices.Count;j++) {
-			// 			if ((hitVertices[selectEdgeVertices[i]] - hitVertices[prevEdgeVertices[j]]).magnitude < 0.01f) {
-			// 				commonVertices[cnt] = hitVertices[selectEdgeVertices[i]];
-			// 				cnt++;
-			// 			}
-			// 			if (cnt == 2) {
-			// 				break;
-			// 			}
-			// 		}
-			// 		if (cnt == 2) {
-			// 			break;
-			// 		}
-			// 	}
-			// 	if (cnt == 2) {
-			// 		Vector3 edgePoint = (commonVertices[0] + commonVertices[1]) / 2;
-			// 		float k =
-			// 			- ((commonVertices[0].x - centerToHitFace.x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[0].y - centerToHitFace.y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[0].z - centerToHitFace.z) * (commonVertices[1].z - commonVertices[0].z)) /
-			// 			((commonVertices[1].x - commonVertices[0].x) * (commonVertices[1].x - commonVertices[0].x) + (commonVertices[1].y - commonVertices[0].y) * (commonVertices[1].y - commonVertices[0].y) + (commonVertices[1].z - commonVertices[0].z) * (commonVertices[1].z - commonVertices[0].z));
-			// 		footDrop = new Vector3(k * (commonVertices[1].x - commonVertices[0].x) + commonVertices[0].x, k * (commonVertices[1].y - commonVertices[0].y) + commonVertices[0].y, k * (commonVertices[1].z - commonVertices[0].z) + commonVertices[0].z);
-			// 		offset = (hitObj.transform.TransformPoint(centerToHitFace) - hitObj.transform.TransformPoint(footDrop)).magnitude;
-			// 	}
-			// }
 
 			if (isThisScreen) {
 				posToFocus = new Vector3(camWidth / 2 - offset, isNewFocus ? 0 : hitObj.transform.position.y, depth);
@@ -1031,12 +1026,26 @@ public class MeshManipulator : MonoBehaviour
 		}
 	}
 
+	public void restart() {
+		cancel();
+		
+		hitObj.transform.position = new Vector3(0, 0, 4.5f);
+		hitObj.transform.localScale = new Vector3(2, 2, 2);
+		hitObj.transform.rotation = Quaternion.Euler(30, 60, 45);
+
+		hitObj.GetComponent<MeshFilter>().mesh = defaultMesh;
+		hitObj.GetComponent<MeshCollider>().sharedMesh = defaultMesh;
+		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+	}
+
 	public void cancel() {
 		isThisScreenFocused = false;
 		isOtherScreenFocused = false;
 		isEdgeAligned = false;
 		selectTriangleIndex = -1;
 		focusTriangleIndex = -1;
+		hitObj.GetComponent<ObjectController>().cleanHighlight();
 		closestVertex = -1;
 		secondVertex = -1;
 		touchPosition = INF;

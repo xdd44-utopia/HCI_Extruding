@@ -505,7 +505,6 @@ MonoBehaviour:
   sliderController: {fileID: 1829497068}
   sender: {fileID: 892375413}
   slicePlane: {fileID: 696330781}
-  touchPointMark: {fileID: 1880759030}
   sliceTraceVisualizer: {fileID: 170067178}
   crossScreenLine: {fileID: 686798438}
   cutPlaneVisualizer: {fileID: 1317511252}
@@ -819,10 +818,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ce585193d2394b49b9db655d0732a6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sender: {fileID: 892375413}
+  sender: {fileID: 0}
   touchPointThisScreen: {x: 0, y: 0, z: 0}
   touchPointOtherScreen: {x: 0, y: 0, z: 0}
-  debugText: {fileID: 869907688}
+  debugText: {fileID: 0}
 --- !u!1 &173118145 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6898623847472259630, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
@@ -1773,30 +1772,8 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 0}
-        m_MethodName: refresh
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 204164968}
-        m_MethodName: resetAll
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
       - m_Target: {fileID: 1929075837}
-        m_MethodName: cancel
+        m_MethodName: restart
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4520,8 +4497,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1929075836}
   - component: {fileID: 1929075837}
-  - component: {fileID: 1929075839}
-  - component: {fileID: 1929075838}
   m_Layer: 0
   m_Name: MeshManipulator
   m_TagString: Untagged
@@ -4574,56 +4549,10 @@ MonoBehaviour:
   extrudeHandle: {fileID: 1946556858}
   touchPosition: {x: 0, y: 0, z: 0}
   hitObj: {fileID: 173118145}
+  defaultMesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
   selectEdgeVertices: 
   selectTriangles: 
   focusTriangleIndex: 0
---- !u!23 &1929075838
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1929075835}
-  m_Enabled: 1
-  m_CastShadows: 0
-  m_ReceiveShadows: 0
-  m_DynamicOccludee: 1
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 80ae4701febcb4446bdb56504732e53f, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
---- !u!33 &1929075839
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1929075835}
-  m_Mesh: {fileID: 0}
 --- !u!1 &1942901008
 GameObject:
   m_ObjectHideFlags: 0
@@ -5466,7 +5395,7 @@ PrefabInstance:
     - target: {fileID: 6898623847472259626, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 7.88
+      value: 4.63
       objectReference: {fileID: 0}
     - target: {fileID: 6898623847472259626, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}

@@ -34,7 +34,7 @@ public class ServerController : MonoBehaviour {
 	private bool refreshed = false;
 	
 	private float sendTimer = 0;
-	private const float sendInterval = 0.04f;
+	private const float sendInterval = 0.1f;
 
 	
 	void Start () {

@@ -262,6 +262,14 @@ public class ObjectController : MonoBehaviour
 		
 	}
 
+	public void cleanHighlight() {
+		snappedTriangleIndex = -1;
+		selectTriangleIndex = -1;
+		snappedFaceIndex = -1;
+		selectFaceIndex = -1;
+		updateHighlight();
+	}
+
 	private void updateHighlight() {
 		string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex;
 		sender.GetComponent<ServerController>().sendMessage(msg);

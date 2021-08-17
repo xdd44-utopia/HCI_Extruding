@@ -81,9 +81,10 @@ Snap
 
 todo
 1. cut a diamond (video)
-2. Change edge snapping to edge align when moving towards the edge
-3. Add highlight to snapped face and indication of fit angle between two faces
-4. Show a cutting "blade" when the edge is aligned and the angle fits
+2. Add highlight to snapped face and indication of fit angle between two faces
+3. Show a cutting "blade" when the edge is aligned and the angle fits
+4. Update the center of the mesh
+5. Deselect problem, make taper a button, also drag on selection
 
 Problems:
 1. The cutting "blade" is conflict with physical hinge
