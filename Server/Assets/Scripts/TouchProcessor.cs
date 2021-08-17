@@ -122,14 +122,14 @@ public class TouchProcessor : MonoBehaviour
 					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, false);
 					break;
 				case Status.singleScreen2This:
+					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnThisScreen, true);
 					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, true);
 					// meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
-					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnThisScreen, true);
 					break;
 				case Status.singleScreen2Other:
+					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnOtherScreen, false);
 					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, false);
 					// meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
-					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnOtherScreen, false);
 					break;
 			}
 		}
@@ -347,7 +347,7 @@ public class TouchProcessor : MonoBehaviour
 		slicePlane.transform.position = centerPos;
 		slicePlane.transform.rotation = Quaternion.AngleAxis(angleToFocus, axisToFocus) * originRotation;
 		slicePrepared = true;
-		meshManipulator.GetComponent<MeshManipulator>().startSlice();
+		meshManipulator.GetComponent<MeshManipulator>().startSlice(false);
 
 	}
 

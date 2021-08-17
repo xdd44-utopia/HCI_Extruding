@@ -77,6 +77,9 @@ Face tracking:
 
 Snap
 
+Enable cutting plane
+
+Execute cutting plane
 
 
 todo

@@ -17,6 +17,7 @@ public class ClientController : MonoBehaviour {
 	public GameObject sliderController;
 	public GameObject gridController;
 	public GameObject extrudeHandle;
+	public GameObject connectButton;
 	public Camera renderCamera;
 	public Text debugText;
 	public Text errorText;
@@ -35,7 +36,7 @@ public class ClientController : MonoBehaviour {
 	private bool refreshed = false;
 	private string receivedMessage;
 	private string rcvBuffer = "";
-	private const int msgTypes = 5;
+	private const int msgTypes = 7;
 	private string[] sendBuffer = new string[msgTypes];
 
 	private bool isConnected = false;
@@ -130,6 +131,12 @@ public class ClientController : MonoBehaviour {
 			case 'A': pointer = 2; break;
 			case 'F': pointer = 3; break;
 			case 'S': pointer = 4; break;
+			default:
+				if (msg[0] == 'E' && msg[1] == 'n')
+					pointer = 5;
+				if (msg[0] == 'E' && msg[1] == 'x')
+					pointer = 6;
+				break;
 		}
 		sendBuffer[pointer] = msg + "@";
 	}
@@ -180,6 +187,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	private void getVector() {
+		connectButton.SetActive(false);
 		Debug.Log(receivedMessage);
 		string[] receivedMessageSplit = receivedMessage.Split('@');
 		for (int i=0;i<receivedMessageSplit.Length;i++) {
@@ -280,7 +288,7 @@ public class ClientController : MonoBehaviour {
 
 	public void connect() {
 		string address = "192.168.30.79";
-		//string address = "192.168.0.101";
+		//string address = "192.168.1.101";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123
 		//Samsung connecting to iPhone hotspot: 172.20.10.6

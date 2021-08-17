@@ -48,6 +48,7 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3 centerToHitFace;
 	private bool focusingThisScreen = false;
 	private bool focusingOtherScreen = false;
+	private bool isOtherScreenCuttingPlane = false;
 	private Vector3 footDrop;
 
 
@@ -425,7 +426,16 @@ public class MeshManipulator : MonoBehaviour
 	/* #endregion */
 
 	/* #region Split */
-	private void prepareSlice(Vector3 planePos, Vector3 planeNormal) {
+	public void enableCuttingPlaneOtherScreen() {
+		isOtherScreenCuttingPlane = true;
+		isEdgeAligned = false;
+	}
+	public void executeCuttingPlaneOtherScreen() {
+		startSlice(true);
+		executeSlice();
+		isOtherScreenCuttingPlane = false;
+	}
+	private void prepareSlice(Vector3 planePos, Vector3 planeNormal, bool isScreenCut) {
 		// x ⋅ planePos - dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
 		Debug.DrawLine(planePos, planePos + planeNormal * 5f, Color.white, 5000f, false);
@@ -559,7 +569,9 @@ public class MeshManipulator : MonoBehaviour
 		for (int i=0;i<sortedEdgeVerticesList.Count;i++){
 			sortedEdgeVertices[i] = hitObj.transform.TransformPoint(sortedEdgeVerticesList[i]);
 		}
-		sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(sortedEdgeVertices);
+		if (!isScreenCut) {
+			sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(sortedEdgeVertices);
+		}
 
 		//Construct cutting plane
 		cuttingPlaneVerticesList = new List<Vector3>();
@@ -766,11 +778,11 @@ public class MeshManipulator : MonoBehaviour
 
 	/* #region Public */
 
-	public void startSlice() {
+	public void startSlice(bool isScreenCut) {
 		GameObject slicePlane = GameObject.Find("SlicePlane");
 		if (state == Status.select && smode == SelectMode.selectObject) {
 			Vector3 normalTemp = slicePlane.transform.rotation * new Vector3(0, 1, 0);
-			prepareSlice(slicePlane.transform.position, normalTemp);
+			prepareSlice(slicePlane.transform.position, normalTemp, isScreenCut);
 		}
 	}
 
@@ -885,7 +897,7 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	private void adjustAlign(bool isMainScreen) {
-		if (isMainScreen) {
+		if (isMainScreen && !isOtherScreenCuttingPlane) {
 			int faceNum = selectEdgeVertices.Count;
 			closestVertex = -1;
 			secondVertex = -1;
@@ -1028,7 +1040,7 @@ public class MeshManipulator : MonoBehaviour
 
 	public void restart() {
 		cancel();
-		
+
 		hitObj.transform.position = new Vector3(0, 0, 4.5f);
 		hitObj.transform.localScale = new Vector3(2, 2, 2);
 		hitObj.transform.rotation = Quaternion.Euler(30, 60, 45);
