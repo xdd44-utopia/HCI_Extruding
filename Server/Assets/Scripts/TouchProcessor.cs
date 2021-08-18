@@ -353,7 +353,6 @@ public class TouchProcessor : MonoBehaviour
 		slicePlane.transform.rotation = Quaternion.AngleAxis(angleToFocus, axisToFocus) * originRotation;
 		slicePrepared = true;
 		meshManipulator.GetComponent<MeshManipulator>().startSlice(false);
-
 	}
 
 	private void visualizeCrossScreenSlice() {

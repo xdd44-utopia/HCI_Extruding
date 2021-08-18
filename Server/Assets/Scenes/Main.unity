@@ -946,10 +946,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ce585193d2394b49b9db655d0732a6c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  sender: {fileID: 0}
+  sender: {fileID: 892375413}
   touchPointThisScreen: {x: 0, y: 0, z: 0}
   touchPointOtherScreen: {x: 0, y: 0, z: 0}
-  debugText: {fileID: 0}
+  debugText: {fileID: 869907688}
 --- !u!1 &173118145 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6898623847472259630, guid: 0dd93d9f5d59b4d1483cf644b45140e5,

@@ -140,7 +140,6 @@ public class MeshManipulator : MonoBehaviour
 
 		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
 		measureButton.sprite = (hitObj.GetComponent<ObjectController>().isRealMeasure ? measureRecoveredSprite : measureRecoverSprite);
-
 		if (isEdgeAligned) {
 			if (isThisScreenFocused) {
 				string msg = "Extrude\n" + extrudeDist;
@@ -490,16 +489,8 @@ public class MeshManipulator : MonoBehaviour
 		isEdgeAligned = false;
 	}
 	public void executeCuttingPlaneOtherScreen() {
-		debugText.text = "Prepare";
-		try {
-			startSlice(true);
-		}
-		catch (Exception e) {
-			debugText2.text = e.Message;
-		}
-		debugText.text = "Prepared " + edgeVerticesList.Count;
+		startSlice(true);
 		executeSlice();
-		debugText.text = "Executed";
 		isOtherScreenCuttingPlane = false;
 	}
 	private void prepareSlice(Vector3 planePos, Vector3 planeNormal, bool isScreenCut) {
