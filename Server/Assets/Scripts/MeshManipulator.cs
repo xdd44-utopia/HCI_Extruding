@@ -92,6 +92,13 @@ public class MeshManipulator : MonoBehaviour
 	private List<Vector3> cuttingPlaneVerticesList;
 	private Vector3 planeNormalWorld;
 
+	//Undo
+	private Vector3[] undoVertices;
+	private Vector2[] undoUV;
+	private int[] undoTriangles;
+	private bool undoAvailable = false;
+	private Vector3 undoPos;
+
 	//Object status
 	private bool isThisScreenFocused = false;
 	private bool isOtherScreenFocused = false;
@@ -262,6 +269,54 @@ public class MeshManipulator : MonoBehaviour
 	// }
 	/* #endregion */
 
+	/* #region Undo */
+
+	private void prepareUndo() {
+		undoAvailable = true;
+		undoVertices = new Vector3[hitVertices.Length];
+		undoTriangles = new int[hitTriangles.Length];
+		for (int i=0;i<hitVertices.Length;i++) {
+			undoVertices[i] = hitVertices[i];
+		}
+		for (int i=0;i<hitTriangles.Length;i++) {
+			undoTriangles[i] = hitTriangles[i];
+		}
+		undoPos = hitObj.transform.position;
+	}
+
+	public void loadUndo() {
+		if (!undoAvailable) {
+			return;
+		}
+		else {
+			undoAvailable = false;
+		}
+		hitVertices = hitObj.GetComponent<MeshFilter>().mesh.vertices;
+		hitTriangles = hitObj.GetComponent<MeshFilter>().mesh.triangles;
+		hitVertices = new Vector3[undoVertices.Length];
+		hitTriangles = new int[undoTriangles.Length];
+		for (int i=0;i<hitVertices.Length;i++) {
+			hitVertices[i] = undoVertices[i];
+		}
+		for (int i=0;i<hitTriangles.Length;i++) {
+			hitTriangles[i] = undoTriangles[i];
+		}
+
+		Mesh tempMesh = hitObj.GetComponent<MeshFilter>().mesh;
+
+		tempMesh.triangles = hitTriangles;
+		tempMesh.vertices = hitVertices;
+		tempMesh.MarkModified();
+		tempMesh.RecalculateNormals();
+		hitObj.GetComponent<MeshFilter>().mesh = tempMesh;
+		hitObj.GetComponent<MeshCollider>().sharedMesh = tempMesh;
+		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		hitObj.transform.position = undoPos;
+	}
+
+	/* #endregion */
+
 	/* #region Extrude */
 	private void extrude() {
 
@@ -313,6 +368,8 @@ public class MeshManipulator : MonoBehaviour
 	}
 	
 	private void prepareExtrude(bool isThisScreen) {
+
+		prepareUndo();
 
 		int faceNum = selectTriangles.Count;
 		int edgeLength = selectEdgeVertices.Count;
@@ -404,6 +461,8 @@ public class MeshManipulator : MonoBehaviour
 
 	private void prepareTaper() {
 
+		prepareUndo();
+
 		taperScale = 1;
 		taperCenter = new Vector3(0, 0, 0);
 
@@ -436,6 +495,9 @@ public class MeshManipulator : MonoBehaviour
 		isOtherScreenCuttingPlane = false;
 	}
 	private void prepareSlice(Vector3 planePos, Vector3 planeNormal, bool isScreenCut) {
+
+		prepareUndo();
+
 		// x ⋅ planePos - dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
 		Debug.DrawLine(planePos, planePos + planeNormal * 5f, Color.white, 5000f, false);
@@ -682,6 +744,22 @@ public class MeshManipulator : MonoBehaviour
 				leftTriangles[i * 3 + j + leftVerticesList.Count] = i * 3 + j + leftVerticesList.Count;
 			}
 		}
+
+		//relocate mesh center
+		Vector3 meshCenter = new Vector3(0, 0, 0);
+		for (int i=0;i<leftVertices.Length;i++) {
+			meshCenter += leftVertices[i];
+		}
+		meshCenter /= leftVertices.Length;
+		for (int i=0;i<leftVertices.Length;i++) {
+			leftVertices[i] -= meshCenter;
+		}
+		Debug.Log(meshCenter.x + " " + meshCenter.y + " " + meshCenter.z);
+		meshCenter = leftObj.transform.TransformPoint(meshCenter);
+		Debug.Log(meshCenter.x + " " + meshCenter.y + " " + meshCenter.z);
+		leftObj.transform.position = meshCenter;
+
+		//update mesh
 
 		leftMesh.vertices = leftVertices;
 		leftMesh.triangles = leftTriangles;
@@ -957,6 +1035,7 @@ public class MeshManipulator : MonoBehaviour
 				isOtherScreenFocused = true;
 				isThisScreenFocused = false;
 			}
+			cam.orthographic = true;
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -1062,6 +1141,7 @@ public class MeshManipulator : MonoBehaviour
 		secondVertex = -1;
 		touchPosition = INF;
 		prevTouchPosition = INF;
+		cam.orthographic = true;
 	}
 	/* #endregion */
 }

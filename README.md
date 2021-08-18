@@ -87,7 +87,14 @@ todo
 2. Add highlight to snapped face and indication of fit angle between two faces
 3. Show a cutting "blade" when the edge is aligned and the angle fits
 4. Update the center of the mesh
-5. Deselect problem, make taper a button, also drag on selection
+5. Add undo
+6. Gesture cutting is broken again
+7. Don't scale grid when snapped
+8. Recognize tap by duration
+9.  Check cutting bugs (not cut, lost face, lost inside)
 
-Problems:
-1. The cutting "blade" is conflict with physical hinge
+colors:
+float: gray
+select: yellow
+snapped:
+section:
