@@ -20,11 +20,11 @@ public class MeshManipulator : MonoBehaviour
 	public Image measureButton;
 	public Sprite measureRecoverSprite;
 	public Sprite measureRecoveredSprite;
-	//public GameObject panVisualizer;
 	public GameObject sliceTraceVisualizer;
 	public GameObject sliderController;
 	public GameObject sender;
 	public GameObject extrudeHandle;
+	public GameObject gridController;
 	//interaction
 	[HideInInspector]
 	public Vector3 touchPosition;
@@ -490,8 +490,16 @@ public class MeshManipulator : MonoBehaviour
 		isEdgeAligned = false;
 	}
 	public void executeCuttingPlaneOtherScreen() {
-		startSlice(true);
+		debugText.text = "Prepare";
+		try {
+			startSlice(true);
+		}
+		catch (Exception e) {
+			debugText2.text = e.Message;
+		}
+		debugText.text = "Prepared " + edgeVerticesList.Count;
 		executeSlice();
+		debugText.text = "Executed";
 		isOtherScreenCuttingPlane = false;
 	}
 	private void prepareSlice(Vector3 planePos, Vector3 planeNormal, bool isScreenCut) {
@@ -858,7 +866,7 @@ public class MeshManipulator : MonoBehaviour
 
 	public void startSlice(bool isScreenCut) {
 		GameObject slicePlane = GameObject.Find("SlicePlane");
-		if (state == Status.select && smode == SelectMode.selectObject) {
+		if (state == Status.select) {
 			Vector3 normalTemp = slicePlane.transform.rotation * new Vector3(0, 1, 0);
 			prepareSlice(slicePlane.transform.position, normalTemp, isScreenCut);
 		}
@@ -904,7 +912,6 @@ public class MeshManipulator : MonoBehaviour
 		if (smode == SelectMode.selectFace && isEdgeAligned && state == Status.select) {
 			if ((isThisScreenFocused && !isThisScreen) || (isOtherScreenFocused && isThisScreen)) {
 				prepareExtrude(isThisScreen);
-				debugText2.text = Time.deltaTime + "";
 			}
 		}
 		if (state == Status.extrude) {
@@ -948,9 +955,6 @@ public class MeshManipulator : MonoBehaviour
 
 	public void startScaling(float pinchDelta, bool isMainScreen) {
 		if (state != Status.select) {
-			return;
-		}
-		if (!isThisScreenFocused && !isOtherScreenFocused) {
 			return;
 		}
 		if (hitObj.transform.localScale.x + pinchDelta > 0) {
@@ -1036,6 +1040,7 @@ public class MeshManipulator : MonoBehaviour
 				isThisScreenFocused = false;
 			}
 			cam.orthographic = true;
+			gridController.GetComponent<GridController>().isFixed = true;
 		}
 		hitObj.transform.position = Vector3.Lerp(hitObj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -1142,6 +1147,7 @@ public class MeshManipulator : MonoBehaviour
 		touchPosition = INF;
 		prevTouchPosition = INF;
 		cam.orthographic = false;
+		gridController.GetComponent<GridController>().isFixed = false;
 	}
 	/* #endregion */
 }

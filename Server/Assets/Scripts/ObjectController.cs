@@ -9,6 +9,7 @@ public class ObjectController : MonoBehaviour
 	public GameObject inside;
 	public GameObject meshManipulator;
 	public GameObject sender;
+	public LineRenderer selectLine;
 	public Text debugText;
 	[HideInInspector]
 	public bool isTransformUpdated;
@@ -38,20 +39,22 @@ public class ObjectController : MonoBehaviour
 	private int snappedFaceIndex = -1;
 
 	//Colors
-	private Color generalColor = new Color(0.25f, 0.25f, 0.25f, 1f);
-	private Color selectColor = new Color(1f, 1f, 0f, 1f);
-	private Color snappedColor = new Color(1f, 1f, 1f, 1f);
+	private Color generalColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+	// private Color selectColor = new Color(1f, 1f, 0f, 1f);
+	private Color snappedColor = new Color(1f, 1f, 0f, 1f);
 
 	void Start()
 	{
 		isTransformUpdated = true;
 		isMeshUpdated = true;
 		isRealMeasure = false;
+		selectLine.positionCount = 0;
 	}
 
 	// Update is called once per frame
 	void Update()
 	{
+		isRealMeasure = (this.transform.localScale - realMeasure).magnitude < 0.01f;
 		selectFaceIndex = (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]);
 		snappedFaceIndex = (snappedTriangleIndex == -1 ? -1 : meshToFacePointers[snappedTriangleIndex]);
 		updateHighlight();
@@ -279,9 +282,16 @@ public class ObjectController : MonoBehaviour
 			if (i == snappedFaceIndex) {
 				tempRenderer.material.SetColor("_Color", snappedColor);
 			}
-			if (i == selectFaceIndex) {
-				tempRenderer.material.SetColor("_Color", selectColor);
-			} 
+		}
+		if (selectFaceIndex == -1) {
+			selectLine.positionCount = 0;
+		}
+		else {
+			selectLine.positionCount = edges[selectFaceIndex].Count + 1;
+			for (int i=0;i<edges[selectFaceIndex].Count;i++) {
+				selectLine.SetPosition(i, vertices[edges[selectFaceIndex][i]]);
+			}
+			selectLine.SetPosition(edges[selectFaceIndex].Count, vertices[edges[selectFaceIndex][0]]);
 		}
 	}
 
