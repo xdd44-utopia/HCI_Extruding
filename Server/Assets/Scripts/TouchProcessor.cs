@@ -55,6 +55,9 @@ public class TouchProcessor : MonoBehaviour
 	private Vector3[] touchPrevPosOtherScreen;
 	private TouchPhase[] touchPhaseOtherScreen;
 	private float endGestureLock = 0.1f;
+	private float tapTimerThisScreen = 0;
+	private float tapTimerOtherScreen = 0;
+	private float tapDurationTolerance = 0.2f;
 
 	//cross-screen slice
 	private float crossScreenSliceTimer = 0;
@@ -152,6 +155,8 @@ public class TouchProcessor : MonoBehaviour
 		touchTimerOtherScreen -= Time.deltaTime;
 		crossScreenSliceTimer -= Time.deltaTime;
 		endGestureLock -= Time.deltaTime;
+		tapTimerThisScreen -= Time.deltaTime;
+		tapTimerOtherScreen -= Time.deltaTime;
 	}
 	private void visualize() {
 		for (int i=0;i<touchCountThisScreen;i++) {
@@ -285,38 +290,38 @@ public class TouchProcessor : MonoBehaviour
 			}
 			case Status.singleScreen1This: {
 				if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
-					if (touchPhaseThisScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
+					if (touchPhaseThisScreen[0] == TouchPhase.Began) {
+						tapTimerThisScreen = tapDurationTolerance;
+					}
+					else if (touchPhaseThisScreen[0] == TouchPhase.Ended && tapTimerThisScreen >= 0) {
 						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
 						meshManipulator.GetComponent<MeshManipulator>().castRay();
-						endGestureLock = 0.25f;
+						tapTimerThisScreen = -1;
 					}
 					else {
 						dragDelta = (touchPrevPosThisScreen[0] - touchPosThisScreen[0]).x;
 						Vector3 panStart = touchPrevPosThisScreen[0];
 						Vector3 panEnd = touchPosThisScreen[0];
 						panThisScreen = panEnd - panStart;
-						if (panThisScreen.magnitude > 0.05f) {
-							endGestureLock = 0.25f;
-						}
 					}
 				}
 				break;
 			}
 			case Status.singleScreen1Other: {
 				if (touchPosOtherScreen[0].y > -3.2 && touchPosOtherScreen[0].y < 4.2) {
-					if (touchPhaseOtherScreen[0] == TouchPhase.Ended && endGestureLock < 0) {
+					if (touchPhaseOtherScreen[0] == TouchPhase.Began) {
+						tapTimerOtherScreen = tapDurationTolerance;
+					}
+					else if (touchPhaseOtherScreen[0] == TouchPhase.Ended && tapTimerOtherScreen >= 0) {
 						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
 						meshManipulator.GetComponent<MeshManipulator>().castRay();
-						endGestureLock = 0.25f;
+						tapTimerOtherScreen = -1;
 					}
 					else {
 						dragDelta = (touchPosOtherScreen[0] - touchPrevPosOtherScreen[0]).x;
 						Vector3 panStart = touchPrevPosOtherScreen[0];
 						Vector3 panEnd = touchPosOtherScreen[0];
 						panOtherScreen = panEnd - panStart;
-						if (panThisScreen.magnitude > 0.05f) {
-							endGestureLock = 0.25f;
-						}
 					}
 				}
 				break;

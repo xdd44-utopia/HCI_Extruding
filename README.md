@@ -86,12 +86,10 @@ todo
 1. cut a diamond (video)
 2. Add highlight to snapped face and indication of fit angle between two faces
 3. Show a cutting "blade" when the edge is aligned and the angle fits
-4. Update the center of the mesh
-5. Add undo
-6. Gesture cutting is broken again
-7. Don't scale grid when snapped
-8. Recognize tap by duration
-9.  Check cutting bugs (not cut, lost face, lost inside)
+4. Gesture cutting is broken again
+5. Don't scale grid when snapped
+6. Recognize tap by duration
+7. Check cutting bugs (not cut, lost face, lost inside)
 
 colors:
 float: gray

@@ -1141,7 +1141,7 @@ public class MeshManipulator : MonoBehaviour
 		secondVertex = -1;
 		touchPosition = INF;
 		prevTouchPosition = INF;
-		cam.orthographic = true;
+		cam.orthographic = false;
 	}
 	/* #endregion */
 }
