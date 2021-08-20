@@ -182,6 +182,11 @@ public class MeshManipulator : MonoBehaviour
 		modeText.text = state + "";
 
 		switch(state) {
+			case Status.select:
+				if (isEdgeAligned) {
+					checkAngleFit();
+				}
+				break;
 			case Status.focus:
 				focus();
 				break;
@@ -245,27 +250,42 @@ public class MeshManipulator : MonoBehaviour
 		
 	}
 
-	// private void checkAngleFit() {
-	// 	int targetTriangle = -1;
-	// 	if (isThisScreenFocused) {
-	// 		for (int i=0;i<hitTriangles.Count;i++) {
-	// 			int edgeCnt = 0;
-	// 			int notCoplanarCnt = 0;
-	// 			for (int j=0;j<3;j++) {
-	// 				if ((hitVertices[closestVertex] - hitVertices[hitTriangles[i + j]]).magnitude < 0.001f || (hitVertices[secondVertex] - hitVertices[hitTriangles[i + j]]).magnitude < 0.001f) {
-	// 					edgeCnt++;
-	// 				}
-	// 				if (Mathf.Abs(hitVertices[hitTriangles[i + j]].z) < 0.001f) {
-	// 					notCoplanarCnt++;
-	// 				}
-	// 			}
-	// 			if (edgeCnt == 2 && notCoplanarCnt == 1) {
-	// 				targetTriangle = i;
-	// 			}
-	// 		}
-	// 	}
-
-	// }
+	private void checkAngleFit() {
+		if (closestVertex != -1 && secondVertex != -1) {
+			debugText2.text = convertFromServer(hitObj.transform.TransformPoint(hitVertices[closestVertex])).z + " " + convertFromServer(hitObj.transform.TransformPoint(hitVertices[secondVertex])).z;
+		}
+		int targetTriangle = -1;
+		if (isThisScreenFocused) {
+			for (int i=0;i<hitTriangles.Length / 3;i++) {
+				int cnt = 0;
+				for (int j=0;j<3;j++) {
+					if (Mathf.Abs(convertFromServer(hitObj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]])).z) < 0.05f) {
+						cnt++;
+					}
+				}
+				if (cnt == 3) {
+					targetTriangle = i;
+					break;
+				}
+			}
+		}
+		else if (isOtherScreenFocused) {
+			for (int i=0;i<hitTriangles.Length / 3;i++) {
+				int cnt = 0;
+				for (int j=0;j<3;j++) {
+					if (Mathf.Abs(hitObj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]]).z) < 0.05f) {
+						cnt++;
+					}
+				}
+				if (cnt == 3) {
+					targetTriangle = i;
+					break;
+				}
+			}
+		}
+		debugText.text = targetTriangle + " " + Time.deltaTime;
+		hitObj.GetComponent<ObjectController>().updateAlighFace(targetTriangle);
+	}
 	/* #endregion */
 
 	/* #region Undo */

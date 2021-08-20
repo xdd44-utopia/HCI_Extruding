@@ -32,6 +32,7 @@ public class ObjectController : MonoBehaviour
 	private Color generalColor = new Color(0.5f, 0.5f, 0.5f, 1f);
 	//private Color selectColor = new Color(1f, 1f, 0f, 1f);
 	private Color snappedColor = new Color(1f, 1f, 0f, 1f);
+	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
 	void Start()
 	{
@@ -282,11 +283,15 @@ public class ObjectController : MonoBehaviour
 
 		int selectFaceIndex = System.Convert.ToInt32(temp1[1]);
 		int snappedFaceIndex = System.Convert.ToInt32(temp1[2]);
+		int alignFaceIndex = System.Convert.ToInt32(temp1[3]);
 		for (int i=0;i<faceNum;i++) {
 			Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
 			tempRenderer.material.SetColor("_Color", generalColor);
 			if (i == snappedFaceIndex) {
 				tempRenderer.material.SetColor("_Color", snappedColor);
+			}
+			if (i == alignFaceIndex) {
+				tempRenderer.material.SetColor("_Color", alignColor);
 			}
 		}
 		if (selectFaceIndex == -1) {

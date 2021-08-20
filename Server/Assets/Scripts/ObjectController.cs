@@ -37,11 +37,14 @@ public class ObjectController : MonoBehaviour
 	private int selectFaceIndex = -1;
 	private int snappedTriangleIndex = -1;
 	private int snappedFaceIndex = -1;
+	private int alignFaceIndex = -1;
+	private int prevAlignFaceIndex = -1;
 
 	//Colors
 	private Color generalColor = new Color(0.5f, 0.5f, 0.5f, 1f);
 	// private Color selectColor = new Color(1f, 1f, 0f, 1f);
 	private Color snappedColor = new Color(1f, 1f, 0f, 1f);
+	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
 	void Start()
 	{
@@ -274,13 +277,16 @@ public class ObjectController : MonoBehaviour
 	}
 
 	private void updateHighlight() {
-		string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex;
+		string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex + "\n" + alignFaceIndex;
 		sender.GetComponent<ServerController>().sendMessage(msg);
 		for (int i=0;i<faceNum;i++) {
 			Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
 			tempRenderer.material.SetColor("_Color", generalColor);
 			if (i == snappedFaceIndex) {
 				tempRenderer.material.SetColor("_Color", snappedColor);
+			}
+			if (i == alignFaceIndex) {
+				tempRenderer.material.SetColor("_Color", alignColor);
 			}
 		}
 		if (selectFaceIndex == -1) {
@@ -292,6 +298,19 @@ public class ObjectController : MonoBehaviour
 				selectLine.SetPosition(i, vertices[edges[selectFaceIndex][i]]);
 			}
 			selectLine.SetPosition(edges[selectFaceIndex].Count, vertices[edges[selectFaceIndex][0]]);
+		}
+	}
+
+	public void updateAlighFace(int si) {
+		if (si == -1) {
+			alignFaceIndex = -1;
+		}
+		else {
+			alignFaceIndex = meshToFacePointers[si];
+			if (alignFaceIndex != prevAlignFaceIndex) {
+				updateHighlight();
+				prevAlignFaceIndex = alignFaceIndex;
+			}
 		}
 	}
 

@@ -16,8 +16,8 @@ public class SliderController : MonoBehaviour
 	private float prevAngle = -1;
 
 	private float defaultAngle = - Mathf.PI / 3;
-	private const float minAngle = - Mathf.PI / 2;
-	private const float maxAngle = 0;
+	private const float minAngle = - 2 * Mathf.PI / 3;
+	private const float maxAngle = Mathf.PI / 6;
 
 	private bool isActivated = true;
 	// Start is called before the first frame update

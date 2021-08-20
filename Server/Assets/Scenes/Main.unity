@@ -5613,7 +5613,8 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Mesh
       value: 
-      objectReference: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+      objectReference: {fileID: -2432090755550338912, guid: 07551658e925d4d33a1d3d7cda312552,
+        type: 3}
     - target: {fileID: 6898623847472259625, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: sender
@@ -5642,17 +5643,17 @@ PrefabInstance:
     - target: {fileID: 6898623847472259626, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 3
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6898623847472259626, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalScale.y
-      value: 3
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6898623847472259626, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 3
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6898623847472259626, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
@@ -5708,12 +5709,14 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Mesh
       value: 
-      objectReference: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+      objectReference: {fileID: -2432090755550338912, guid: 07551658e925d4d33a1d3d7cda312552,
+        type: 3}
     - target: {fileID: 6898623847472259629, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_Mesh
       value: 
-      objectReference: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+      objectReference: {fileID: -2432090755550338912, guid: 07551658e925d4d33a1d3d7cda312552,
+        type: 3}
     - target: {fileID: 6898623847472259630, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_Name
