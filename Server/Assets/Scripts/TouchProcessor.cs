@@ -91,6 +91,7 @@ public class TouchProcessor : MonoBehaviour
 	// Update is called once per frame
 	void Update()
 	{
+
 		angle = sliderController.GetComponent<SliderController>().angle;
 
 		touchCountThisScreen = Input.touchCount;
@@ -109,7 +110,6 @@ public class TouchProcessor : MonoBehaviour
 				touchPhaseThisScreen[i] = tch.phase;
 			}
 		}
-
 
 		visualize();
 		calculate();
@@ -157,6 +157,7 @@ public class TouchProcessor : MonoBehaviour
 		endGestureLock -= Time.deltaTime;
 		tapTimerThisScreen -= Time.deltaTime;
 		tapTimerOtherScreen -= Time.deltaTime;
+
 	}
 	private void visualize() {
 		for (int i=0;i<touchCountThisScreen;i++) {
@@ -207,8 +208,6 @@ public class TouchProcessor : MonoBehaviour
 		else if (touchCountThisScreen == 2 && touchCountOtherScreen == 1) {
 			state = Status.crossScreen2This1Other;
 		}
-
-		touchText.text = state + " " + Time.deltaTime;
 
 		if (state != Status.none) {
 			touchTimer = touchDelayTolerance;
@@ -352,7 +351,7 @@ public class TouchProcessor : MonoBehaviour
 		slicePlane.transform.position = centerPos;
 		slicePlane.transform.rotation = Quaternion.AngleAxis(angleToFocus, axisToFocus) * originRotation;
 		slicePrepared = true;
-		meshManipulator.GetComponent<MeshManipulator>().startSlice(false);
+		meshManipulator.GetComponent<MeshManipulator>().startSlice(false, true);
 	}
 
 	private void visualizeCrossScreenSlice() {

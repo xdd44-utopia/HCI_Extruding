@@ -48,6 +48,7 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3 centerToHitFace;
 	private bool focusingThisScreen = false;
 	private bool focusingOtherScreen = false;
+	private bool isThisScreenCuttingPlane = false;
 	private bool isOtherScreenCuttingPlane = false;
 	private Vector3 footDrop;
 
@@ -91,6 +92,7 @@ public class MeshManipulator : MonoBehaviour
 	private List<Vector3> edgeVerticesList;
 	private List<Vector3> cuttingPlaneVerticesList;
 	private Vector3 planeNormalWorld;
+	public MeshRenderer cuttingPlaneRenderer;
 
 	//Undo
 	private Vector3[] undoVertices;
@@ -133,6 +135,8 @@ public class MeshManipulator : MonoBehaviour
 		Camera cam = Camera.main;
 		camHeight = 2f * cam.orthographicSize;
 		camWidth = camHeight * cam.aspect;
+
+		cuttingPlaneRenderer.enabled = false;
 	
 	}
 
@@ -183,9 +187,7 @@ public class MeshManipulator : MonoBehaviour
 
 		switch(state) {
 			case Status.select:
-				if (isEdgeAligned) {
-					checkAngleFit();
-				}
+				checkAngleFit();
 				break;
 			case Status.focus:
 				focus();
@@ -251,39 +253,37 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	private void checkAngleFit() {
-		if (closestVertex != -1 && secondVertex != -1) {
-			debugText2.text = convertFromServer(hitObj.transform.TransformPoint(hitVertices[closestVertex])).z + " " + convertFromServer(hitObj.transform.TransformPoint(hitVertices[secondVertex])).z;
-		}
 		int targetTriangle = -1;
-		if (isThisScreenFocused) {
-			for (int i=0;i<hitTriangles.Length / 3;i++) {
-				int cnt = 0;
-				for (int j=0;j<3;j++) {
-					if (Mathf.Abs(convertFromServer(hitObj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]])).z) < 0.05f) {
-						cnt++;
+		if (isEdgeAligned) {
+			if (isThisScreenFocused) {
+				for (int i=0;i<hitTriangles.Length / 3;i++) {
+					int cnt = 0;
+					for (int j=0;j<3;j++) {
+						if (Mathf.Abs(convertFromServer(hitObj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]])).z) < 0.05f) {
+							cnt++;
+						}
+					}
+					if (cnt == 3) {
+						targetTriangle = i;
+						break;
 					}
 				}
-				if (cnt == 3) {
-					targetTriangle = i;
-					break;
+			}
+			else if (isOtherScreenFocused) {
+				for (int i=0;i<hitTriangles.Length / 3;i++) {
+					int cnt = 0;
+					for (int j=0;j<3;j++) {
+						if (Mathf.Abs(hitObj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]]).z) < 0.05f) {
+							cnt++;
+						}
+					}
+					if (cnt == 3) {
+						targetTriangle = i;
+						break;
+					}
 				}
 			}
 		}
-		else if (isOtherScreenFocused) {
-			for (int i=0;i<hitTriangles.Length / 3;i++) {
-				int cnt = 0;
-				for (int j=0;j<3;j++) {
-					if (Mathf.Abs(hitObj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]]).z) < 0.05f) {
-						cnt++;
-					}
-				}
-				if (cnt == 3) {
-					targetTriangle = i;
-					break;
-				}
-			}
-		}
-		debugText.text = targetTriangle + " " + Time.deltaTime;
 		hitObj.GetComponent<ObjectController>().updateAlighFace(targetTriangle);
 	}
 	/* #endregion */
@@ -509,9 +509,40 @@ public class MeshManipulator : MonoBehaviour
 		isEdgeAligned = false;
 	}
 	public void executeCuttingPlaneOtherScreen() {
-		startSlice(true);
+		startSlice(true, false);
 		executeSlice();
 		isOtherScreenCuttingPlane = false;
+	}
+	private void enableCuttingPlaneThisScreen() {
+		isThisScreenCuttingPlane = true;
+		cuttingPlaneRenderer.enabled = true;
+		isEdgeAligned = false;
+	}
+	private void executeCuttingPlaneThisScreen() {
+		startSlice(true, true);
+		executeSlice();
+		isThisScreenCuttingPlane = false;
+		cuttingPlaneRenderer.enabled = false;
+	}
+	public void cuttingPlaneSwitcher() {
+		if (!isThisScreenCuttingPlane) {
+			enableCuttingPlaneThisScreen();
+		}
+		else {
+			executeCuttingPlaneThisScreen();
+		}
+	}
+	public void startSlice(bool isScreenCut, bool isMainScreen) {
+		GameObject slicePlane = GameObject.Find("SlicePlane");
+		if (state == Status.select) {
+			if (isScreenCut && isMainScreen) {
+				prepareSlice(new Vector3(0, 0, 0.025f), new Vector3(0, 0, -1), isScreenCut);
+			}
+			else {
+				Vector3 normalTemp = slicePlane.transform.rotation * new Vector3(0, 1, 0);
+				prepareSlice(slicePlane.transform.position, normalTemp, isScreenCut);
+			}
+		}
 	}
 	private void prepareSlice(Vector3 planePos, Vector3 planeNormal, bool isScreenCut) {
 
@@ -519,7 +550,6 @@ public class MeshManipulator : MonoBehaviour
 
 		// x ⋅ planePos - dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
-		Debug.DrawLine(planePos, planePos + planeNormal * 5f, Color.white, 5000f, false);
 		planeNormalWorld = new Vector3(planeNormal.x, planeNormal.y, planeNormal.z);
 		planePos = hitObj.transform.InverseTransformPoint(planePos);
 		planeNormal = hitObj.transform.InverseTransformPoint(planeNormal + hitObj.transform.position);
@@ -875,14 +905,6 @@ public class MeshManipulator : MonoBehaviour
 
 	/* #region Public */
 
-	public void startSlice(bool isScreenCut) {
-		GameObject slicePlane = GameObject.Find("SlicePlane");
-		if (state == Status.select) {
-			Vector3 normalTemp = slicePlane.transform.rotation * new Vector3(0, 1, 0);
-			prepareSlice(slicePlane.transform.position, normalTemp, isScreenCut);
-		}
-	}
-
 	public void switchSelectMode() {
 		cancel();
 		if (smode == SelectMode.selectFace) {
@@ -958,7 +980,18 @@ public class MeshManipulator : MonoBehaviour
 				}
 			}
 			if (isOtherScreenFocused && !isMainScreen) {
-				hitObj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
+				if (isEdgeAligned) {
+					if (panDelta.x > 0) {
+						hitObj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
+						isEdgeAligned = false;
+						closestVertex = -1;
+						secondVertex = -1;
+					}
+				}
+				else {
+					hitObj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
+					adjustAlign(false);
+				}
 			}
 		}
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
@@ -974,7 +1007,12 @@ public class MeshManipulator : MonoBehaviour
 			closestVertex = -1;
 			secondVertex = -1;
 		}
-		startFocus(isThisScreenFocused, false);
+		if (isThisScreenFocused) {
+			startFocus(true, false);
+		}
+		else if (isOtherScreenFocused) {
+			startFocus(false, false);
+		}
 	}
 
 	public void startRotating(float turnDelta, bool isMainScreen) {
@@ -1025,6 +1063,44 @@ public class MeshManipulator : MonoBehaviour
 				Vector3 b = closestVector - new Vector3(hitObj.transform.position.x, hitObj.transform.position.y, 0);
 				float deltaAngle = Mathf.Acos(dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > hitObj.transform.position.y ? 1 : -1);
 				Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(0, 0, 1));
+				hitObj.transform.rotation = rot * hitObj.transform.rotation;
+			}
+		}
+		else if (!isMainScreen && !isThisScreenCuttingPlane) {
+			int faceNum = selectEdgeVertices.Count;
+			closestVertex = -1;
+			secondVertex = -1;
+			for (int i=0;i<faceNum;i++) {
+				if (closestVertex == -1 || convertFromServer(hitObj.transform.TransformPoint(hitVertices[closestVertex])).x > convertFromServer(hitObj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]])).x) {
+					closestVertex = selectEdgeVertices[i];
+				}
+			}
+			for (int i=0;i<faceNum;i++) {
+				if ((secondVertex == -1 || convertFromServer(hitObj.transform.TransformPoint(hitVertices[secondVertex])).x > convertFromServer(hitObj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]])).x) && selectEdgeVertices[i] != closestVertex) {
+					secondVertex = selectEdgeVertices[i];
+				}
+			}
+			Vector3 closestVector = convertFromServer(hitObj.transform.TransformPoint(hitVertices[closestVertex]));
+			Vector3 secondVector = convertFromServer(hitObj.transform.TransformPoint(hitVertices[secondVertex]));
+			if (closestVector.x < - camWidth / 2 && secondVector.x < - camWidth / 2) {
+				if (closestVector.x != secondVector.x) {
+					float k = (closestVector.y - secondVector.y) / (closestVector.x - secondVector.x);
+					k = 1/k;
+					float deltaAngle = Mathf.Atan(k);
+					Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(-Mathf.Sin(-angle), 0, Mathf.Cos(-angle)));
+					hitObj.transform.rotation = rot * hitObj.transform.rotation;
+				}
+				closestVector = convertFromServer(hitObj.transform.TransformPoint(hitVertices[closestVertex]));
+				hitObj.transform.position += new Vector3(Mathf.Cos(-angle) * (- closestVector.x - camWidth / 2), 0, Mathf.Sin(-angle) * (- closestVector.x - camWidth / 2));
+				isEdgeAligned = true;
+			}
+			else if (closestVector.x < - camWidth / 2) {
+				float dist = (closestVector - new Vector3(convertFromServer(hitObj.transform.position).x, convertFromServer(hitObj.transform.position).y, 0)).magnitude;
+				Vector3 targetVector = new Vector3(- camWidth / 2, Mathf.Sqrt(dist * dist - (camWidth / 2 + convertFromServer(hitObj.transform.position).x) * (camWidth / 2 + convertFromServer(hitObj.transform.position).x)) * (closestVector.y > hitObj.transform.position.y ? 1 : -1), 0);
+				Vector3 a = targetVector - new Vector3(convertFromServer(hitObj.transform.position).x, convertFromServer(hitObj.transform.position).y, 0);
+				Vector3 b = closestVector - new Vector3(convertFromServer(hitObj.transform.position).x, convertFromServer(hitObj.transform.position).y, 0);
+				float deltaAngle = Mathf.Acos(dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > hitObj.transform.position.y ? 1 : -1);
+				Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(-Mathf.Sin(-angle), 0, Mathf.Cos(-angle)));
 				hitObj.transform.rotation = rot * hitObj.transform.rotation;
 			}
 		}

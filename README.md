@@ -84,10 +84,8 @@ Execute cutting plane
 
 todo
 1. cut a diamond (video)
-2. Add highlight to snapped face and indication of fit angle between two faces
-3. Show a cutting "blade" when the edge is aligned and the angle fits
-4. Gesture cutting is broken again
-5. Check cutting bugs (not cut, lost face, lost inside)
+2. Show a cutting "blade" when the edge is aligned and the angle fits
+3. Check cutting bugs (not cut, lost face, lost inside)
 
 colors:
 float: gray
