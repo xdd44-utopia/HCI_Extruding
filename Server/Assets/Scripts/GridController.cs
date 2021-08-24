@@ -20,7 +20,6 @@ public class GridController : MonoBehaviour
 		if (isFixed) {
 			this.transform.localScale = new Vector3(0.15f, 0.15f, 0.15f);
 			this.transform.position = new Vector3(43.5f * 0.15f - 2.5f, 83.5f * 0.15f - 5f, 0);
-			hitObj.GetComponent<ObjectController>().realMeasure = hitObj.transform.localScale;
 			sender.GetComponent<ServerController>().sendMessage("Grid\n0.15");
 		}
 		else {

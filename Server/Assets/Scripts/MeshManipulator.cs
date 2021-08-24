@@ -1206,6 +1206,12 @@ public class MeshManipulator : MonoBehaviour
 		if (!hitObj.GetComponent<ObjectController>().isRealMeasure) {
 			hitObj.GetComponent<ObjectController>().isRealMeasure = true;
 			hitObj.transform.localScale = hitObj.GetComponent<ObjectController>().realMeasure;
+			if (isThisScreenFocused) {
+				startFocus(true, false);
+			}
+			else if (isOtherScreenFocused) {
+				startFocus(false, false);
+			}
 		}
 	}
 

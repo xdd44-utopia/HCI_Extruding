@@ -276,6 +276,12 @@ public class ClientController : MonoBehaviour {
 					}
 				}
 				catch (Exception e) {
+					if (receivedMessageSplit[i][0] == 'M') {
+						sendMessage("RM\n");
+					}
+					if (receivedMessageSplit[i][0] == 'T') {
+						sendMessage("RT\n");
+					}
 					errorText.text = receivedMessageSplit[i][0] + " " + Time.deltaTime + "\n" + e.Message;
 				}
 			}
@@ -287,7 +293,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "192.168.30.79";
+		string address = "192.168.21.79";
 		//string address = "192.168.0.106";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123

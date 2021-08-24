@@ -15,6 +15,7 @@ public class ServerController : MonoBehaviour {
 	public Text errorText;
 	public Text ipText;
 	public GameObject meshManipulator;
+	public GameObject objectController;
 	public GameObject sliderController;
 	public GameObject touchProcessor;
 	public GameObject faceTracker;
@@ -244,6 +245,15 @@ public class ServerController : MonoBehaviour {
 							}
 							else {
 								meshManipulator.GetComponent<MeshManipulator>().executeCuttingPlaneOtherScreen();
+							}
+							break;
+						}
+						case 'R': {
+							if (receivedMessageSplit[i][1] == 'M') {
+								objectController.GetComponent<ObjectController>().isMeshUpdated = true;
+							}
+							else if (receivedMessageSplit[i][1] == 'T') {
+								objectController.GetComponent<ObjectController>().isTransformUpdated = true;
 							}
 							break;
 						}

@@ -81,11 +81,15 @@ Enable cutting plane
 
 Execute cutting plane
 
+RM: Resend mesh
+RT: Resend transform
+
 
 todo
 1. cut a diamond (video)
 2. Show a cutting "blade" when the edge is aligned and the angle fits
-3. Check cutting bugs (not cut, lost face, lost inside)
+3. Check cutting bugs (lost face)
+4. Recover taper
 
 colors:
 float: gray

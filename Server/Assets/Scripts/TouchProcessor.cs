@@ -41,6 +41,7 @@ public class TouchProcessor : MonoBehaviour
 	private float pinchDelta;
 	private float turnThisScreen;
 	private float turnOtherScreen;
+	private float pinchThreshold = 0.05f;
 
 	private float touchTimer = 0;
 	private float touchTimerOtherScreen = 0;
@@ -238,6 +239,9 @@ public class TouchProcessor : MonoBehaviour
 				float pinchEnd = (touchPosThisScreen[0] - touchPosThisScreen[1]).magnitude;
 
 				pinchDelta = (pinchEnd - pinchStart);
+				if (Mathf.Abs(pinchDelta) < pinchThreshold) {
+					pinchDelta = 0;
+				}
 				
 				Vector3 startVec = touchPrevPosThisScreen[0] - touchPrevPosThisScreen[1];
 				Vector3 endVec = touchPosThisScreen[0] - touchPosThisScreen[1];
@@ -257,6 +261,9 @@ public class TouchProcessor : MonoBehaviour
 				float pinchEnd = (touchPosOtherScreen[0] - touchPosOtherScreen[1]).magnitude;
 
 				pinchDelta = (pinchEnd - pinchStart);
+				if (Mathf.Abs(pinchDelta) < pinchThreshold) {
+					pinchDelta = 0;
+				}
 				
 				Vector3 startVec = touchPrevPosOtherScreen[0] - touchPrevPosOtherScreen[1];
 				Vector3 endVec = touchPosOtherScreen[0] - touchPosOtherScreen[1];
