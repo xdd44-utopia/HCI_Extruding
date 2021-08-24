@@ -631,7 +631,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.050966263
+        value: 0.09872627
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -4682,6 +4682,7 @@ MonoBehaviour:
   selectEdgeVertices: 
   selectTriangles: 
   focusTriangleIndex: 0
+  focusNormal: {x: 0, y: 0, z: 0}
   cuttingPlaneRenderer: {fileID: 1559695660}
 --- !u!1 &1942901008
 GameObject:

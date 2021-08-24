@@ -62,6 +62,8 @@ public class MeshManipulator : MonoBehaviour
 	private int selectTriangleIndex;
 	[HideInInspector]
 	public int focusTriangleIndex;
+	[HideInInspector]
+	public Vector3 focusNormal;
 	
 	//focus
 	private Vector3 axisToFocus;
@@ -1145,18 +1147,19 @@ public class MeshManipulator : MonoBehaviour
 				prevEdgeVertices.Add(selectEdgeVertices[i]);
 			}
 			hitObj.GetComponent<ObjectController>().newFocus();
+			focusNormal = hit.normal;
 		}
 
 		if (state == Status.select && (smode == SelectMode.selectFace || !isNewFocus)) {
-			axisToFocus = crossProduct(hit.normal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
-			angleToFocus = Vector3.Angle(hit.normal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
+			axisToFocus = crossProduct(focusNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
+			angleToFocus = Vector3.Angle(focusNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(-angle))));
 			centerToHitFace =
 				hitObj.transform.InverseTransformPoint(
-						hit.normal + hitObj.transform.position
+						focusNormal + hitObj.transform.position
 					).normalized *
 				dotProduct(
 					hitObj.transform.InverseTransformPoint(
-						hit.normal + hitObj.transform.position
+						focusNormal + hitObj.transform.position
 					).normalized,
 					hitVertices[hitTriangles[focusTriangleIndex * 3 + 0]]
 				);
@@ -1181,7 +1184,7 @@ public class MeshManipulator : MonoBehaviour
 				focusingOtherScreen = true;
 			}
 			state = Status.focus;
-			hit.normal = (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(-Mathf.Sin(angle), 0, -Mathf.Cos(-angle)));
+			focusNormal = (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(-Mathf.Sin(angle), 0, -Mathf.Cos(-angle)));
 		}
 	}
 
