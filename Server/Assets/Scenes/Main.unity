@@ -2491,6 +2491,7 @@ MonoBehaviour:
   errorText: {fileID: 869907688}
   ipText: {fileID: 1759975854}
   meshManipulator: {fileID: 1929075835}
+  objectController: {fileID: 0}
   sliderController: {fileID: 1829497068}
   touchProcessor: {fileID: 104035595}
   faceTracker: {fileID: 204164966}
@@ -3109,7 +3110,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1389483678
 RectTransform:
   m_ObjectHideFlags: 0
@@ -3173,7 +3174,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1929075837}
-        m_MethodName: startTaper
+        m_MethodName: prepareTaper
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

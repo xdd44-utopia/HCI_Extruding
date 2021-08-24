@@ -85,6 +85,7 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3 taperCenter;
 	private float taperScale;
 	private float taperTimer = 0;
+	private bool taperStarted = false;
 
 	//slice
 	private List<Vector3> leftVerticesList;
@@ -438,6 +439,54 @@ public class MeshManipulator : MonoBehaviour
 	/* #endregion */
 
 	/* #region Taper */
+
+	public void updateTaperScale(float factor) {
+
+		if (state != Status.taper) {
+			return;
+		}
+		
+		taperScale += factor / 2.5f;
+		taperTimer = touchDelayTolerance;
+		taperStarted = true;
+	}
+
+	public void prepareTaper() {
+
+		if (selectTriangleIndex != focusTriangleIndex) {
+			return;
+		}
+		if (smode != SelectMode.selectFace) {
+			return;
+		}
+
+		isEdgeAligned = false;
+		closestVertex = -1;
+		secondVertex = -1;
+
+		taperStarted = false;
+
+		prepareUndo();
+
+		taperScale = 1;
+		taperCenter = new Vector3(0, 0, 0);
+
+		int faceNum = selectTriangles.Count;
+		int edgeLength = selectEdgeVertices.Count;
+
+		taperedMesh = hitObj.GetComponent<MeshFilter>().mesh;
+
+		for (int i=0;i<faceNum;i++) {
+			for (int j=0;j<3;j++) {
+				taperCenter += hitVertices[hitTriangles[selectTriangles[i] * 3 + j]];
+			}
+		}
+		taperCenter /= faceNum * 3;
+
+		state = Status.taper;
+
+		taperTimer = touchDelayTolerance;
+	}
 	private void taper() {
 
 		int faceNum = selectTriangles.Count;
@@ -472,34 +521,10 @@ public class MeshManipulator : MonoBehaviour
 		// taperScale = 1;
 
 		taperTimer -= Time.deltaTime;
-		if (taperTimer < 0) {
+		if (taperTimer < 0 && taperStarted) {
 			state = Status.select;
 		}
 
-	}
-
-	private void prepareTaper() {
-
-		prepareUndo();
-
-		taperScale = 1;
-		taperCenter = new Vector3(0, 0, 0);
-
-		int faceNum = selectTriangles.Count;
-		int edgeLength = selectEdgeVertices.Count;
-
-		taperedMesh = hitObj.GetComponent<MeshFilter>().mesh;
-
-		for (int i=0;i<faceNum;i++) {
-			for (int j=0;j<3;j++) {
-				taperCenter += hitVertices[hitTriangles[selectTriangles[i] * 3 + j]];
-			}
-		}
-		taperCenter /= faceNum * 3;
-
-		state = Status.taper;
-
-		taperTimer = touchDelayTolerance;
 	}
 	/* #endregion */
 
@@ -912,26 +937,6 @@ public class MeshManipulator : MonoBehaviour
 		}
 		else {
 			smode = SelectMode.selectFace;
-		}
-	}
-
-	public void updateTaperScale(float factor) {
-
-		if (smode != SelectMode.selectFace) {
-			return;
-		}
-		if (selectTriangleIndex != focusTriangleIndex) {
-			return;
-		}
-		if (state == Status.select) {
-			prepareTaper();
-			isEdgeAligned = false;
-			closestVertex = -1;
-			secondVertex = -1;
-		}
-		else if (state == Status.taper) {
-			taperScale += factor / 2.5f;
-			taperTimer = touchDelayTolerance;
 		}
 	}
 

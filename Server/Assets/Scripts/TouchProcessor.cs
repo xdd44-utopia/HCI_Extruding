@@ -128,12 +128,12 @@ public class TouchProcessor : MonoBehaviour
 				case Status.singleScreen2This:
 					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnThisScreen, true);
 					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, true);
-					// meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
+					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
 					break;
 				case Status.singleScreen2Other:
 					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnOtherScreen, false);
 					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, false);
-					// meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
+					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
 					break;
 			}
 		}
