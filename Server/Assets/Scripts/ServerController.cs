@@ -42,7 +42,9 @@ public class ServerController : MonoBehaviour {
 		tcpListenerThread = new Thread (new ThreadStart(ListenForIncommingRequests));
 		tcpListenerThread.IsBackground = true;
 		tcpListenerThread.Start();
-		cleanSendBuffer();
+		for (int i=0;i<msgTypes;i++) {
+			sendBuffer[i] = "";
+		}
 	}
 	
 	void Update () {
@@ -65,9 +67,6 @@ public class ServerController : MonoBehaviour {
 		}
 
 		if (refreshed) {
-			if (receivedMessage[0] == 'T') {
-				rcvText.text = receivedMessage;
-			}
 			refreshed = false;
 			getVector();
 		}
@@ -117,31 +116,28 @@ public class ServerController : MonoBehaviour {
 			case 'G': pointer = 7; break;
 			case 'E': pointer = 8; break;
 		}
-		sendBuffer[pointer] = msg + "@";
+		sendBuffer[pointer] = msg;
 	}
 	public void sendMsgInBuffer() {
-		bool hasNewMsg = false;
-		string msg = "";
-		for (int i=0;i<msgTypes;i++) {
-			msg += sendBuffer[i];
-			if (sendBuffer[i] != "") {
-				hasNewMsg = true;
-			}
-		}
-		if (connectedTcpClient == null || !hasNewMsg) {
+		if (connectedTcpClient == null) {
 			return;
 		}
-		try {			
-			NetworkStream stream = connectedTcpClient.GetStream();
-				if (stream.CanWrite) {
-					byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
-					stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
-					Debug.Log("Server sent his message - should be received by client");
-					cleanSendBuffer();
+		for (int i=0;i<msgTypes;i++) {
+			if (sendBuffer[i].Length > 0) {
+				string msg = sendBuffer[i];
+				try {			
+					NetworkStream stream = connectedTcpClient.GetStream();
+						if (stream.CanWrite) {
+							byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
+							stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
+							Debug.Log("Server sent his message： " + "?" + msg + "!");
+							sendBuffer[i] = "";
+						}
 				}
-		}
-		catch (SocketException socketException) {
-			Debug.Log("Socket exception: " + socketException);
+				catch (SocketException socketException) {
+					Debug.Log("Socket exception: " + socketException);
+				}
+			}
 		}
 	}
 	
@@ -158,117 +154,106 @@ public class ServerController : MonoBehaviour {
 
 	private void getVector() {
 		Debug.Log(receivedMessage);
-		string[] receivedMessageSplit = receivedMessage.Split('@');
-		for (int i=0;i<receivedMessageSplit.Length;i++) {
-			if (receivedMessageSplit[i].Length > 0) {
-				try {
-					switch (receivedMessageSplit[i][0]) {
-						case 'T': {
-							string[] temp1 = receivedMessageSplit[i].Split('\n');
-							int touchCount = System.Convert.ToInt32(temp1[1]);
-							Vector3[] touchPos = new Vector3[touchCount];
-							Vector3[] touchPrevPos = new Vector3[touchCount];
-							TouchPhase[] phases = new TouchPhase[touchCount];
-							for (int j=0;j<touchCount;j++) {
-								string[] posStr = temp1[j+2].Split(',');
-								touchPos[j] = new Vector3(
-									System.Convert.ToSingle(posStr[0]),
-									System.Convert.ToSingle(posStr[1]),
-									System.Convert.ToSingle(posStr[2])
-								);
-								touchPrevPos[j] = new Vector3(
-									System.Convert.ToSingle(posStr[3]),
-									System.Convert.ToSingle(posStr[4]),
-									System.Convert.ToSingle(posStr[5])
-								);
-							}
-							for (int j=touchCount;j<2*touchCount;j++) {
-								switch (temp1[j+2][0]) {
-									case 'B':
-										phases[j-touchCount] = TouchPhase.Began;
-										break;
-									case 'M':
-										phases[j-touchCount] = TouchPhase.Moved;
-										break;
-									case 'S':
-										phases[j-touchCount] = TouchPhase.Stationary;
-										break;
-									case 'E':
-										phases[j-touchCount] = TouchPhase.Ended;
-										break;
-									case 'C':
-										phases[j-touchCount] = TouchPhase.Canceled;
-										break;
-								}
-							}
-							touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos, phases);
-							break;
-						}
-						case 'H': {
-							break;
-						}
-						case 'A': {
-							string[] temp1 = receivedMessageSplit[i].Split('\n');
-							string[] temp2 = temp1[1].Split(',');
-							Vector3 acc =
-								new Vector3(
-									System.Convert.ToSingle(temp2[0]),
-									System.Convert.ToSingle(temp2[1]),
-									System.Convert.ToSingle(temp2[2])
-								);
-							sliderController.GetComponent<SliderController>().acceOther = acc;
-							break;
-						}
-						case 'F': {
-							string[] temp1 = receivedMessageSplit[i].Split('\n');
-							if (temp1[1][0] == 'X') {
-								faceTracker.GetComponent<FaceTracker>().faceOther = Vector3.zero;
-							}
-							else {
-								string[] temp2 = temp1[1].Split(',');
-								faceTracker.GetComponent<FaceTracker>().faceOther =
-									new Vector3(
-										System.Convert.ToSingle(temp2[0]),
-										System.Convert.ToSingle(temp2[1]),
-										System.Convert.ToSingle(temp2[2])
-									);
-							}
-							break;
-						}
-						case 'S': {
-							meshManipulator.GetComponent<MeshManipulator>().startNewFocusOtherScreen();
-							break;
-						}
-						case 'E': {
-							if (receivedMessageSplit[i][1] == 'n') {
-								meshManipulator.GetComponent<MeshManipulator>().enableCuttingPlaneOtherScreen();
-							}
-							else {
-								meshManipulator.GetComponent<MeshManipulator>().executeCuttingPlaneOtherScreen();
-							}
-							break;
-						}
-						case 'R': {
-							if (receivedMessageSplit[i][1] == 'M') {
-								objectController.GetComponent<ObjectController>().isMeshUpdated = true;
-							}
-							else if (receivedMessageSplit[i][1] == 'T') {
-								objectController.GetComponent<ObjectController>().isTransformUpdated = true;
-							}
-							break;
+		try {
+			switch (receivedMessage[0]) {
+				case 'T': {
+					string[] temp1 = receivedMessage.Split('\n');
+					int touchCount = System.Convert.ToInt32(temp1[1]);
+					Vector3[] touchPos = new Vector3[touchCount];
+					Vector3[] touchPrevPos = new Vector3[touchCount];
+					TouchPhase[] phases = new TouchPhase[touchCount];
+					for (int j=0;j<touchCount;j++) {
+						string[] posStr = temp1[j+2].Split(',');
+						touchPos[j] = new Vector3(
+							System.Convert.ToSingle(posStr[0]),
+							System.Convert.ToSingle(posStr[1]),
+							System.Convert.ToSingle(posStr[2])
+						);
+						touchPrevPos[j] = new Vector3(
+							System.Convert.ToSingle(posStr[3]),
+							System.Convert.ToSingle(posStr[4]),
+							System.Convert.ToSingle(posStr[5])
+						);
+					}
+					for (int j=touchCount;j<2*touchCount;j++) {
+						switch (temp1[j+2][0]) {
+							case 'B':
+								phases[j-touchCount] = TouchPhase.Began;
+								break;
+							case 'M':
+								phases[j-touchCount] = TouchPhase.Moved;
+								break;
+							case 'S':
+								phases[j-touchCount] = TouchPhase.Stationary;
+								break;
+							case 'E':
+								phases[j-touchCount] = TouchPhase.Ended;
+								break;
+							case 'C':
+								phases[j-touchCount] = TouchPhase.Canceled;
+								break;
 						}
 					}
+					touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos, phases);
+					break;
 				}
-				catch (Exception e) {
-					errorText.text = receivedMessageSplit[i] + "\n" + e.Message;
+				case 'H': {
+					break;
+				}
+				case 'A': {
+					string[] temp1 = receivedMessage.Split('\n');
+					string[] temp2 = temp1[1].Split(',');
+					Vector3 acc =
+						new Vector3(
+							System.Convert.ToSingle(temp2[0]),
+							System.Convert.ToSingle(temp2[1]),
+							System.Convert.ToSingle(temp2[2])
+						);
+					sliderController.GetComponent<SliderController>().acceOther = acc;
+					break;
+				}
+				case 'F': {
+					string[] temp1 = receivedMessage.Split('\n');
+					if (temp1[1][0] == 'X') {
+						faceTracker.GetComponent<FaceTracker>().faceOther = Vector3.zero;
+					}
+					else {
+						string[] temp2 = temp1[1].Split(',');
+						faceTracker.GetComponent<FaceTracker>().faceOther =
+							new Vector3(
+								System.Convert.ToSingle(temp2[0]),
+								System.Convert.ToSingle(temp2[1]),
+								System.Convert.ToSingle(temp2[2])
+							);
+					}
+					break;
+				}
+				case 'S': {
+					meshManipulator.GetComponent<MeshManipulator>().startNewFocusOtherScreen();
+					break;
+				}
+				case 'E': {
+					if (receivedMessage[1] == 'n') {
+						meshManipulator.GetComponent<MeshManipulator>().enableCuttingPlaneOtherScreen();
+					}
+					else {
+						meshManipulator.GetComponent<MeshManipulator>().executeCuttingPlaneOtherScreen();
+							}
+					break;
+				}
+				case 'R': {
+					if (receivedMessage[1] == 'M') {
+						objectController.GetComponent<ObjectController>().isMeshUpdated = true;
+					}
+					else if (receivedMessage[1] == 'T') {
+						objectController.GetComponent<ObjectController>().isTransformUpdated = true;
+					}
+					break;
 				}
 			}
 		}
-	}
-
-	private void cleanSendBuffer() {
-		for (int i=0;i<msgTypes;i++) {
-			sendBuffer[i] = "";
+		catch (Exception e) {
+			errorText.text = receivedMessage + "\n" + e.Message;
 		}
 	}
 

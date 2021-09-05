@@ -77,6 +77,7 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3 extrudeStartPos = new Vector3(0, 0, 0);
 	private float extrudeDist = 0f;
 	private Vector3[] extrudedVertices;
+	private Vector3[] extrudedVerticesOriginal;
 	private int[] extrudedTriangles;
 	private float extrudeTimer = 0;
 
@@ -196,7 +197,13 @@ public class MeshManipulator : MonoBehaviour
 				focus();
 				break;
 			case Status.extrude:
-				extrude();
+				try{
+					extrude();
+				}
+				catch (Exception e) {
+					loadUndo();
+					state = Status.select;
+				}
 				break;
 			case Status.taper:
 				taper();
@@ -356,15 +363,7 @@ public class MeshManipulator : MonoBehaviour
 
 		localNormal = localNormal.normalized;
 		for (int i=0;i<edgeLength;i++) {
-			extrudedVertices[hitVerticesNum + i * 6 + 2] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
-			extrudedVertices[hitVerticesNum + i * 6 + 4] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]] + localNormal * extrudeDist;
-			extrudedVertices[hitVerticesNum + i * 6 + 5] = hitVertices[selectEdgeVertices[i]] + localNormal * extrudeDist;
-		}
-
-		for (int i=0;i<faceNum;i++) {
-			for (int j=0;j<3;j++) {
-				extrudedVertices[hitTriangles[selectTriangles[i] * 3 + j]] = hitVertices[hitTriangles[selectTriangles[i] * 3 + j]] + localNormal * extrudeDist;
-			}
+			extrudedVertices[hitVerticesNum + i] = extrudedVerticesOriginal[hitVerticesNum + i] + localNormal * extrudeDist;
 		}
 
 		extrudedMesh.vertices = extrudedVertices;
@@ -376,14 +375,40 @@ public class MeshManipulator : MonoBehaviour
 
 		hitObj.transform.position = extrudeStartPos + extrudeDir * extrudeDist;
 
-		hitObj.GetComponent<MeshFilter>().mesh = extrudedMesh;
-		hitObj.GetComponent<MeshCollider>().sharedMesh = extrudedMesh;
-		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+
+		if (extrudeDist > 0.02f) {
+			Mesh tempMesh = new Mesh();
+
+			tempMesh.vertices = new Vector3[extrudedVertices.Length];
+			tempMesh.uv = new Vector2[extrudedVertices.Length];
+			tempMesh.triangles = new int[extrudedTriangles.Length];
+
+			Vector3[] tempVertices = tempMesh.vertices;
+			int[] tempTriangles = tempMesh.triangles;
+			
+			for (int i=0;i<extrudedVertices.Length;i++) {
+				tempVertices[i] = extrudedVertices[i];
+			}
+			for (int i=0;i<extrudedTriangles.Length;i++) {
+				tempTriangles[i] = extrudedTriangles[i];
+			}
+			tempMesh.vertices = tempVertices;
+			tempMesh.triangles = tempTriangles;
+			tempMesh.MarkModified();
+			tempMesh.RecalculateNormals();
+
+			hitObj.GetComponent<MeshFilter>().mesh = tempMesh;
+			hitObj.GetComponent<MeshCollider>().sharedMesh = tempMesh;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		}
 
 		extrudeTimer -= Time.deltaTime;
 		if (extrudeTimer < 0) {
 			state = Status.select;
+			if (extrudeDist < 0.02f) {
+				loadUndo();
+			}
 			extrudeDist = 0;
 		}
 
@@ -405,35 +430,55 @@ public class MeshManipulator : MonoBehaviour
 			extrudeDir = new Vector3(Mathf.Cos(-angle), 0, Mathf.Sin(-angle));
 		}
 
-		extrudedMesh = hitObj.GetComponent<MeshFilter>().mesh;
-		extrudedMesh.vertices = new Vector3[hitVerticesNum + edgeLength * 6];
+		extrudedMesh = new Mesh();
+		extrudedMesh.vertices = new Vector3[hitVerticesNum + edgeLength];
+		extrudedMesh.uv = new Vector2[hitVerticesNum + edgeLength];
 		extrudedMesh.triangles = new int[hitTrianglesNum + edgeLength * 6];
 		
 		extrudedVertices = extrudedMesh.vertices;
 		extrudedTriangles = extrudedMesh.triangles;
+		//Original mesh
 		for (int i=0;i<hitVerticesNum;i++) {
 			extrudedVertices[i] = hitVertices[i];
 		}
+		//Copy edge
+		for (int i=0;i<edgeLength;i++) {
+			extrudedVertices[hitVerticesNum + i] = hitVertices[selectEdgeVertices[i]];
+		}
+		//Original triangles
 		for (int i=0;i<hitTrianglesNum;i++) {
 			extrudedTriangles[i] = hitTriangles[i];
 		}
-		for (int i=0;i<edgeLength;i++) {
-			extrudedVertices[hitVerticesNum + i * 6 + 0] = hitVertices[selectEdgeVertices[i]];
-			extrudedVertices[hitVerticesNum + i * 6 + 1] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]];
-			extrudedVertices[hitVerticesNum + i * 6 + 2] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]];
-			extrudedVertices[hitVerticesNum + i * 6 + 3] = hitVertices[selectEdgeVertices[i]];
-			extrudedVertices[hitVerticesNum + i * 6 + 4] = hitVertices[selectEdgeVertices[(i+1)%edgeLength]];
-			extrudedVertices[hitVerticesNum + i * 6 + 5] = hitVertices[selectEdgeVertices[i]];
-		}
-		for (int i=0;i<edgeLength;i++) {
-			for (int j=0;j<6;j++) {
-				extrudedTriangles[hitTrianglesNum + i * 6 + j] = hitVerticesNum + i * 6 + j;
+		//Reassign triangles of extruded face
+		for (int i=0;i<selectTriangles.Count;i++) {
+			for (int j=0;j<3;j++) {
+				for (int k=0;k<edgeLength;k++) {
+					if (Vector3.Distance(extrudedVertices[hitVerticesNum + k], extrudedVertices[extrudedTriangles[selectTriangles[i] * 3 + j]]) < 0.0001f) {
+						extrudedTriangles[selectTriangles[i] * 3 + j] = hitVerticesNum + k;
+					}
+				}
 			}
+		}
+		//Assign triangles from extrusion
+		for (int i=0;i<edgeLength;i++) {
+			extrudedTriangles[hitTrianglesNum + i * 6 + 0] = selectEdgeVertices[i];
+			extrudedTriangles[hitTrianglesNum + i * 6 + 1] = selectEdgeVertices[(i+1)%edgeLength];
+			extrudedTriangles[hitTrianglesNum + i * 6 + 2] = hitVerticesNum + (i+1)%edgeLength;
+			extrudedTriangles[hitTrianglesNum + i * 6 + 3] = selectEdgeVertices[i];
+			extrudedTriangles[hitTrianglesNum + i * 6 + 4] = hitVerticesNum + (i+1)%edgeLength;
+			extrudedTriangles[hitTrianglesNum + i * 6 + 5] = hitVerticesNum + i;
 		}
 
 		extrudedMesh.vertices = extrudedVertices;
 		extrudedMesh.triangles = extrudedTriangles;
 
+		extrudedMesh.MarkModified();
+		extrudedMesh.RecalculateNormals();
+
+		extrudedVerticesOriginal = new Vector3[extrudedVertices.Length];
+		for (int i=0;i<hitVerticesNum + edgeLength;i++) {
+			extrudedVerticesOriginal[i] = extrudedVertices[i];
+		}
 		state = Status.extrude;
 		extrudeTimer = touchDelayTolerance;
 
@@ -786,11 +831,6 @@ public class MeshManipulator : MonoBehaviour
 				cuttingPlaneVerticesList[i * 3 + 0] = tempVertex;
 			}
 		}
-
-		Vector3[] cuttingPlaneVertices = new Vector3[cuttingPlaneVerticesList.Count];
-		for (int i=0;i<cuttingPlaneVerticesList.Count;i++){
-			cuttingPlaneVertices[i] = hitObj.transform.TransformPoint(cuttingPlaneVerticesList[i]);
-		}
 	}
 	
 	public void executeSlice(){
@@ -830,9 +870,7 @@ public class MeshManipulator : MonoBehaviour
 		for (int i=0;i<leftVertices.Length;i++) {
 			leftVertices[i] -= meshCenter;
 		}
-		Debug.Log(meshCenter.x + " " + meshCenter.y + " " + meshCenter.z);
 		meshCenter = leftObj.transform.TransformPoint(meshCenter);
-		Debug.Log(meshCenter.x + " " + meshCenter.y + " " + meshCenter.z);
 		leftObj.transform.position = meshCenter;
 
 		//update mesh
@@ -882,7 +920,6 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().endVisualize();
-		cancel();
 	}
 	/* #endregion */
 
@@ -1237,6 +1274,7 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void cancel() {
+		state = Status.select;
 		isThisScreenFocused = false;
 		isOtherScreenFocused = false;
 		isEdgeAligned = false;

@@ -42,7 +42,7 @@ public class ClientController : MonoBehaviour {
 	private bool isConnected = false;
 
 	private float sendTimer = 0;
-	private const float sendInterval = 0.04f;
+	private const float sendInterval = 0.1f;
 	private Vector3 accPrev = Vector3.zero;
 	
 	void Start () {
@@ -50,7 +50,9 @@ public class ClientController : MonoBehaviour {
 		camHeight = 10;
 		camWidth = camHeight * cam.aspect;
 		socketConnection = null;
-		cleanSendBuffer();
+		for (int i=0;i<msgTypes;i++) {
+			sendBuffer[i] = "";
+		}
 	}
 	
 	void Update () {
@@ -86,7 +88,10 @@ public class ClientController : MonoBehaviour {
 			sendTimer = 0;
 		}
 		Vector3 accConverted = Input.acceleration;
-		sendMessage("Acc\n" + accConverted.x + "," + accConverted.y + "," + accConverted.z + "\n");
+		if (Vector3.Distance(accPrev, accConverted) > 0.01f) {
+			sendMessage("Acc\n" + accConverted.x + "," + accConverted.y + "," + accConverted.z + "\n");
+			accPrev = accConverted;
+		}
 	}
 	
 	public void ConnectToTcpServer (string ipText) {
@@ -138,31 +143,28 @@ public class ClientController : MonoBehaviour {
 					pointer = 6;
 				break;
 		}
-		sendBuffer[pointer] = msg + "@";
+		sendBuffer[pointer] = msg;
 	}
 	public void sendMsgInBuffer() {
-		bool hasNewMsg = false;
-		string msg = "";
-		for (int i=0;i<msgTypes;i++) {
-			msg += sendBuffer[i];
-			if (sendBuffer[i] != "") {
-				hasNewMsg = true;
-			}
-		}
-		if (socketConnection == null || !hasNewMsg) {
+		if (socketConnection == null) {
 			return;
 		}
-		try {		
-			NetworkStream stream = socketConnection.GetStream();
-				if (stream.CanWrite) {
-					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
-					stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
-					//Debug.Log("Client sent his message - should be received by server");
-					cleanSendBuffer();
+		for (int i=0;i<msgTypes;i++) {
+			if (sendBuffer[i].Length > 0) {
+				string msg = sendBuffer[i];
+				try {		
+					NetworkStream stream = socketConnection.GetStream();
+						if (stream.CanWrite) {
+							byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
+							stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
+							Debug.Log("Client sent his message： " + "?" + msg + "!");
+							sendBuffer[i] = "";
+						}
 				}
-		}
-		catch (SocketException socketException) {
-			Debug.Log("Socket exception: " + socketException);
+				catch (SocketException socketException) {
+					Debug.Log("Socket exception: " + socketException);
+				}
+			}
 		}
 	}
 
@@ -189,102 +191,97 @@ public class ClientController : MonoBehaviour {
 	private void getVector() {
 		connectButton.SetActive(false);
 		Debug.Log(receivedMessage);
-		string[] receivedMessageSplit = receivedMessage.Split('@');
-		for (int i=0;i<receivedMessageSplit.Length;i++) {
-			if (receivedMessageSplit[i].Length > 0) {
-				try {
-					switch (receivedMessageSplit[i][0]) {
-						case 'F':
-							string[] temp1 = receivedMessageSplit[i].Split('\n');
-							if (temp1[1][0] == 'O') {
-								faceTracker.GetComponent<FaceTracker>().useOrtho = true;
-							}
-							else {
-								faceTracker.GetComponent<FaceTracker>().useOrtho = false;
-								string[] temp2 = temp1[1].Split(',');
-								faceTracker.GetComponent<FaceTracker>().observeOther =
-									new Vector3(
-										System.Convert.ToSingle(temp2[0]),
-										System.Convert.ToSingle(temp2[1]),
-										System.Convert.ToSingle(temp2[2])
-									);
-							}
-							break;
-						case 'S':
-							string[] tempSlice = receivedMessageSplit[i].Split('\n');
-							int count = System.Convert.ToInt32(tempSlice[1]);
-							Vector3[] vertices = new Vector3[count];
-							for (int j=0;j<count;j++) {
-								string[] tempVertex = tempSlice[2 + j].Split(',');
-								vertices[j] = convertFromServer(new Vector3(
-									System.Convert.ToSingle(tempVertex[0]),
-									System.Convert.ToSingle(tempVertex[1]),
-									System.Convert.ToSingle(tempVertex[2])
-								));
-							}
-							sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateTrace(vertices);
-							break;
-						case 'C':
-							string[] tempPlane = receivedMessageSplit[i].Split('\n');
-							string[] tempEndThisScreen = tempPlane[1].Split(',');
-							string[] tempEndOtherScreen = tempPlane[2].Split(',');
-							string[] tempStartThisScreen = tempPlane[3].Split(',');
-							string[] tempStartOtherScreen = tempPlane[4].Split(',');
-							Vector3 touchPointThisScreen = convertFromServer(new Vector3(
-								System.Convert.ToSingle(tempEndThisScreen[0]),
-								System.Convert.ToSingle(tempEndThisScreen[1]),
-								System.Convert.ToSingle(tempEndThisScreen[2])
-							));
-							Vector3 touchPointOtherScreen = convertFromServer(new Vector3(
-								System.Convert.ToSingle(tempEndOtherScreen[0]),
-								System.Convert.ToSingle(tempEndOtherScreen[1]),
-								System.Convert.ToSingle(tempEndOtherScreen[2])
-							));
-							Vector3 touchStartThisScreen = convertFromServer(new Vector3(
-								System.Convert.ToSingle(tempStartThisScreen[0]),
-								System.Convert.ToSingle(tempStartThisScreen[1]),
-								System.Convert.ToSingle(tempStartThisScreen[2])
-							));
-							Vector3 touchStartOtherScreen = convertFromServer(new Vector3(
-								System.Convert.ToSingle(tempStartOtherScreen[0]),
-								System.Convert.ToSingle(tempStartOtherScreen[1]),
-								System.Convert.ToSingle(tempStartOtherScreen[2])
-							));
-							sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(touchPointThisScreen, touchPointOtherScreen, touchStartThisScreen, touchStartOtherScreen);
-							break;
-						case 'M':
-							objectController.GetComponent<ObjectController>().updateMesh(receivedMessageSplit[i]);
-							break;
-						case 'T':
-							objectController.GetComponent<ObjectController>().updateTransform(receivedMessageSplit[i]);
-							break;
-						case 'H':
-							objectController.GetComponent<ObjectController>().updateHighlight(receivedMessageSplit[i]);
-							break;
-						case 'A':
-							temp1 = receivedMessageSplit[i].Split('\n');
-							sliderController.GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
-							break;
-						case 'G':
-							temp1 = receivedMessageSplit[i].Split('\n');
-							gridController.GetComponent<GridController>().scale = System.Convert.ToSingle(temp1[1]);
-							break;
-						case 'E':
-							temp1 = receivedMessageSplit[i].Split('\n');
-							extrudeHandle.GetComponent<ExtrudeHandle>().updateDist(System.Convert.ToSingle(temp1[1]));
-							break;
+		try {
+			switch (receivedMessage[0]) {
+				case 'F':
+					string[] temp1 = receivedMessage.Split('\n');
+					if (temp1[1][0] == 'O') {
+						faceTracker.GetComponent<FaceTracker>().useOrtho = true;
 					}
-				}
-				catch (Exception e) {
-					if (receivedMessageSplit[i][0] == 'M') {
-						sendMessage("RM\n");
+					else {
+						faceTracker.GetComponent<FaceTracker>().useOrtho = false;
+						string[] temp2 = temp1[1].Split(',');
+						faceTracker.GetComponent<FaceTracker>().observeOther =
+							new Vector3(
+								System.Convert.ToSingle(temp2[0]),
+								System.Convert.ToSingle(temp2[1]),
+								System.Convert.ToSingle(temp2[2])
+							);
 					}
-					if (receivedMessageSplit[i][0] == 'T') {
-						sendMessage("RT\n");
+					break;
+				case 'S':
+					string[] tempSlice = receivedMessage.Split('\n');
+					int count = System.Convert.ToInt32(tempSlice[1]);
+					Vector3[] vertices = new Vector3[count];
+					for (int j=0;j<count;j++) {
+						string[] tempVertex = tempSlice[2 + j].Split(',');
+						vertices[j] = convertFromServer(new Vector3(
+							System.Convert.ToSingle(tempVertex[0]),
+							System.Convert.ToSingle(tempVertex[1]),
+							System.Convert.ToSingle(tempVertex[2])
+						));
 					}
-					errorText.text = receivedMessageSplit[i][0] + " " + Time.deltaTime + "\n" + e.Message;
-				}
+					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateTrace(vertices);
+					break;
+				case 'C':
+					string[] tempPlane = receivedMessage.Split('\n');
+					string[] tempEndThisScreen = tempPlane[1].Split(',');
+					string[] tempEndOtherScreen = tempPlane[2].Split(',');
+					string[] tempStartThisScreen = tempPlane[3].Split(',');
+					string[] tempStartOtherScreen = tempPlane[4].Split(',');
+					Vector3 touchPointThisScreen = convertFromServer(new Vector3(
+						System.Convert.ToSingle(tempEndThisScreen[0]),
+						System.Convert.ToSingle(tempEndThisScreen[1]),
+						System.Convert.ToSingle(tempEndThisScreen[2])
+					));
+					Vector3 touchPointOtherScreen = convertFromServer(new Vector3(
+						System.Convert.ToSingle(tempEndOtherScreen[0]),
+						System.Convert.ToSingle(tempEndOtherScreen[1]),
+						System.Convert.ToSingle(tempEndOtherScreen[2])
+					));
+					Vector3 touchStartThisScreen = convertFromServer(new Vector3(
+						System.Convert.ToSingle(tempStartThisScreen[0]),
+						System.Convert.ToSingle(tempStartThisScreen[1]),
+						System.Convert.ToSingle(tempStartThisScreen[2])
+					));
+					Vector3 touchStartOtherScreen = convertFromServer(new Vector3(
+						System.Convert.ToSingle(tempStartOtherScreen[0]),
+						System.Convert.ToSingle(tempStartOtherScreen[1]),
+						System.Convert.ToSingle(tempStartOtherScreen[2])
+					));
+					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(touchPointThisScreen, touchPointOtherScreen, touchStartThisScreen, touchStartOtherScreen);
+					break;
+				case 'M':
+					objectController.GetComponent<ObjectController>().updateMesh(receivedMessage);
+					break;
+				case 'T':
+					objectController.GetComponent<ObjectController>().updateTransform(receivedMessage);
+					break;
+				case 'H':
+					objectController.GetComponent<ObjectController>().updateHighlight(receivedMessage);
+					break;
+				case 'A':
+					temp1 = receivedMessage.Split('\n');
+					sliderController.GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
+					break;
+				case 'G':
+					temp1 = receivedMessage.Split('\n');
+					gridController.GetComponent<GridController>().scale = System.Convert.ToSingle(temp1[1]);
+					break;
+				case 'E':
+					temp1 = receivedMessage.Split('\n');
+					extrudeHandle.GetComponent<ExtrudeHandle>().updateDist(System.Convert.ToSingle(temp1[1]));
+					break;
 			}
+		}
+		catch (Exception e) {
+			// if (receivedMessage[0] == 'M') {
+			// 	sendMessage("RM\n");
+			// }
+			// if (receivedMessage[0] == 'T') {
+			// 	sendMessage("RT\n");
+			// }
+			errorText.text = receivedMessage + "\n" + Time.deltaTime + "\n" + e.Message;
 		}
 	}
 
@@ -293,8 +290,8 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "192.168.21.79";
-		//string address = "192.168.0.106";
+		string address = "192.168.188.79";
+		//address = "192.168.0.106";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123
 		//Samsung connecting to iPhone hotspot: 172.20.10.6
@@ -304,12 +301,6 @@ public class ClientController : MonoBehaviour {
 		//iPhone connecting to iPhone hotspot: 10.150.153.190
 		//Debug.Log("233");
 		ConnectToTcpServer(address);
-	}
-
-	private void cleanSendBuffer() {
-		for (int i=0;i<msgTypes;i++) {
-			sendBuffer[i] = "";
-		}
 	}
 
 

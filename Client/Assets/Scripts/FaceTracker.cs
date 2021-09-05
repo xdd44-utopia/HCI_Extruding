@@ -22,6 +22,7 @@ public class FaceTracker : MonoBehaviour
 
 	private Vector3 currentObserve = new Vector3(0, 0, -5f);
 	private Vector3 faceDetected = new Vector3(6f, -1f, -10f);
+	private Vector3 prevFaceDetected = new Vector3(6f, -1f, -10f);
 	private float correction = 3f;
 	private float observationScalePlaner = 75f;
 	private float observationScaleVertical = 50f;
@@ -46,11 +47,11 @@ public class FaceTracker : MonoBehaviour
 	{
 
 		GameObject[] objects = GameObject.FindGameObjectsWithTag("Player");
-		string msg;
+		Vector3 faceDetectedForServer;
 		if (objects.Length == 0) {
 			Vector3 temp = new Vector3(0, 0, -10);
 			temp = (temp + convertToServer(temp)) / 2;
-			msg = "Face\n" + temp.x + "," + 100 + "," + temp.z + "\n";
+			faceDetectedForServer = new Vector3(temp.x, 100, temp.z);
 		}
 		else {
 			GameObject testObj = new GameObject();
@@ -82,10 +83,13 @@ public class FaceTracker : MonoBehaviour
 			faceDetected.y += correction;
 			faceDetected.z *= observationScaleVertical;
 			Destroy(testObj, 0f);
-			Vector3 faceDetectedForServer = convertToServer(faceDetected);
-			msg = "Face\n" + faceDetectedForServer.x + "," + faceDetectedForServer.y + "," + faceDetectedForServer.z + "\n";
+			faceDetectedForServer = convertToServer(faceDetected);
 		}
-		sender.GetComponent<ClientController>().sendMessage(msg);
+		if (Vector3.Distance(faceDetectedForServer, prevFaceDetected) > 0.05f) {
+			string msg = "Face\n" + faceDetectedForServer.x + "," + faceDetectedForServer.y + "," + faceDetectedForServer.z + "\n";
+			sender.GetComponent<ClientController>().sendMessage(msg);
+			prevFaceDetected = faceDetectedForServer;
+		}
 
 		if (useOrtho) {
 			cam.orthographic = true;

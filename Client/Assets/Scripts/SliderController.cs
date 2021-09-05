@@ -25,9 +25,7 @@ public class SliderController : MonoBehaviour
 	}
 
 	// Update is called once per frame
-	void Update()
-	{
-		debugText.text = angle + " " + (- angle - Mathf.PI / 2) / (Mathf.PI / 2);
+	void Update() {
 		float pos = leftMost + (rightMost - leftMost) * (Mathf.PI / 2 + angle) / (Mathf.PI / 2);
 		pointer.GetComponent<RectTransform>().anchoredPosition = new Vector3(pos, 750f, 0);
 	}

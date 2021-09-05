@@ -304,7 +304,7 @@ public class TouchProcessor : MonoBehaviour
 						meshManipulator.GetComponent<MeshManipulator>().castRay();
 						tapTimerThisScreen = -1;
 					}
-					else {
+					else if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
 						dragDelta = (touchPrevPosThisScreen[0] - touchPosThisScreen[0]).x;
 						Vector3 panStart = touchPrevPosThisScreen[0];
 						Vector3 panEnd = touchPosThisScreen[0];

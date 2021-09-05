@@ -11,6 +11,7 @@ public class ObjectController : MonoBehaviour
 	public GameObject sender;
 	public LineRenderer selectLine;
 	public Text debugText;
+	public Text debugText2;
 	[HideInInspector]
 	public bool isTransformUpdated;
 	[HideInInspector]
@@ -35,8 +36,10 @@ public class ObjectController : MonoBehaviour
 	//Selected face
 	private int selectTriangleIndex = -1; //-1: select object, >=0: select face
 	private int selectFaceIndex = -1;
+	private int prevSelectFaceIndex = -1;
 	private int snappedTriangleIndex = -1;
 	private int snappedFaceIndex = -1;
+	private int prevSnappedFaceIndex = -1;
 	private int alignFaceIndex = -1;
 	private int prevAlignFaceIndex = -1;
 
@@ -55,15 +58,16 @@ public class ObjectController : MonoBehaviour
 	}
 
 	// Update is called once per frame
-	void Update()
-	{
+	void Update() {
+		debugText.text = this.GetComponent<MeshFilter>().mesh.vertices.Length + " " + this.GetComponent<MeshFilter>().mesh.triangles.Length;
 		isRealMeasure = (this.transform.localScale - realMeasure).magnitude < 0.01f;
 		selectFaceIndex = (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]);
 		snappedFaceIndex = (snappedTriangleIndex == -1 ? -1 : meshToFacePointers[snappedTriangleIndex]);
 		updateHighlight();
 		if (isMeshUpdated) {
+			simplifyMesh();
+			updateVisualization();
 			inside.GetComponent<MeshFilter>().mesh = GetComponent<MeshFilter>().mesh;
-			updateCover();
 		}
 		if (isTransformUpdated) {
 			string msg =
@@ -82,12 +86,155 @@ public class ObjectController : MonoBehaviour
 		}
 	}
 
-	void updateCover() {
-
-		//categorize coplanar triangles
+	private void simplifyMesh() {
 
 		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
 		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
+
+		updateFaces();
+		updateEdges();
+
+		//Simplify edges
+		for (int i=0;i<faceNum;i++) {
+			while (true) {
+				int prevCount = edges[i].Count;
+				for (int j=0;j<edges[i].Count;j++) {
+					int prev = (j + edges[i].Count - 1) % edges[i].Count;
+					int next = (j + 1) % edges[i].Count;
+					if (crossProduct(vertices[edges[i][next]] - vertices[edges[i][j]], vertices[edges[i][j]] - vertices[edges[i][prev]]).magnitude < 0.001f) {
+						edges[i].RemoveAt(j);
+						break;
+					}
+				}
+				if (edges[i].Count == prevCount) {
+					break;
+				}
+			}
+		}
+
+		//Reconstruct faces
+		List<int> newTrianglesList = new List<int>();
+		for (int i=0;i<faceNum;i++) {
+			int edgeCount = edges[i].Count;
+			int triangleCount = newTrianglesList.Count;
+			while (edges[i].Count > 3) {
+				int prevCount = edges[i].Count;
+				int loopCount = 0;
+				int j = UnityEngine.Random.Range(0, edges[i].Count);
+				while (loopCount < prevCount) {
+					int prev1 = (j + edges[i].Count - 1) % edges[i].Count;
+					int prev2 = (j + edges[i].Count - 2) % edges[i].Count;
+					int next1 = (j + 1) % edges[i].Count;
+					int next2 = (j + 2) % edges[i].Count;
+					bool isIntersect = false;
+					if (Vector3.Angle(
+							vertices[edges[i][next1]] - vertices[edges[i][j]],
+							vertices[edges[i][next2]] - vertices[edges[i][next1]]
+						) <
+						Vector3.Angle(
+							vertices[edges[i][next1]] - vertices[edges[i][j]],
+							vertices[edges[i][prev1]] - vertices[edges[i][next1]]
+						)
+					) {
+						for (int k=0;k<edges[i].Count;k++) {
+							if (k != j && k != prev1 && k != prev2 && k != next1 &&
+								areLinesIntersect(
+									vertices[edges[i][prev1]],
+									vertices[edges[i][next1]],
+									vertices[edges[i][k]],
+									vertices[edges[i][(k+1)%edges[i].Count]]
+								)
+							) {
+								isIntersect = true;
+								break;
+							}
+						}
+						if (!isIntersect) {
+							newTrianglesList.Add(edges[i][prev1]);
+							newTrianglesList.Add(edges[i][j]);
+							newTrianglesList.Add(edges[i][next1]);
+							edges[i].RemoveAt(j);
+						}
+					}
+					if (!isIntersect) {
+						break;
+					}
+					j++;
+					loopCount++;
+					if (j == edges[i].Count) {
+						j = 0;
+					}
+				}
+			}
+			newTrianglesList.Add(edges[i][0]);
+			newTrianglesList.Add(edges[i][1]);
+			newTrianglesList.Add(edges[i][2]);
+		}
+		triangles = new int[newTrianglesList.Count];
+		for (int i=0;i<newTrianglesList.Count;i++) {
+			triangles[i] = newTrianglesList[i];
+		}
+
+		Mesh mesh = GetComponent<MeshFilter>().mesh;
+
+		//Remove repeated and not used vertices
+		List<Vector3> tempVertices = new List<Vector3>();
+		bool[] isUsed = new bool[vertices.Length];
+		for (int i=0;i<vertices.Length;i++) {
+			isUsed[i] = false;
+		}
+		for (int i=0;i<vertices.Length;i++) {
+			if(!isUsed[i]) {
+				bool isUsedByTriangle = false;
+				tempVertices.Add(vertices[i]);
+				for (int j=i;j<vertices.Length;j++) {
+					if (Vector3.Distance(vertices[i], vertices[j]) < 0.001f) {
+						isUsed[j] = true;
+					}
+				}
+				for (int j=0;j<triangles.Length;j++) {
+					if (Vector3.Distance(vertices[i], vertices[triangles[j]]) < 0.001f) {
+						isUsedByTriangle = true;
+						triangles[j] = tempVertices.Count - 1;
+					}
+				}
+				if (!isUsedByTriangle) {
+					tempVertices.RemoveAt(tempVertices.Count - 1);
+				}
+			}
+		}
+		vertices = new Vector3[tempVertices.Count];
+		for (int i=0;i<tempVertices.Count;i++) {
+			vertices[i] = tempVertices[i];
+		}
+		mesh.Clear();
+		mesh.vertices = vertices;
+		mesh.triangles = triangles;
+		mesh.uv = new Vector2[vertices.Length];
+		mesh.MarkModified();
+		mesh.RecalculateNormals();
+		GetComponent<MeshFilter>().mesh = mesh;
+		GetComponent<MeshCollider>().sharedMesh = mesh;
+
+	}
+
+	private void updateVisualization() {
+
+		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
+		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
+
+		updateFaces();
+		updateEdges();
+		updateCovers();
+		sendMesh();
+		
+	}
+
+	private void updateFaces() {
+
+		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
+		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
+
 		meshToFacePointers = new int[triangles.Length / 3];
 		int n = triangles.Length / 3;
 		int cnt = n;
@@ -138,52 +285,13 @@ public class ObjectController : MonoBehaviour
 
 		faceNum = faceToMeshPointers.Count;
 
-		//construct faces
-		while (faceNum > faceObj.Count) {
-			faceObj.Add(Instantiate(facePrefab, new Vector3(0, 0, 0), Quaternion.identity));
-			faceObj[faceObj.Count - 1].transform.parent = this.transform;
-			faceObj[faceObj.Count - 1].transform.localScale = new Vector3(1.001f, 1.001f, 1.001f);
-			faceObj[faceObj.Count - 1].transform.localPosition = new Vector3(0, 0, 0);
-			faceObj[faceObj.Count - 1].transform.localRotation = Quaternion.identity;
-			faceObj[faceObj.Count - 1].GetComponent<MeshFilter>().mesh = new Mesh();
-		}
-		while (faceNum < faceObj.Count) {
-			GameObject temp = faceObj[faceObj.Count - 1];
-			faceObj.RemoveAt(faceObj.Count - 1);
-			Destroy(temp, 0);
-		}
+	}
 
-		for (int i=0;i<faceNum;i++) {
-			int triangleNum = faceToMeshPointers[i].Count;
-			Vector3[] faceVertices = new Vector3[triangleNum * 3];
-			int[] faceTriangles = new int[triangleNum * 3];
-			Vector3 faceCenter = new Vector3(0, 0, 0);
-			for (int j=0;j<triangleNum;j++) {
-				Vector3 localNormal = crossProduct(vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 1]], vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 2]]);
-				localNormal = localNormal.normalized;
-				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.01f * localNormal;
-					faceTriangles[j * 3 + k] = j * 3 + k;
-					faceCenter += faceVertices[j * 3 + k];
-				}
-			}
-			faceCenter /= triangleNum * 3;
-			for (int j=0;j<triangleNum;j++) {
-				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.99f + faceCenter;
-				}
-			}
-			Mesh mesh = faceObj[i].GetComponent<MeshFilter>().mesh;
-			mesh.Clear();
-			mesh.vertices = faceVertices;
-			mesh.triangles = faceTriangles;
-			mesh.uv = new Vector2[faceToMeshPointers[i].Count * 3];
-			mesh.MarkModified();
-			mesh.RecalculateNormals();
-			faceObj[i].GetComponent<MeshFilter>().mesh = mesh;
-		}
+	private void updateEdges() {
+		
+		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
+		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
 
-		//find edges
 		edges.Clear();
 		for (int i=0;i<faceNum;i++) {
 			List<int> edgeVertices = new List<int>();
@@ -251,7 +359,58 @@ public class ObjectController : MonoBehaviour
 			edges.Add(edgeVertices);
 		}
 
-		//Send out mesh
+	}
+
+	private void updateCovers() {
+
+		while (faceNum > faceObj.Count) {
+			faceObj.Add(Instantiate(facePrefab, new Vector3(0, 0, 0), Quaternion.identity));
+			faceObj[faceObj.Count - 1].transform.parent = this.transform;
+			faceObj[faceObj.Count - 1].transform.localScale = new Vector3(1.001f, 1.001f, 1.001f);
+			faceObj[faceObj.Count - 1].transform.localPosition = new Vector3(0, 0, 0);
+			faceObj[faceObj.Count - 1].transform.localRotation = Quaternion.identity;
+			faceObj[faceObj.Count - 1].GetComponent<MeshFilter>().mesh = new Mesh();
+		}
+		while (faceNum < faceObj.Count) {
+			GameObject temp = faceObj[faceObj.Count - 1];
+			faceObj.RemoveAt(faceObj.Count - 1);
+			Destroy(temp, 0);
+		}
+
+		for (int i=0;i<faceNum;i++) {
+			int triangleNum = faceToMeshPointers[i].Count;
+			Vector3[] faceVertices = new Vector3[triangleNum * 3];
+			int[] faceTriangles = new int[triangleNum * 3];
+			Vector3 faceCenter = new Vector3(0, 0, 0);
+			for (int j=0;j<triangleNum;j++) {
+				Vector3 localNormal = crossProduct(vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 1]], vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 2]]);
+				localNormal = localNormal.normalized;
+				for (int k=0;k<3;k++) {
+					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.01f * localNormal;
+					faceTriangles[j * 3 + k] = j * 3 + k;
+					faceCenter += faceVertices[j * 3 + k];
+				}
+			}
+			faceCenter /= triangleNum * 3;
+			for (int j=0;j<triangleNum;j++) {
+				for (int k=0;k<3;k++) {
+					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.99f + faceCenter;
+				}
+			}
+			Mesh mesh = faceObj[i].GetComponent<MeshFilter>().mesh;
+			mesh.Clear();
+			mesh.vertices = faceVertices;
+			mesh.triangles = faceTriangles;
+			mesh.uv = new Vector2[faceToMeshPointers[i].Count * 3];
+			mesh.MarkModified();
+			mesh.RecalculateNormals();
+			faceObj[i].GetComponent<MeshFilter>().mesh = mesh;
+		}
+
+	}
+
+	private void sendMesh() {
+
 		string msg = "Mesh\n";
 		msg += vertices.Length + "\n";
 		for (int j=0;j<vertices.Length;j++) {
@@ -265,7 +424,7 @@ public class ObjectController : MonoBehaviour
 		msg += "\n";
 		sender.GetComponent<ServerController>().sendMessage(msg);
 		isMeshUpdated = false;
-		
+
 	}
 
 	public void cleanHighlight() {
@@ -277,8 +436,13 @@ public class ObjectController : MonoBehaviour
 	}
 
 	private void updateHighlight() {
-		string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex + "\n" + alignFaceIndex;
-		sender.GetComponent<ServerController>().sendMessage(msg);
+		if (selectFaceIndex != prevSelectFaceIndex || snappedFaceIndex != prevSnappedFaceIndex || alignFaceIndex != prevAlignFaceIndex) {
+			string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex + "\n" + alignFaceIndex;
+			sender.GetComponent<ServerController>().sendMessage(msg);
+			prevSelectFaceIndex = selectFaceIndex;
+			prevAlignFaceIndex = alignFaceIndex;
+			prevSnappedFaceIndex = snappedFaceIndex;
+		}
 		for (int i=0;i<faceNum;i++) {
 			Renderer tempRenderer = faceObj[i].GetComponent<Renderer>();
 			tempRenderer.material.SetColor("_Color", generalColor);
@@ -355,5 +519,22 @@ public class ObjectController : MonoBehaviour
 
 	private float dotProduct(Vector3 a, Vector3 b) {
 		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+
+	private bool areLinesIntersect(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2) {
+		bool result = true;
+		if (crossProduct(a2 - a1, b2 - a2).magnitude > 0 &&
+			crossProduct(a2 - a1, b1 - a2).magnitude > 0 &&
+			Vector3.Angle(crossProduct(a2 - a1, b2 - a2), crossProduct(a2 - a1, b1 - a2)) < 0.001f
+		) {
+			result = false;
+		}
+		if (crossProduct(b2 - b1, a1 - b2).magnitude > 0 &&
+			crossProduct(b2 - b1, a2 - b2).magnitude > 0 &&
+			Vector3.Angle(crossProduct(b2 - b1, a1 - b2), crossProduct(b2 - b1, a2 - b2)) < 0.001f
+		) {
+			result = false;
+		}
+		return result;
 	}
 }
