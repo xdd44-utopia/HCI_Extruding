@@ -177,7 +177,10 @@ public class MeshManipulator : MonoBehaviour
 
 		angle = sliderController.GetComponent<SliderController>().angle;
 		if (state == Status.select) {
-			updateMesh();
+			hitVertices = hitObj.GetComponent<MeshFilter>().mesh.vertices;
+			hitTriangles = hitObj.GetComponent<MeshFilter>().mesh.triangles;
+			hitVerticesNum = hitVertices.Length;
+			hitTrianglesNum = hitTriangles.Length;
 		}
 
 		if (Mathf.Abs(angle - prevAngle) > 0.005f) {
@@ -347,72 +350,6 @@ public class MeshManipulator : MonoBehaviour
 	/* #endregion */
 
 	/* #region Extrude */
-	private void extrude() {
-
-		if (smode != SelectMode.selectFace) {
-			state = Status.select;
-			return;
-		}
-
-
-		extrudedVertices = extrudedMesh.vertices;
-		extrudedTriangles = extrudedMesh.triangles;
-		int faceNum = selectTriangles.Count;
-		int edgeLength = selectEdgeVertices.Count;
-		Vector3 localNormal = hitObj.transform.InverseTransformPoint(hitObj.transform.position - extrudeDir);
-
-		localNormal = localNormal.normalized;
-		for (int i=0;i<edgeLength;i++) {
-			extrudedVertices[hitVerticesNum + i] = extrudedVerticesOriginal[hitVerticesNum + i] + localNormal * extrudeDist;
-		}
-
-		extrudedMesh.vertices = extrudedVertices;
-		extrudedMesh.triangles = extrudedTriangles;
-		extrudedMesh.MarkModified();
-		extrudedMesh.RecalculateNormals();
-
-		extrudeDir = extrudeDir.normalized * hitObj.transform.localScale.x;
-
-		hitObj.transform.position = extrudeStartPos + extrudeDir * extrudeDist;
-
-
-		if (extrudeDist > 0.02f) {
-			Mesh tempMesh = new Mesh();
-
-			tempMesh.vertices = new Vector3[extrudedVertices.Length];
-			tempMesh.uv = new Vector2[extrudedVertices.Length];
-			tempMesh.triangles = new int[extrudedTriangles.Length];
-
-			Vector3[] tempVertices = tempMesh.vertices;
-			int[] tempTriangles = tempMesh.triangles;
-			
-			for (int i=0;i<extrudedVertices.Length;i++) {
-				tempVertices[i] = extrudedVertices[i];
-			}
-			for (int i=0;i<extrudedTriangles.Length;i++) {
-				tempTriangles[i] = extrudedTriangles[i];
-			}
-			tempMesh.vertices = tempVertices;
-			tempMesh.triangles = tempTriangles;
-			tempMesh.MarkModified();
-			tempMesh.RecalculateNormals();
-
-			hitObj.GetComponent<MeshFilter>().mesh = tempMesh;
-			hitObj.GetComponent<MeshCollider>().sharedMesh = tempMesh;
-			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
-			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
-		}
-
-		extrudeTimer -= Time.deltaTime;
-		if (extrudeTimer < 0) {
-			state = Status.select;
-			if (extrudeDist < 0.02f) {
-				loadUndo();
-			}
-			extrudeDist = 0;
-		}
-
-	}
 	
 	private void prepareExtrude(bool isThisScreen) {
 
@@ -483,20 +420,97 @@ public class MeshManipulator : MonoBehaviour
 		extrudeTimer = touchDelayTolerance;
 
 	}
+
+	public void updateExtrudeScale(float factor, bool isThisScreen) {
+		if (smode != SelectMode.selectFace) {
+			return;
+		}
+		if (selectTriangleIndex != focusTriangleIndex || !isEdgeAligned) {
+			return;
+		}
+		if (smode == SelectMode.selectFace && isEdgeAligned && state == Status.select) {
+			if ((isThisScreenFocused && !isThisScreen) || (isOtherScreenFocused && isThisScreen)) {
+				prepareExtrude(isThisScreen);
+			}
+		}
+		if (state == Status.extrude) {
+			extrudeDist += factor;
+			extrudeDist = extrudeDist > 0 ? extrudeDist : 0;
+			extrudeTimer = touchDelayTolerance;
+			debugText2.text = factor + "";
+		}
+	}
+	private void extrude() {
+
+		if (smode != SelectMode.selectFace) {
+			state = Status.select;
+			return;
+		}
+
+
+		extrudedVertices = extrudedMesh.vertices;
+		extrudedTriangles = extrudedMesh.triangles;
+		int faceNum = selectTriangles.Count;
+		int edgeLength = selectEdgeVertices.Count;
+		Vector3 localNormal = hitObj.transform.InverseTransformPoint(hitObj.transform.position - extrudeDir);
+
+		localNormal = localNormal.normalized;
+		for (int i=0;i<edgeLength;i++) {
+			extrudedVertices[hitVerticesNum + i] = extrudedVerticesOriginal[hitVerticesNum + i] + localNormal * extrudeDist;
+		}
+
+		extrudedMesh.vertices = extrudedVertices;
+		extrudedMesh.triangles = extrudedTriangles;
+		extrudedMesh.MarkModified();
+		extrudedMesh.RecalculateNormals();
+
+		extrudeDir = extrudeDir.normalized * hitObj.transform.localScale.x;
+
+		hitObj.transform.position = extrudeStartPos + extrudeDir * extrudeDist;
+
+		debugText2.text += " " + extrudeDir * extrudeDist;
+
+
+		if (extrudeDist > 0.02f) {
+			Mesh tempMesh = new Mesh();
+
+			tempMesh.vertices = new Vector3[extrudedVertices.Length];
+			tempMesh.uv = new Vector2[extrudedVertices.Length];
+			tempMesh.triangles = new int[extrudedTriangles.Length];
+
+			Vector3[] tempVertices = tempMesh.vertices;
+			int[] tempTriangles = tempMesh.triangles;
+			
+			for (int i=0;i<extrudedVertices.Length;i++) {
+				tempVertices[i] = extrudedVertices[i];
+			}
+			for (int i=0;i<extrudedTriangles.Length;i++) {
+				tempTriangles[i] = extrudedTriangles[i];
+			}
+			tempMesh.vertices = tempVertices;
+			tempMesh.triangles = tempTriangles;
+			tempMesh.MarkModified();
+			tempMesh.RecalculateNormals();
+
+			hitObj.GetComponent<MeshFilter>().mesh = tempMesh;
+			hitObj.GetComponent<MeshCollider>().sharedMesh = tempMesh;
+			hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
+			hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+		}
+
+		extrudeTimer -= Time.deltaTime;
+		if (extrudeTimer < 0) {
+			state = Status.select;
+			if (extrudeDist < 0.02f) {
+				loadUndo();
+			}
+			extrudeDist = 0;
+		}
+
+	}
 	/* #endregion */
 
 	/* #region Taper */
-
-	public void updateTaperScale(float factor) {
-
-		if (state != Status.taper) {
-			return;
-		}
-		
-		taperScale += factor / 2.5f;
-		taperTimer = touchDelayTolerance;
-		taperStarted = true;
-	}
 
 	public void prepareTaper() {
 
@@ -533,6 +547,18 @@ public class MeshManipulator : MonoBehaviour
 		state = Status.taper;
 
 		taperTimer = touchDelayTolerance;
+		
+	}
+	public void updateTaperScale(float factor) {
+
+		if (state != Status.taper) {
+			return;
+		}
+		
+		taperScale += factor / 2.5f;
+		taperScale = taperScale > 0 ? taperScale : 0;
+		taperTimer = touchDelayTolerance;
+		taperStarted = true;
 	}
 	private void taper() {
 
@@ -547,6 +573,8 @@ public class MeshManipulator : MonoBehaviour
 				taperedVertices[hitTriangles[selectTriangles[i] * 3 + j]] = taperScale * (hitVertices[hitTriangles[selectTriangles[i] * 3 + j]] - taperCenter) + taperCenter;
 			}
 		}
+
+		debugText2.text = taperScale + "";
 
 		for (int i=0;i<taperedVertices.Length;i++) {
 			for (int j=0;j<edgeLength;j++) {
@@ -568,7 +596,7 @@ public class MeshManipulator : MonoBehaviour
 		// taperScale = 1;
 
 		taperTimer -= Time.deltaTime;
-		if (taperTimer < 0 && taperStarted) {
+		if ((taperTimer < 0 && taperStarted) || taperScale == 0) {
 			state = Status.select;
 		}
 
@@ -967,37 +995,6 @@ public class MeshManipulator : MonoBehaviour
 	}
 	/* #endregion */
 
-	/* #region Public */
-
-	public void switchSelectMode() {
-		cancel();
-		if (smode == SelectMode.selectFace) {
-			smode = SelectMode.selectObject;
-		}
-		else {
-			smode = SelectMode.selectFace;
-		}
-	}
-
-	public void updateExtrudeScale(float factor, bool isThisScreen) {
-		if (smode != SelectMode.selectFace) {
-			return;
-		}
-		if (selectTriangleIndex != focusTriangleIndex || !isEdgeAligned) {
-			return;
-		}
-		if (smode == SelectMode.selectFace && isEdgeAligned && state == Status.select) {
-			if ((isThisScreenFocused && !isThisScreen) || (isOtherScreenFocused && isThisScreen)) {
-				prepareExtrude(isThisScreen);
-			}
-		}
-		if (state == Status.extrude) {
-			extrudeDist += factor;
-			extrudeDist = extrudeDist > 0 ? extrudeDist : 0;
-			extrudeTimer = touchDelayTolerance;
-		}
-	}
-
 	/* #region Transform */
 
 	public void startMoving(Vector3 panDelta, bool isMainScreen) {
@@ -1201,7 +1198,8 @@ public class MeshManipulator : MonoBehaviour
 					hitVertices[hitTriangles[focusTriangleIndex * 3 + 0]]
 				);
 
-			float depth = (hitObj.transform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude * 1.025f;
+			float depth = (hitObj.transform.TransformPoint(centerToHitFace) - hitObj.transform.position).magnitude;
+			depth += 0.025f;
 			float offset = camWidth / 2;
 			if (!isNewFocus) {
 				if (isThisScreen) {
@@ -1235,11 +1233,16 @@ public class MeshManipulator : MonoBehaviour
 
 	/* #endregion */
 
-	private void updateMesh() {
-		hitVertices = hitObj.GetComponent<MeshFilter>().mesh.vertices;
-		hitTriangles = hitObj.GetComponent<MeshFilter>().mesh.triangles;
-		hitVerticesNum = hitVertices.Length;
-		hitTrianglesNum = hitTriangles.Length;
+	/* #region Public */
+
+	public void switchSelectMode() {
+		cancel();
+		if (smode == SelectMode.selectFace) {
+			smode = SelectMode.selectObject;
+		}
+		else {
+			smode = SelectMode.selectFace;
+		}
 	}
 
 	public void recordRealMeasure() {

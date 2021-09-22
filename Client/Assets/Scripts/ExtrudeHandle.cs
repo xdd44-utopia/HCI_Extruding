@@ -8,7 +8,7 @@ public class ExtrudeHandle : MonoBehaviour
 	public GameObject handle;
 	public Text debugText;
 	private float timer;
-	private float timeOut = 0.1f;
+	private float timeOut = 0.25f;
 	void Start()
 	{
 		

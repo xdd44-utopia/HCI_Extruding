@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -61,8 +62,14 @@ public class ObjectController : MonoBehaviour
 	void Update() {
 		debugText.text = this.GetComponent<MeshFilter>().mesh.vertices.Length + " " + this.GetComponent<MeshFilter>().mesh.triangles.Length;
 		isRealMeasure = (this.transform.localScale - realMeasure).magnitude < 0.01f;
-		selectFaceIndex = (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]);
-		snappedFaceIndex = (snappedTriangleIndex == -1 ? -1 : meshToFacePointers[snappedTriangleIndex]);
+		try {
+			selectFaceIndex = (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]);
+			snappedFaceIndex = (snappedTriangleIndex == -1 ? -1 : meshToFacePointers[snappedTriangleIndex]);
+		}
+		catch (Exception e) {
+			cleanHighlight();
+			meshManipulator.GetComponent<MeshManipulator>().cancel();
+		}
 		updateHighlight();
 		if (isMeshUpdated) {
 			simplifyMesh();
@@ -116,6 +123,7 @@ public class ObjectController : MonoBehaviour
 		List<int> newTrianglesList = new List<int>();
 		for (int i=0;i<faceNum;i++) {
 			int edgeCount = edges[i].Count;
+			if (edgeCount != 0) {
 			int triangleCount = newTrianglesList.Count;
 			while (edges[i].Count > 3) {
 				int prevCount = edges[i].Count;
@@ -169,6 +177,7 @@ public class ObjectController : MonoBehaviour
 			newTrianglesList.Add(edges[i][0]);
 			newTrianglesList.Add(edges[i][1]);
 			newTrianglesList.Add(edges[i][2]);
+			}
 		}
 		triangles = new int[newTrianglesList.Count];
 		for (int i=0;i<newTrianglesList.Count;i++) {
@@ -243,6 +252,15 @@ public class ObjectController : MonoBehaviour
 			isVisited[i] = false;
 		}
 		faceToMeshPointers.Clear();
+
+		for (int i=0;i<n;i++) {
+			if ((vertices[triangles[i * 3 + 0]] - vertices[triangles[i * 3 + 1]]).magnitude < 0.001f ||
+			(vertices[triangles[i * 3 + 0]] - vertices[triangles[i * 3 + 2]]).magnitude < 0.001f ||
+			(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3 + 2]]).magnitude < 0.001f
+			) {
+				isVisited[i] = true;
+			}
+		}
 
 		for (int i=0;(i < n && cnt > 0);i++) {
 			if (!isVisited[i]) {
