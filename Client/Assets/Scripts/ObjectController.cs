@@ -165,7 +165,7 @@ public class ObjectController : MonoBehaviour
 			faceCenter /= triangleNum * 3;
 			for (int j=0;j<triangleNum;j++) {
 				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.99f + faceCenter;
+					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.975f + faceCenter;
 				}
 			}
 			Mesh faceMesh = faceObj[i].GetComponent<MeshFilter>().mesh;
@@ -274,6 +274,8 @@ public class ObjectController : MonoBehaviour
 			System.Convert.ToSingle(scaleStr[1]),
 			System.Convert.ToSingle(scaleStr[2])
 		);
+
+		selectLine.SetWidth(0.025f * this.transform.localScale.x, 0.025f * this.transform.localScale.x);
 
 	}
 

@@ -71,6 +71,7 @@ public class FaceTracker : MonoBehaviour
 			renderCam.transform.position = new Vector3(0, 0, -5);
 			string msg = "Face\nO\n";
 			sender.GetComponent<ServerController>().sendMessage(msg);
+			currentObserve = new Vector3(0, 0, -5);
 		}
 		else {
 			if (useFaceTrack) {

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,11 +9,11 @@ public class SliderController : MonoBehaviour
 	// public GameObject slider;
 	// public GameObject cam;
 
-	public Text debugText;
+	public Text angleText;
+	public GameObject protractor;
 
 	[HideInInspector]
 	public float angle;
-	public GameObject pointer;
 
 	private float defaultAngle = - Mathf.PI / 2;
 	private const float leftMost = -337.5f;
@@ -26,7 +27,7 @@ public class SliderController : MonoBehaviour
 
 	// Update is called once per frame
 	void Update() {
-		float pos = leftMost + (rightMost - leftMost) * (Mathf.PI / 2 + angle) / (Mathf.PI / 2);
-		pointer.GetComponent<RectTransform>().anchoredPosition = new Vector3(pos, 750f, 0);
+		protractor.transform.rotation = Quaternion.Euler(-90, - angle * 180 / Mathf.PI, 0);
+		angleText.text = Math.Round((- angle * 180 / Mathf.PI), 1) + "°";
 	}
 }

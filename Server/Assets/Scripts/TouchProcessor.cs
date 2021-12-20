@@ -200,9 +200,10 @@ public class TouchProcessor : MonoBehaviour
 		else if (touchCountThisScreen == 0 && touchCountOtherScreen == 2) {
 			state = Status.singleScreen2Other;
 		}
-		else if (touchCountThisScreen == 1 && touchCountOtherScreen == 1) {
-			state = Status.crossScreen2;
-		}
+		// Two screen cut disabled
+		// else if (touchCountThisScreen == 1 && touchCountOtherScreen == 1) {
+		// 	state = Status.crossScreen2;
+		// }
 		else if (touchCountThisScreen == 1 && touchCountOtherScreen == 2) {
 			state = Status.crossScreen1This2Other;
 		}

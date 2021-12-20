@@ -1266,7 +1266,7 @@ public class MeshManipulator : MonoBehaviour
 	public void restart() {
 		cancel();
 
-		hitObj.transform.position = new Vector3(0, 0, 4.5f);
+		hitObj.transform.position = new Vector3(0, 0, 2f);
 		hitObj.transform.localScale = new Vector3(2, 2, 2);
 		hitObj.transform.rotation = Quaternion.Euler(30, 60, 45);
 

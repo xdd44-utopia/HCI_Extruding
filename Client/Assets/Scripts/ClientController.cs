@@ -16,6 +16,7 @@ public class ClientController : MonoBehaviour {
 	public GameObject sliceTraceVisualizer;
 	public GameObject sliderController;
 	public GameObject gridController;
+	public GameObject depthFrame;
 	public GameObject extrudeHandle;
 	public GameObject connectButton;
 	public Camera renderCamera;
@@ -266,7 +267,8 @@ public class ClientController : MonoBehaviour {
 					break;
 				case 'G':
 					temp1 = receivedMessage.Split('\n');
-					gridController.GetComponent<GridController>().scale = System.Convert.ToSingle(temp1[1]);
+					gridController.SetActive(temp1[1][0] == 'T');
+					depthFrame.SetActive(temp1[1][0] == 'F');
 					break;
 				case 'E':
 					temp1 = receivedMessage.Split('\n');
@@ -290,7 +292,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "192.168.121.79";
+		string address = "192.168.246.79";
 		//address = "192.168.0.106";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123

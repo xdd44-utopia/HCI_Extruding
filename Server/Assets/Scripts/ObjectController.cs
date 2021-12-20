@@ -90,6 +90,7 @@ public class ObjectController : MonoBehaviour
 				this.transform.localScale.z + "\n";
 			sender.GetComponent<ServerController>().sendMessage(msg);
 			isTransformUpdated = false;
+			selectLine.SetWidth(0.025f * this.transform.localScale.x, 0.025f * this.transform.localScale.x);
 		}
 	}
 
@@ -404,7 +405,7 @@ public class ObjectController : MonoBehaviour
 				Vector3 localNormal = crossProduct(vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 1]], vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 2]]);
 				localNormal = localNormal.normalized;
 				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.01f * localNormal;
+					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]];
 					faceTriangles[j * 3 + k] = j * 3 + k;
 					faceCenter += faceVertices[j * 3 + k];
 				}
@@ -412,7 +413,7 @@ public class ObjectController : MonoBehaviour
 			faceCenter /= triangleNum * 3;
 			for (int j=0;j<triangleNum;j++) {
 				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.99f + faceCenter;
+					faceVertices[j * 3 + k] = (faceVertices[j * 3 + k] - faceCenter) * 0.975f + faceCenter;
 				}
 			}
 			Mesh mesh = faceObj[i].GetComponent<MeshFilter>().mesh;
