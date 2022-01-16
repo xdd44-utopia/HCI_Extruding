@@ -3,13 +3,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEditor;
 
-public class ObjectController : MonoBehaviour
+public class ObjectControllerTest : MonoBehaviour
 {
 
 	public GameObject inside;
-	public GameObject meshManipulator;
-	public GameObject sender;
 	public LineRenderer selectLine;
 	[HideInInspector]
 	public bool isTransformUpdated;
@@ -19,6 +18,8 @@ public class ObjectController : MonoBehaviour
 	public bool isRealMeasure;
 	[HideInInspector]
 	public Vector3 realMeasure = new Vector3(1, 1, 1);
+	public MeshFilter testMesh1;
+	public MeshFilter testMesh2;
 
 	//Mesh
 	private Vector3[] vertices;
@@ -65,27 +66,14 @@ public class ObjectController : MonoBehaviour
 		}
 		catch (Exception e) {
 			cleanHighlight();
-			meshManipulator.GetComponent<MeshManipulator>().cancel();
 		}
 		updateHighlight();
 		if (isMeshUpdated) {
-			simplifyMesh();
+			//simplifyMesh();
 			updateVisualization();
 			inside.GetComponent<MeshFilter>().mesh = GetComponent<MeshFilter>().mesh;
 		}
 		if (isTransformUpdated) {
-			string msg =
-				"Transform\n" + 
-				this.transform.position.x + "," +
-				this.transform.position.y + "," +
-				this.transform.position.z + "\n" +
-				this.transform.rotation.eulerAngles.x + "," +
-				this.transform.rotation.eulerAngles.y + "," +
-				this.transform.rotation.eulerAngles.z + "\n" +
-				this.transform.localScale.x + "," +
-				this.transform.localScale.y + "," +
-				this.transform.localScale.z + "\n";
-			sender.GetComponent<ServerController>().sendMessage(msg);
 			isTransformUpdated = false;
 			selectLine.SetWidth(0.025f * this.transform.localScale.x, 0.025f * this.transform.localScale.x);
 		}
@@ -96,8 +84,11 @@ public class ObjectController : MonoBehaviour
 		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
 		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
 
+		removeDupVertices();
+		copyMesh(GetComponent<MeshFilter>(), testMesh1);
 		updateFaces();
 		updateEdges();
+
 
 		//Simplify edges
 		for (int i=0;i<faceNum;i++) {
@@ -184,6 +175,34 @@ public class ObjectController : MonoBehaviour
 
 		Mesh mesh = GetComponent<MeshFilter>().mesh;
 
+		mesh.Clear();
+		mesh.vertices = vertices;
+		mesh.triangles = triangles;
+		mesh.uv = new Vector2[vertices.Length];
+		mesh.MarkModified();
+		mesh.RecalculateNormals();
+		GetComponent<MeshFilter>().mesh = mesh;
+		GetComponent<MeshCollider>().sharedMesh = mesh;
+
+	}
+
+	private void updateVisualization() {
+
+		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
+		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
+
+		updateFaces();
+		updateEdges();
+		updateCovers();
+		sendMesh();
+		
+	}
+
+	private void removeDupVertices() {
+
+		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
+		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
+
 		//Remove repeated and not used vertices
 		List<Vector3> tempVertices = new List<Vector3>();
 		bool[] isUsed = new bool[vertices.Length];
@@ -214,6 +233,8 @@ public class ObjectController : MonoBehaviour
 		for (int i=0;i<tempVertices.Count;i++) {
 			vertices[i] = tempVertices[i];
 		}
+		
+		Mesh mesh = GetComponent<MeshFilter>().mesh;
 		mesh.Clear();
 		mesh.vertices = vertices;
 		mesh.triangles = triangles;
@@ -223,18 +244,6 @@ public class ObjectController : MonoBehaviour
 		GetComponent<MeshFilter>().mesh = mesh;
 		GetComponent<MeshCollider>().sharedMesh = mesh;
 
-	}
-
-	private void updateVisualization() {
-
-		vertices = this.GetComponent<MeshFilter>().mesh.vertices;
-		triangles = this.GetComponent<MeshFilter>().mesh.triangles;
-
-		updateFaces();
-		updateEdges();
-		updateCovers();
-		sendMesh();
-		
 	}
 
 	private void updateFaces() {
@@ -260,6 +269,7 @@ public class ObjectController : MonoBehaviour
 			}
 		}
 
+		Debug.Log(n);
 		for (int i=0;(i < n && cnt > 0);i++) {
 			if (!isVisited[i]) {
 				faceToMeshPointers.Add(new List<int>());
@@ -274,7 +284,7 @@ public class ObjectController : MonoBehaviour
 						vertices[triangles[idx * 3 + 0]] - vertices[triangles[idx * 3 + 1]],
 						vertices[triangles[idx * 3 + 0]] - vertices[triangles[idx * 3 + 2]]
 					);
-					if (localNormal.normalized == currentNormal.normalized) {
+					if (localNormal.normalized == currentNormal.normalized && !isVisited[idx]) {
 						isVisited[idx] = true;
 						faceToMeshPointers[faceToMeshPointers.Count - 1].Add(idx);
 						meshToFacePointers[idx] = faceToMeshPointers.Count - 1;
@@ -371,6 +381,10 @@ public class ObjectController : MonoBehaviour
 				}
 			}
 			edgeVertices.RemoveAt(edgeVertices.Count - 1);
+
+			if (i == 10) {
+				Debug.Log("Edge length " + edgeVertices.Count);
+			}
 			
 			edges.Add(edgeVertices);
 		}
@@ -421,24 +435,14 @@ public class ObjectController : MonoBehaviour
 			mesh.MarkModified();
 			mesh.RecalculateNormals();
 			faceObj[i].GetComponent<MeshFilter>().mesh = mesh;
+			faceObj[i].name = "Face " + i;
+			AssetDatabase.CreateAsset(mesh, "Assets/Prefab/Model/Face " + i + ".asset");
 		}
 
 	}
 
 	private void sendMesh() {
 
-		string msg = "Mesh\n";
-		msg += vertices.Length + "\n";
-		for (int j=0;j<vertices.Length;j++) {
-			msg += vertices[j].x + "," + vertices[j].y + "," + vertices[j].z + ",";
-		}
-		msg += "\n";
-		msg += triangles.Length + "\n";
-		for (int j=0;j<triangles.Length;j++) {
-			msg += triangles[j] + ",";
-		}
-		msg += "\n";
-		sender.GetComponent<ServerController>().sendMessage(msg);
 		isMeshUpdated = false;
 
 	}
@@ -453,8 +457,6 @@ public class ObjectController : MonoBehaviour
 
 	private void updateHighlight() {
 		if (selectFaceIndex != prevSelectFaceIndex || snappedFaceIndex != prevSnappedFaceIndex || alignFaceIndex != prevAlignFaceIndex) {
-			string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex + "\n" + alignFaceIndex;
-			sender.GetComponent<ServerController>().sendMessage(msg);
 			prevSelectFaceIndex = selectFaceIndex;
 			prevAlignFaceIndex = alignFaceIndex;
 			prevSnappedFaceIndex = snappedFaceIndex;
@@ -508,9 +510,6 @@ public class ObjectController : MonoBehaviour
 	public void newFocus() {
 		snappedTriangleIndex = selectTriangleIndex;
 		int tempFace = meshToFacePointers[selectTriangleIndex];
-		meshManipulator.GetComponent<MeshManipulator>().selectTriangles = faceToMeshPointers[tempFace];
-		meshManipulator.GetComponent<MeshManipulator>().selectEdgeVertices = edges[tempFace];
-		meshManipulator.GetComponent<MeshManipulator>().focusTriangleIndex = findFirstTriangle(selectTriangleIndex);
 	}
 
 	public void removeFocus() {
@@ -552,5 +551,24 @@ public class ObjectController : MonoBehaviour
 			result = false;
 		}
 		return result;
+	}
+
+	private void copyMesh(MeshFilter s, MeshFilter t) {
+		Mesh sm = s.mesh;
+		Mesh tm = t.mesh;
+		tm.Clear();
+		Vector3[] ver = new Vector3[sm.vertices.Length];
+		int[] tri = new int[sm.triangles.Length];
+		for (int i=0;i<sm.vertices.Length;i++) {
+			ver[i] = sm.vertices[i];
+		}
+		for (int i=0;i<sm.triangles.Length;i++) {
+			tri[i] = sm.triangles[i];
+		}
+		tm.vertices = ver;
+		tm.triangles = tri;
+		tm.uv = new Vector2[sm.vertices.Length];
+		tm.MarkModified();
+		tm.RecalculateNormals();
 	}
 }
