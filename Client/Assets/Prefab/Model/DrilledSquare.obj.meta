@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Client/Assets/Prefab/Model/DrilledSquare.obj.meta
 guid: f802b3dac2a6146d7b323dff2b530a28
+=======
+guid: 085bb3fa70d6f4c6fb3dfa3b401d8e13
+>>>>>>> 4a34747e34346401dc1e0dd4f8f0269c88dfbc06:Server/Assets/Prefab/Model/Drilled.obj.meta
 ModelImporter:
   serializedVersion: 19301
   internalIDToNameTable: []

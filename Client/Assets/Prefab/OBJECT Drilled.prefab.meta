@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD:Client/Assets/Prefab/OBJECT Drilled.prefab.meta
 guid: 75b7f3a3b1bb541238fb80f259c3b375
+=======
+guid: 37c031eb93e604d4c833775b41c31259
+>>>>>>> 4a34747e34346401dc1e0dd4f8f0269c88dfbc06:Server/Assets/Prefab/OBJECT Drilled.prefab.meta
 PrefabImporter:
   externalObjects: {}
   userData: 
