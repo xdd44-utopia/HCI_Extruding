@@ -20,11 +20,11 @@ public class MeshManipulator : MonoBehaviour
 	public Image measureButton;
 	public Sprite measureRecoverSprite;
 	public Sprite measureRecoveredSprite;
-	public GameObject sliceTraceVisualizer;
-	public GameObject sliderController;
-	public GameObject sender;
-	public GameObject extrudeHandle;
-	public GameObject gridController;
+	private GameObject sliceTraceVisualizer;
+	private GameObject sliderController;
+	private GameObject sender;
+	private GameObject extrudeHandle;
+	private GameObject gridController;
 	//interaction
 	[HideInInspector]
 	public Vector3 touchPosition;
@@ -35,7 +35,7 @@ public class MeshManipulator : MonoBehaviour
 	private float prevAngle = 0;
 
 	//hit
-	public GameObject hitObj;
+	private GameObject hitObj;
 	public Mesh defaultMesh;
 	private RaycastHit hit;
 	private Vector3[] hitVertices;
@@ -49,7 +49,7 @@ public class MeshManipulator : MonoBehaviour
 	private bool focusingThisScreen = false;
 	private bool focusingOtherScreen = false;
 	private bool isThisScreenCuttingPlane = false;
-	private bool isOtherScreenCuttingPlane = false;
+	private bool isOtherScreenPenetrate = false;
 	private Vector3 footDrop;
 
 
@@ -80,6 +80,10 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3[] extrudedVerticesOriginal;
 	private int[] extrudedTriangles;
 	private float extrudeTimer = 0;
+
+	//drill
+	public float drillDist = 0f;
+	private GameObject drillObj;
 
 	//taper
 	private Mesh taperedMesh;
@@ -119,7 +123,8 @@ public class MeshManipulator : MonoBehaviour
 		select,
 		focus,
 		extrude,
-		taper
+		taper,
+		drill
 	}
 
 	private SelectMode smode = SelectMode.selectObject;
@@ -131,6 +136,15 @@ public class MeshManipulator : MonoBehaviour
 	/* #region Main */
 	void Start()
 	{
+		sliceTraceVisualizer = GameObject.Find("Slice Trace");
+		sliderController = GameObject.Find("SliderController");
+		sender = GameObject.Find("Server");
+		extrudeHandle = GameObject.Find("Extrude");
+		gridController = GameObject.Find("RulerGrid");
+
+		hitObj = GameObject.Find("OBJECT");
+		drillObj = GameObject.Find("DRILLED");
+		drillObj.SetActive(false);
 
 		touchPosition = INF;
 		selectTriangleIndex = -1;
@@ -145,6 +159,10 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	void Update() {
+
+		drillObj.transform.position = hitObj.transform.position;
+		drillObj.transform.rotation = hitObj.transform.rotation;
+		drillObj.transform.localScale = hitObj.transform.localScale / 10;
 
 		selectButton.sprite = (smode == SelectMode.selectObject ? selectObjectSprite : selectFaceSprite);
 		measureButton.sprite = (hitObj.GetComponent<ObjectController>().isRealMeasure ? measureRecoveredSprite : measureRecoverSprite);
@@ -605,13 +623,13 @@ public class MeshManipulator : MonoBehaviour
 
 	/* #region Split */
 	public void enableCuttingPlaneOtherScreen() {
-		isOtherScreenCuttingPlane = true;
+		isOtherScreenPenetrate = true;
 		isEdgeAligned = false;
 	}
 	public void executeCuttingPlaneOtherScreen() {
 		startSlice(true, false);
 		executeSlice();
-		isOtherScreenCuttingPlane = false;
+		isOtherScreenPenetrate = false;
 	}
 	private void enableCuttingPlaneThisScreen() {
 		isThisScreenCuttingPlane = true;
@@ -951,6 +969,60 @@ public class MeshManipulator : MonoBehaviour
 	}
 	/* #endregion */
 
+	/* #region Drill */
+
+	public void enableDrillSimulation() {
+
+		// if (smode != SelectMode.selectFace) {
+		// 	return;
+		// }
+		
+		isOtherScreenPenetrate = true;
+		isEdgeAligned = false;
+		drillDist = 0;
+
+		hitObj.GetComponent<MeshRenderer>().enabled = false;
+		GameObject.Find("Inside").GetComponent<MeshRenderer>().enabled = false;
+		GameObject[] faces = GameObject.FindGameObjectsWithTag("FaceObj");
+		foreach (GameObject face in faces) {
+			face.GetComponent<MeshRenderer>().enabled = false;
+		}
+		drillObj.SetActive(true);
+
+		state = Status.drill;
+	}
+	public void exitDrillSimulation() {
+		isOtherScreenPenetrate = false;
+		state = Status.select;
+	}
+	public void disableDrillSimulation() {
+
+		hitObj.GetComponent<MeshRenderer>().enabled = true;
+		GameObject.Find("Inside").GetComponent<MeshRenderer>().enabled = true;
+		GameObject[] faces = GameObject.FindGameObjectsWithTag("FaceObj");
+		foreach (GameObject face in faces) {
+			face.GetComponent<MeshRenderer>().enabled = true;
+		}
+		drillObj.SetActive(false);
+		sender.GetComponent<ServerController>().sendMessage("Drill\nX");
+
+		state = Status.select;
+	}
+
+	public void updateDrillScale(float factor) {
+		if (smode != SelectMode.selectFace) {
+			return;
+		}
+		if (state == Status.drill) {
+			drillDist += factor;
+			drillDist = drillDist > 0 ? drillDist : 0;
+			Vector3 dir = drillObj.transform.InverseTransformPoint(new Vector3(Mathf.Cos(-angle), 0, Mathf.Sin(-angle)) * drillDist + drillObj.transform.position);
+			drillObj.GetComponent<DrilledObjectController>().dir = dir;
+		}
+	}
+
+	/* #endregion */
+	
 	/* #region Calculator */
 	private Vector3 crossProduct(Vector3 a, Vector3 b) {
 		return new Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
@@ -1069,7 +1141,8 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	private void adjustAlign(bool isMainScreen) {
-		if (isMainScreen && !isOtherScreenCuttingPlane) {
+		return;
+		if (isMainScreen && !isOtherScreenPenetrate) {
 			int faceNum = selectEdgeVertices.Count;
 			closestVertex = -1;
 			secondVertex = -1;
@@ -1266,6 +1339,9 @@ public class MeshManipulator : MonoBehaviour
 	public void restart() {
 		cancel();
 
+		hitObj.SetActive(true);
+		drillObj.SetActive(false);
+
 		hitObj.transform.position = new Vector3(0, 0, 2f);
 		hitObj.transform.localScale = new Vector3(2, 2, 2);
 		hitObj.transform.rotation = Quaternion.Euler(30, 60, 45);
@@ -1274,6 +1350,8 @@ public class MeshManipulator : MonoBehaviour
 		hitObj.GetComponent<MeshCollider>().sharedMesh = defaultMesh;
 		hitObj.GetComponent<ObjectController>().isTransformUpdated = true;
 		hitObj.GetComponent<ObjectController>().isMeshUpdated = true;
+
+		disableDrillSimulation();
 	}
 
 	public void cancel() {

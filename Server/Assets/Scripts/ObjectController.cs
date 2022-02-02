@@ -7,13 +7,10 @@ using UnityEngine.UI;
 public class ObjectController : MonoBehaviour
 {
 
-	public GameObject inside;
-	public GameObject meshManipulator;
-	public GameObject sender;
-	public LineRenderer selectLine;
-	public Text debugText;
-	public Text debugText2;
-	[HideInInspector]
+	private GameObject inside;
+	private GameObject meshManipulator;
+	private GameObject sender;
+	private LineRenderer selectLine;
 	public bool isTransformUpdated;
 	[HideInInspector]
 	public bool isMeshUpdated;
@@ -52,6 +49,11 @@ public class ObjectController : MonoBehaviour
 
 	void Start()
 	{
+		inside = GameObject.Find("Inside");
+		meshManipulator = GameObject.Find("MeshManipulator");
+		sender = GameObject.Find("Server");
+		selectLine = GameObject.Find("Select").GetComponent<LineRenderer>();
+
 		isTransformUpdated = true;
 		isMeshUpdated = true;
 		isRealMeasure = false;
@@ -60,7 +62,6 @@ public class ObjectController : MonoBehaviour
 
 	// Update is called once per frame
 	void Update() {
-		debugText.text = this.GetComponent<MeshFilter>().mesh.vertices.Length + " " + this.GetComponent<MeshFilter>().mesh.triangles.Length;
 		isRealMeasure = (this.transform.localScale - realMeasure).magnitude < 0.01f;
 		try {
 			selectFaceIndex = (selectTriangleIndex == -1 ? -1 : meshToFacePointers[selectTriangleIndex]);
@@ -405,7 +406,7 @@ public class ObjectController : MonoBehaviour
 				Vector3 localNormal = crossProduct(vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 1]], vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 2]]);
 				localNormal = localNormal.normalized;
 				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]];
+					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.01f * localNormal;
 					faceTriangles[j * 3 + k] = j * 3 + k;
 					faceCenter += faceVertices[j * 3 + k];
 				}

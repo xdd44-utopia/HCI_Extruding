@@ -30,7 +30,7 @@ public class ServerController : MonoBehaviour {
 	private TcpClient connectedTcpClient;
 	private string receivedMessage;
 	private string rcvBuffer = "";
-	private const int msgTypes = 9;
+	private const int msgTypes = 10;
 	private string[] sendBuffer = new string[msgTypes];
 	private bool refreshed = false;
 	
@@ -115,6 +115,7 @@ public class ServerController : MonoBehaviour {
 			case 'C': pointer = 6; break;
 			case 'G': pointer = 7; break;
 			case 'E': pointer = 8; break;
+			case 'D': pointer = 9; errorText.text = msg; break;
 		}
 		sendBuffer[pointer] = msg;
 	}
@@ -233,12 +234,20 @@ public class ServerController : MonoBehaviour {
 					break;
 				}
 				case 'E': {
-					if (receivedMessage[1] == 'n') {
+					if (receivedMessage[7] == 'c') {
 						meshManipulator.GetComponent<MeshManipulator>().enableCuttingPlaneOtherScreen();
 					}
-					else {
+					else if (receivedMessage[8] == 'c') {
 						meshManipulator.GetComponent<MeshManipulator>().executeCuttingPlaneOtherScreen();
-							}
+					}
+					else if (receivedMessage[7] == 'd') {
+						meshManipulator.GetComponent<MeshManipulator>().enableDrillSimulation();
+					}
+					break;
+				}
+				case 'D': {
+
+					meshManipulator.GetComponent<MeshManipulator>().exitDrillSimulation();
 					break;
 				}
 				case 'R': {

@@ -1,0 +1,143 @@
+{
+    "m_SelectedDeviceId": "R5CN70PGV4F",
+    "m_SelectedPackage": {
+        "deviceId": "R5CN70PGV4F",
+        "name": "com.DefaultCompany.CylinderClient",
+        "processId": 7743,
+        "exited": false
+    },
+    "m_SelectedPriority": 0,
+    "m_KnownPackagesForSerialization": [
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.sec.android.app.launcher",
+            "processId": 2748,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 20155,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 20495,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 27073,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 28987,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 31486,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 31763,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 2665,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 5326,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 5855,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 6004,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 7088,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 7743,
+            "exited": false
+        }
+    ],
+    "m_Tags": {
+        "m_Entries": [
+            {
+                "m_Name": "Filter by all listed tags",
+                "m_Selected": false
+            },
+            {
+                "m_Name": "No Filter",
+                "m_Selected": true
+            },
+            {
+                "m_Name": "",
+                "m_Selected": false
+            },
+            {
+                "m_Name": "Tag Control...",
+                "m_Selected": false
+            },
+            {
+                "m_Name": "",
+                "m_Selected": false
+            },
+            {
+                "m_Name": "Unity",
+                "m_Selected": false
+            },
+            {
+                "m_Name": "CRASH",
+                "m_Selected": false
+            }
+        ]
+    },
+    "m_MemoryViewerState": {
+        "MemoryWindowHeight": 300.0,
+        "MemoryWindowWidth": 170.0,
+        "MemoryTypeEnabled": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+        ],
+        "MemoryGroup": 2,
+        "Behavior": 0
+    },
+    "m_Filter": "",
+    "m_FilterIsRegularExpression": false,
+    "m_SymbolPaths": []
+}

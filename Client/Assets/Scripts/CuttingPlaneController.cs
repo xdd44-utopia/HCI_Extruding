@@ -4,10 +4,11 @@ using UnityEngine;
 
 public class CuttingPlaneController : MonoBehaviour
 {
-	public GameObject sender;
+	private GameObject sender;
 	private bool isEnabled = false;
 
 	void Start() {
+		sender = GameObject.Find("Client");
 	}
 
 	void Update() {

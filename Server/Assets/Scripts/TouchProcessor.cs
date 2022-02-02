@@ -124,6 +124,7 @@ public class TouchProcessor : MonoBehaviour
 				case Status.singleScreen1Other:
 					meshManipulator.GetComponent<MeshManipulator>().startMoving(panOtherScreen, false);
 					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, false);
+					meshManipulator.GetComponent<MeshManipulator>().updateDrillScale(dragDelta);
 					break;
 				case Status.singleScreen2This:
 					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnThisScreen, true);

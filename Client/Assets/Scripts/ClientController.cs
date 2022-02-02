@@ -10,15 +10,16 @@ using UnityEngine.UI;
 
 public class ClientController : MonoBehaviour {
 
-	public GameObject touchProcessor;
-	public GameObject faceTracker;
-	public GameObject objectController;
-	public GameObject sliceTraceVisualizer;
-	public GameObject sliderController;
-	public GameObject gridController;
-	public GameObject depthFrame;
-	public GameObject extrudeHandle;
-	public GameObject connectButton;
+	private GameObject touchProcessor;
+	private GameObject faceTracker;
+	private GameObject objectController;
+	private GameObject drilledObject;
+	private GameObject sliceTraceVisualizer;
+	private GameObject sliderController;
+	private GameObject gridController;
+	private GameObject depthFrame;
+	private GameObject extrudeHandle;
+	private GameObject connectButton;
 	public Camera renderCamera;
 	public Text debugText;
 	public Text errorText;
@@ -37,7 +38,7 @@ public class ClientController : MonoBehaviour {
 	private bool refreshed = false;
 	private string receivedMessage;
 	private string rcvBuffer = "";
-	private const int msgTypes = 7;
+	private const int msgTypes = 9;
 	private string[] sendBuffer = new string[msgTypes];
 
 	private bool isConnected = false;
@@ -47,6 +48,17 @@ public class ClientController : MonoBehaviour {
 	private Vector3 accPrev = Vector3.zero;
 	
 	void Start () {
+		touchProcessor = GameObject.Find("TouchProcessor");
+		faceTracker = GameObject.Find("FaceTracker");
+		objectController = GameObject.Find("OBJECT");
+		drilledObject = GameObject.Find("DRILLED");
+		sliceTraceVisualizer = GameObject.Find("Slice Trace");
+		sliderController = GameObject.Find("SliderController");
+		gridController = GameObject.Find("RulerGrid");
+		depthFrame = GameObject.Find("Depth");
+		extrudeHandle = GameObject.Find("ExtrudeHandleController");
+		connectButton = GameObject.Find("Connect");
+
 		Camera cam = Camera.main;
 		camHeight = 10;
 		camWidth = camHeight * cam.aspect;
@@ -138,10 +150,14 @@ public class ClientController : MonoBehaviour {
 			case 'F': pointer = 3; break;
 			case 'S': pointer = 4; break;
 			default:
-				if (msg[0] == 'E' && msg[1] == 'n')
+				if (msg[0] == 'E' && msg[7] == 'c')
 					pointer = 5;
-				if (msg[0] == 'E' && msg[1] == 'x')
+				if (msg[0] == 'E' && msg[8] == 'c')
 					pointer = 6;
+				if (msg[0] == 'E' && msg[7] == 'd')
+					pointer = 7;
+				if (msg[0] == 'D' && msg[8] == 'd')
+					pointer = 8;
 				break;
 		}
 		sendBuffer[pointer] = msg;
@@ -274,6 +290,32 @@ public class ClientController : MonoBehaviour {
 					temp1 = receivedMessage.Split('\n');
 					extrudeHandle.GetComponent<ExtrudeHandle>().updateDist(System.Convert.ToSingle(temp1[1]));
 					break;
+				case 'D':
+					temp1 = receivedMessage.Split('\n');
+					if (temp1[1][0] == 'X') {
+						disableDrillSimulation();
+					}
+					else {
+						string[] tempOffset = temp1[1].Split(',');
+						string[] tempDir = temp1[2].Split(',');
+						Vector3 offset = new Vector3(
+							System.Convert.ToSingle(tempOffset[0]),
+							System.Convert.ToSingle(tempOffset[1]),
+							System.Convert.ToSingle(tempOffset[2])
+						);
+						Vector3 dir = new Vector3(
+							System.Convert.ToSingle(tempDir[0]),
+							System.Convert.ToSingle(tempDir[1]),
+							System.Convert.ToSingle(tempDir[2])
+						);
+						debugText.text = receivedMessage + "\n" + dir.x + ", " + dir.y + ", " + dir.z;
+						if (drilledObject == null) {
+							drilledObject = GameObject.Find("DRILLED");
+						}
+						drilledObject.GetComponent<DrilledObjectController>().offset = offset;
+						drilledObject.GetComponent<DrilledObjectController>().dir = dir;
+					}
+					break;
 			}
 		}
 		catch (Exception e) {
@@ -286,13 +328,22 @@ public class ClientController : MonoBehaviour {
 			errorText.text = receivedMessage + "\n" + Time.deltaTime + "\n" + e.Message;
 		}
 	}
+	private void disableDrillSimulation() {
+		GameObject.Find("OBJECT").GetComponent<MeshRenderer>().enabled = true;
+		GameObject.Find("Inside").GetComponent<MeshRenderer>().enabled = true;
+		GameObject[] faces = GameObject.FindGameObjectsWithTag("FaceObj");
+		foreach (GameObject face in faces) {
+			face.GetComponent<MeshRenderer>().enabled = true;
+		}
+		drilledObject.SetActive(false);
+	}
 
 	public void snap() {
 		sendMessage("Snap\n");
 	}
 
 	public void connect() {
-		string address = "192.168.246.79";
+		string address = "192.168.188.79";
 		//address = "192.168.0.106";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123
