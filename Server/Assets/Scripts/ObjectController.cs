@@ -89,7 +89,9 @@ public class ObjectController : MonoBehaviour
 				this.transform.localScale.x + "," +
 				this.transform.localScale.y + "," +
 				this.transform.localScale.z + "\n";
-			sender.GetComponent<ServerController>().sendMessage(msg);
+			if (sender != null) {
+				sender.GetComponent<ServerController>().sendMessage(msg);
+			}
 			isTransformUpdated = false;
 			selectLine.SetWidth(0.025f * this.transform.localScale.x, 0.025f * this.transform.localScale.x);
 		}
@@ -442,7 +444,9 @@ public class ObjectController : MonoBehaviour
 			msg += triangles[j] + ",";
 		}
 		msg += "\n";
-		sender.GetComponent<ServerController>().sendMessage(msg);
+		if (sender != null) {
+			sender.GetComponent<ServerController>().sendMessage(msg);
+		}
 		isMeshUpdated = false;
 
 	}
@@ -458,7 +462,9 @@ public class ObjectController : MonoBehaviour
 	private void updateHighlight() {
 		if (selectFaceIndex != prevSelectFaceIndex || snappedFaceIndex != prevSnappedFaceIndex || alignFaceIndex != prevAlignFaceIndex) {
 			string msg = "Highlight\n" + selectFaceIndex + "\n" + snappedFaceIndex + "\n" + alignFaceIndex;
-			sender.GetComponent<ServerController>().sendMessage(msg);
+			if (sender != null) {
+				sender.GetComponent<ServerController>().sendMessage(msg);
+			}
 			prevSelectFaceIndex = selectFaceIndex;
 			prevAlignFaceIndex = alignFaceIndex;
 			prevSnappedFaceIndex = snappedFaceIndex;

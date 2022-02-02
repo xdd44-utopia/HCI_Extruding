@@ -759,20 +759,24 @@ public class MeshManipulator : MonoBehaviour
 		//Extract edge as successive vertices
 		List<Vector3> sortedEdgeVerticesList = new List<Vector3>();
 		int curEdge = 0;
+		Vector3 curVect = edgeVerticesList[1];
 		bool done = false;
-		sortedEdgeVerticesList.Add(edgeVerticesList[0]);
-		sortedEdgeVerticesList.Add(edgeVerticesList[1]);
-		while (!done) {
-			for (int i=0;i<edgeVerticesList.Count / 2;i++) {
-				for (int j=0;j<2;j++) {
-					if (i != curEdge && edgeVerticesList[i * 2 + j] == sortedEdgeVerticesList[sortedEdgeVerticesList.Count - 1]) {
-						if (edgeVerticesList[i * 2 + (1 - j)] == sortedEdgeVerticesList[0]) {
-							done = true;
-						}
-						else {
-							sortedEdgeVerticesList.Add(edgeVerticesList[i * 2 + (1 - j)]);
-							curEdge = i;
-						}
+		sortedEdgeVerticesList.Clear();
+
+		for (int i=0;i<edgeVerticesList.Count / 2;i++) {
+			for (int j=0;j<edgeVerticesList.Count / 2;j++) {
+				if (curEdge != j) {
+					if (edgeVerticesList[j * 2] == curVect) {
+						sortedEdgeVerticesList.Add(edgeVerticesList[j * 2]);
+						curVect = edgeVerticesList[j * 2 + 1];
+						curEdge = j;
+						break;
+					}
+					else if (edgeVerticesList[j * 2 + 1] == curVect) {
+						sortedEdgeVerticesList.Add(edgeVerticesList[j * 2 + 1]);
+						curVect = edgeVerticesList[j * 2];
+						curEdge = j;
+						break;
 					}
 				}
 			}

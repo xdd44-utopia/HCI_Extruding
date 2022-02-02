@@ -3,7 +3,7 @@
     "m_SelectedPackage": {
         "deviceId": "R5CN70PGV4F",
         "name": "com.DefaultCompany.CylinderClient",
-        "processId": 7743,
+        "processId": 12680,
         "exited": false
     },
     "m_SelectedPriority": 0,
@@ -84,6 +84,12 @@
             "deviceId": "R5CN70PGV4F",
             "name": "com.DefaultCompany.CylinderClient",
             "processId": 7743,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 12680,
             "exited": false
         }
     ],

@@ -1,9 +1,9 @@
 {
     "m_SelectedDeviceId": "R5CN808BBBA",
     "m_SelectedPackage": {
-        "deviceId": "R5CN808BBBA",
-        "name": "com.DefaultCompany.CylinderServer",
-        "processId": 14617,
+        "deviceId": "",
+        "name": "",
+        "processId": 0,
         "exited": false
     },
     "m_SelectedPriority": 0,
@@ -13,24 +13,6 @@
             "name": "com.sec.android.app.launcher",
             "processId": 2818,
             "exited": false
-        },
-        {
-            "deviceId": "R5CN808BBBA",
-            "name": "com.DefaultCompany.CylinderServer",
-            "processId": 17750,
-            "exited": true
-        },
-        {
-            "deviceId": "R5CN808BBBA",
-            "name": "com.DefaultCompany.CylinderServer",
-            "processId": 22528,
-            "exited": true
-        },
-        {
-            "deviceId": "R5CN808BBBA",
-            "name": "com.DefaultCompany.CylinderServer",
-            "processId": 10034,
-            "exited": true
         },
         {
             "deviceId": "R5CN808BBBA",
@@ -48,18 +30,24 @@
             "deviceId": "R5CN808BBBA",
             "name": "com.DefaultCompany.CylinderServer",
             "processId": 3052,
-            "exited": false
+            "exited": true
         },
         {
             "deviceId": "R5CN808BBBA",
             "name": "com.DefaultCompany.CylinderServer",
             "processId": 8604,
-            "exited": false
+            "exited": true
         },
         {
             "deviceId": "R5CN808BBBA",
             "name": "com.DefaultCompany.CylinderServer",
             "processId": 14617,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN808BBBA",
+            "name": "com.DefaultCompany.CylinderServer",
+            "processId": 32342,
             "exited": false
         },
         {
