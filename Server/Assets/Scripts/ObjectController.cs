@@ -58,6 +58,7 @@ public class ObjectController : MonoBehaviour
 		isMeshUpdated = true;
 		isRealMeasure = false;
 		selectLine.positionCount = 0;
+		
 	}
 
 	// Update is called once per frame
