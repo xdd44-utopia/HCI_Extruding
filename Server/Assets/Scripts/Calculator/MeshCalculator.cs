@@ -20,7 +20,7 @@ public static class MeshCalculator {
 		for (int i=0;i<triangles.Length;i++) {
 			firstAppear[triangles[i]] = triangles[i];
 		}
-		for (int i=1;i<vertices.Length;i++) {
+		for (int i=0;i<vertices.Length;i++) {
 			for (int j=i+1;j<vertices.Length;j++) {
 				if ((vertices[j] - vertices[i]).magnitude < eps) {
 					firstAppear[j] = firstAppear[i];
@@ -31,8 +31,9 @@ public static class MeshCalculator {
 			triangles[i] = firstAppear[triangles[i]];
 		}
 
+		// Remap triangles
 		int cnt = 0;
-		List<Vector3> verticesList = new List<Vector3>();
+		List<Vector3> verticesList = new List<Vector3>(); 
 		for (int i=0;i<vertices.Length;i++) {
 			if (firstAppear[i] == i) {
 				verticesList.Add(vertices[i]);
@@ -44,6 +45,7 @@ public static class MeshCalculator {
 				cnt++;
 			}
 		}
+
 		vertices = new Vector3[verticesList.Count];
 		for (int i=0;i<vertices.Length;i++) {
 			vertices[i] = verticesList[i];
@@ -69,7 +71,7 @@ public static class MeshCalculator {
 
 	}
 
-	public static void extractEdges(ref Vector3[] vertices, ref int[] triangles, out int[] edges, out int[] triangleEdges) {
+	public static void extractEdges(ref int[] triangles, out int[] edges, out int[] triangleEdges) {
 
 		//Calculate edges
 		List<int> edgesList = new List<int>();
@@ -81,15 +83,15 @@ public static class MeshCalculator {
 				if (u > v) {
 					int t = u; u = v; v = t;
 				}
-				triangleEdges[j] = -1;
+				triangleEdges[i * 3 + j] = -1;
 				for (int k=0;k<edgesList.Count / 2;k++) {
 					if (edgesList[k * 2] == u && edgesList[k * 2 + 1] == v) {
-						triangleEdges[j] = k;
+						triangleEdges[i * 3 + j] = k;
 						break;
 					}
 				}
-				if (triangleEdges[j] == -1) {
-					triangleEdges[j] = edgesList.Count / 2;
+				if (triangleEdges[i * 3 + j] == -1) {
+					triangleEdges[i * 3 + j] = edgesList.Count / 2;
 					edgesList.Add(u);
 					edgesList.Add(v);
 				}

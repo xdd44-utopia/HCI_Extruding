@@ -11,6 +11,7 @@ public class ObjectControllerRevised : MonoBehaviour
 	private ServerController sender;
 	private MeshManipulator meshManipulator;
 	private LineRenderer selectLine;
+	[HideInInspector]
 	public bool isTransformUpdated;
 	[HideInInspector]
 	public bool isMeshUpdated;
@@ -43,10 +44,20 @@ public class ObjectControllerRevised : MonoBehaviour
 
 	void Start()
 	{
+		GameObject findObject;
 		inside = GameObject.Find("Inside");
-		meshManipulator = GameObject.Find("MeshManipulator").GetComponent<MeshManipulator>();
-		sender = GameObject.Find("Server").GetComponent<ServerController>();
-		selectLine = GameObject.Find("Select").GetComponent<LineRenderer>();
+		findObject = GameObject.Find("MeshManipulator");
+		if (findObject != null) {
+			meshManipulator = findObject.GetComponent<MeshManipulator>();
+		}
+		findObject = GameObject.Find("Server");
+		if (findObject != null) {
+			sender = findObject.GetComponent<ServerController>();
+		}
+		findObject = GameObject.Find("Select");
+		if (findObject != null) {
+			selectLine = findObject.GetComponent<LineRenderer>();
+		}
 		selectLine.positionCount = 0;
 
 		isTransformUpdated = true;
@@ -68,7 +79,7 @@ public class ObjectControllerRevised : MonoBehaviour
 			triangles = mesh.triangles;
 			if (isGeometryUpdated) {
 				MeshCalculator.simplifyMesh(ref vertices, ref triangles);
-				MeshCalculator.extractEdges(ref vertices, ref triangles, out edges, out triangleEdges);
+				MeshCalculator.extractEdges(ref triangles, out edges, out triangleEdges);
 				categorizeFaces();
 				extractBoundaries();
 			}
@@ -105,7 +116,7 @@ public class ObjectControllerRevised : MonoBehaviour
 	private void categorizeFaces() {
 
 		// Categorize triangles into faces
-		int num = triangles.Length;
+		int num = triangles.Length / 3;
 		bool[] isCategorized = new bool[triangles.Length];
 		faces = new List<List<int>>();
 		for (int i=0;i<num;i++) {
@@ -126,6 +137,18 @@ public class ObjectControllerRevised : MonoBehaviour
 				faces.Add(newFace);
 			}
 		}
+
+		Debug.Log(faces.Count);
+		string msg = "";
+		for (int i=0;i<triangles.Length / 3;i++) {
+			msg += i + "";
+			for (int j=0;j<3;j++) {
+				msg += " " + vertices[triangles[i * 3 + j]];
+				msg += " " + triangleEdges[triangles[i * 3 + j]];
+			}
+			msg += "\n";
+		}
+		Debug.Log(msg);
 
 	}
 
@@ -150,7 +173,7 @@ public class ObjectControllerRevised : MonoBehaviour
 			Destroy(temp, 0);
 		}
 
-		for (int i=0;i<faceNum;i++) {
+		for (int i=0;i<faces.Count;i++) {
 			Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[faces[i][0] * 3 + 0]] - vertices[triangles[faces[i][0] * 3 + 1]], vertices[triangles[faces[i][0] * 3 + 0]] - vertices[triangles[faces[i][0] * 3 + 2]]).normalized;
 			Vector3[] faceVertices = new Vector3[vertices.Length];
 			for (int j=0;j<vertices.Length;j++) {
@@ -177,6 +200,7 @@ public class ObjectControllerRevised : MonoBehaviour
 
 	private void synchronize() {
 
+		mesh.Clear();
 		mesh.vertices = vertices;
 		mesh.triangles = triangles;
 		mesh.uv = new Vector2[vertices.Length];
@@ -210,6 +234,7 @@ public class ObjectControllerRevised : MonoBehaviour
 	}
 
 	private bool isTrianglesSameFace(int a, int b) {
+		string msg = "Checking " + a + " " + b;
 		for (int i=0;i<3;i++) {
 			for (int j=0;j<3;j++) {
 				if (triangleEdges[a * 3 + i] == triangleEdges[b * 3 + j]) { //sharing edge
@@ -221,6 +246,7 @@ public class ObjectControllerRevised : MonoBehaviour
 					Vector3 vectorShared = vertices[edges[edgeShared * 2]] - vertices[edges[edgeShared * 2 + 1]];
 					Vector3 normalA = VectorCalculator.crossProduct(vectorA, vectorShared).normalized;
 					Vector3 normalB = VectorCalculator.crossProduct(vectorB, vectorShared).normalized;
+					Debug.Log(msg + " " + normalA + " " + normalB);
 					if ((normalA - normalB).magnitude < eps) {
 						return true;
 					}
