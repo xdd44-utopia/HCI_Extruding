@@ -10,7 +10,6 @@ public class ObjectControllerRevised : MonoBehaviour
 	private GameObject inside;
 	private ServerController sender;
 	private MeshManipulator meshManipulator;
-	private LineRenderer selectLine;
 	[HideInInspector]
 	public bool isTransformUpdated;
 	[HideInInspector]
@@ -28,11 +27,14 @@ public class ObjectControllerRevised : MonoBehaviour
 	private int[] triangles;
 	private int[] edges;
 	private int[] triangleEdges;
-
-	//Faces
 	private List<List<int>> faces;
+	private List<List<List<int>>> boundaries;
+
+	//Additional components
 	private List<GameObject> faceObj = new List<GameObject>();
 	public GameObject facePrefab;
+	private List<GameObject> lineObj = new List<GameObject>();
+	public GameObject linePrefab;
 
 	//Colors
 	private Color generalColor = new Color(0.5f, 0.5f, 0.5f, 1f);
@@ -41,6 +43,11 @@ public class ObjectControllerRevised : MonoBehaviour
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
 	private const float eps = 0.0000001f;
+
+
+	private float timer = 0;
+	private int testInt = 0;
+	private bool testBool = true;
 
 	void Start()
 	{
@@ -54,20 +61,13 @@ public class ObjectControllerRevised : MonoBehaviour
 		if (findObject != null) {
 			sender = findObject.GetComponent<ServerController>();
 		}
-		findObject = GameObject.Find("Select");
-		if (findObject != null) {
-			selectLine = findObject.GetComponent<LineRenderer>();
-		}
-		selectLine.positionCount = 0;
 
 		isTransformUpdated = true;
 		isMeshUpdated = true;
 		isGeometryUpdated = true;
 		isRealMeasure = false;
-		selectLine.positionCount = 0;
 	}
 
-	// Update is called once per frame
 	void Update() {
 		if (isTransformUpdated) {
 			sendTransform();
@@ -109,7 +109,6 @@ public class ObjectControllerRevised : MonoBehaviour
 			this.transform.localScale.y + "," +
 			this.transform.localScale.z + "\n";
 		sender.GetComponent<ServerController>().sendMessage(msg);
-		selectLine.SetWidth(0.025f * this.transform.localScale.x, 0.025f * this.transform.localScale.x);
 
 	}
 
@@ -129,7 +128,7 @@ public class ObjectControllerRevised : MonoBehaviour
 					newFace.Add(cur);
 					isCategorized[cur] = true;
 					for (int j=0;j<num;j++) {
-						if (isTrianglesSameFace(cur, j) && !isCategorized[j]) {
+						if (!isCategorized[j] && isTrianglesSameFace(cur, j)) {
 							bfs.Push(j);
 						}
 					}
@@ -138,21 +137,44 @@ public class ObjectControllerRevised : MonoBehaviour
 			}
 		}
 
-		Debug.Log(faces.Count);
-		string msg = "";
-		for (int i=0;i<triangles.Length / 3;i++) {
-			msg += i + "";
-			for (int j=0;j<3;j++) {
-				msg += " " + vertices[triangles[i * 3 + j]];
-				msg += " " + triangleEdges[triangles[i * 3 + j]];
-			}
-			msg += "\n";
-		}
-		Debug.Log(msg);
-
 	}
 
 	private void extractBoundaries() {
+
+		if (boundaries == null) {
+			boundaries = new List<List<List<int>>>();
+		}
+		else {
+			boundaries.Clear();
+		}
+		for (int i=0;i<faces.Count;i++) {
+			int[] faceTriangleEdges = new int[faces[i].Count * 3];
+			for (int j=0;j<faces[i].Count;j++) {
+				for (int k=0;k<3;k++) {
+					faceTriangleEdges[j * 3 + k] = triangleEdges[faces[i][j] * 3 + k];
+				}
+			}
+			boundaries.Add(MeshCalculator.extractBoundaries(ref vertices, ref faceTriangleEdges, ref edges, (i == 20)));
+		}
+
+		Debug.Log(boundaries[20][0].Count);
+		Debug.Log(boundaries[20][1].Count);
+		Debug.Log(faces[20].Count);
+		
+		//#20 hole lost one vertex
+		for (int dbg=20;dbg<21;dbg++) {
+			for (int i=0;i<boundaries[dbg].Count;i++) {
+				for (int j=0;j<boundaries[dbg][i].Count;j++) {
+					Debug.DrawLine(
+						transform.TransformPoint(vertices[boundaries[dbg][i][j]]),
+						transform.TransformPoint(vertices[boundaries[dbg][i][(j+1)%boundaries[dbg][i].Count]]),
+						Color.blue,
+						5000,
+						false
+					);
+				}
+			}
+		}
 
 	}
 
@@ -177,7 +199,7 @@ public class ObjectControllerRevised : MonoBehaviour
 			Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[faces[i][0] * 3 + 0]] - vertices[triangles[faces[i][0] * 3 + 1]], vertices[triangles[faces[i][0] * 3 + 0]] - vertices[triangles[faces[i][0] * 3 + 2]]).normalized;
 			Vector3[] faceVertices = new Vector3[vertices.Length];
 			for (int j=0;j<vertices.Length;j++) {
-				faceVertices[j] = vertices[j] + localNormal * eps;
+				faceVertices[j] = vertices[j];
 			}
 			int[] faceTriangles = new int[faces[i].Count * 3];
 			for (int j=0;j<faces[i].Count;j++) {
@@ -194,6 +216,29 @@ public class ObjectControllerRevised : MonoBehaviour
 			mesh.MarkModified();
 			mesh.RecalculateNormals();
 			faceObj[i].GetComponent<MeshFilter>().mesh = mesh;
+		}
+
+	}
+
+	private void selectLine(int x) {
+
+		// Generate line gameObjects
+		while (boundaries[x].Count > lineObj.Count) {
+			lineObj.Add(Instantiate(linePrefab, new Vector3(0, 0, 0), Quaternion.identity));
+			lineObj[lineObj.Count - 1].transform.parent = this.transform;
+		}
+		while (boundaries[x].Count < lineObj.Count) {
+			GameObject temp = lineObj[lineObj.Count - 1];
+			lineObj.RemoveAt(lineObj.Count - 1);
+			Destroy(temp, 0);
+		}
+
+		for (int i=0;i<boundaries[x].Count;i++) {
+			LineRenderer lr = lineObj[i].GetComponent<LineRenderer>();
+			lr.positionCount = boundaries[x][i].Count + 1;
+			for (int j=0;j<boundaries[x][i].Count;j++) {
+				lr.SetPosition(j % boundaries[x][i].Count, transform.TransformPoint(vertices[boundaries[x][i][j]]));
+			}
 		}
 
 	}
@@ -234,7 +279,6 @@ public class ObjectControllerRevised : MonoBehaviour
 	}
 
 	private bool isTrianglesSameFace(int a, int b) {
-		string msg = "Checking " + a + " " + b;
 		for (int i=0;i<3;i++) {
 			for (int j=0;j<3;j++) {
 				if (triangleEdges[a * 3 + i] == triangleEdges[b * 3 + j]) { //sharing edge
@@ -246,8 +290,7 @@ public class ObjectControllerRevised : MonoBehaviour
 					Vector3 vectorShared = vertices[edges[edgeShared * 2]] - vertices[edges[edgeShared * 2 + 1]];
 					Vector3 normalA = VectorCalculator.crossProduct(vectorA, vectorShared).normalized;
 					Vector3 normalB = VectorCalculator.crossProduct(vectorB, vectorShared).normalized;
-					Debug.Log(msg + " " + normalA + " " + normalB);
-					if ((normalA - normalB).magnitude < eps) {
+					if ((normalA - normalB).magnitude < eps || (normalA + normalB).magnitude < eps) {
 						return true;
 					}
 				}

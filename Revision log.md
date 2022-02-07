@@ -1,5 +1,7 @@
 ## Functions?
 
+`const float eps = 0.0000001`
+
 ### Object
 
 If geometry changed (when adding or removing vertices):
@@ -39,12 +41,12 @@ Highlight face
 ### Mesh calculator
 
 1. Extract boundary
-   Input: edges of a single face (`List<int>`)
-   Return: edges (`int edges[#edge * 2 / #edge * 2 + 1]` pointing to #vertex), edges for each triangles (`int triangleEdges[#triangle]` pointing to #edge)
+   Input: vertices, triangles, triangleEdges, edges, for a single planar face.
+   Return: boundary for the face (`List<List<int>> boundaries[#boundary][#vertice]`, first for outline, then holes if exist)
 
 2. Extract edges
    Input: vertices, triangles
-   Return: 
+   Return: edges (`int edges[#edge * 2 / #edge * 2 + 1]` pointing to #vertex), edges for each triangles (`int triangleEdges[#triangle]` pointing to #edge)
 
 3. Simplify mesh
    Input: vertices, triangles
@@ -63,3 +65,7 @@ Highlight face
 2. Cross product
    
 3. Dot product
+
+4. Vector mean
+
+5. Vector variance

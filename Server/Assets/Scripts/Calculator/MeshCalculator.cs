@@ -104,4 +104,89 @@ public static class MeshCalculator {
 
 	}
 
+	public static List<List<int>> extractBoundaries(ref Vector3[] vertices, ref int[] triangleEdges, ref int[] edges, bool debug)  {
+
+		//Boundaries consist of edges that appear only once
+		List<List<int>> boundaries = new List<List<int>>();
+		int[] appear = new int[edges.Length / 2];
+		for (int i=0;i<triangleEdges.Length;i++) {
+			appear[triangleEdges[i]]++;
+		}
+
+		if (debug) {
+			string msg = "";
+			for (int i=0;i<appear.Length;i++) {
+				msg += appear[i] + " ";
+			}
+			Debug.Log(msg);
+		}
+
+		for (int i=0;i<appear.Length;i++) {
+			if (appear[i] == 1) {
+				List<int> newBoundary = new List<int>();
+				newBoundary.Add(edges[i * 2]);
+				appear[i] = 0;
+				int cur = i;
+				int side = 1;
+				bool found = false;
+				do {
+					found = false;
+					int foundWhat = 0;
+					for (int j=0;j<appear.Length;j++) {
+						for (int k=0;k<2;k++) {
+							if (appear[j] == 1 && edges[j * 2 + k] == edges[cur * 2 + side]) {
+								appear[j] = 0;
+								newBoundary.Add(edges[j * 2 + k]);
+								cur = j;
+								side = 1 - k;
+								found = true;
+								foundWhat = j;
+								break;
+							}
+						}
+					}
+				} while (found);
+				boundaries.Add(newBoundary);
+			}
+		}
+
+		//If having holes, found the outer boundary and move it to the first
+		//Boundary with largest variance?
+		if (boundaries.Count > 1) {
+			float maxVar = 0;
+			int maxi = 0;
+			for (int i=0;i<boundaries.Count;i++) {
+				List<Vector3> boundaryVertices = new List<Vector3>();
+				for (int j=0;j<boundaries[i].Count;j++) {
+					boundaryVertices.Add(vertices[boundaries[i][j]]);
+				}
+				float variance = VectorCalculator.vectorVariance(boundaryVertices);
+				if (variance > maxVar) {
+					maxVar = variance;
+					maxi = i;
+				}
+			}
+			if (maxi != 0) {
+				List<int> at = new List<int>();
+				List<int> bt = new List<int>();
+				for (int i=0;i<boundaries[0].Count;i++) {
+					bt.Add(boundaries[0][i]);
+				}
+				for (int i=0;i<boundaries[maxi].Count;i++) {
+					at.Add(boundaries[maxi][i]);
+				}
+				boundaries[0].Clear();
+				boundaries[maxi].Clear();
+				for (int i=0;i<at.Count;i++) {
+					boundaries[0].Add(at[i]);
+				}
+				for (int i=0;i<bt.Count;i++) {
+					boundaries[maxi].Add(bt[i]);
+				}
+			}
+		}
+
+		return boundaries;
+	}
+
 }

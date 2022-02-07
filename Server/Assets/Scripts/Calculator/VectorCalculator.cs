@@ -33,4 +33,54 @@ public static class VectorCalculator {
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 
+	public static Vector3 vectorMean(Vector3[] vertices) {
+		Vector3 result = new Vector3(0, 0, 0);
+		if (vertices.Length == 0) {
+			return result;
+		}
+		for (int i=0;i<vertices.Length;i++) {
+			result += vertices[i];
+		}
+		result /= vertices.Length;
+		return result;
+	}
+
+	public static Vector3 vectorMean(List<Vector3> vertices) {
+		Vector3 result = new Vector3(0, 0, 0);
+		if (vertices.Count == 0) {
+			return result;
+		}
+		for (int i=0;i<vertices.Count;i++) {
+			result += vertices[i];
+		}
+		result /= vertices.Count;
+		return result;
+	}
+
+	public static float vectorVariance(Vector3[] vertices) {
+		Vector3 mean = vectorMean(vertices);
+		float result = 0;
+		if (vertices.Length == 0) {
+			return 0;
+		}
+		for (int i=0;i<vertices.Length;i++) {
+			result += (vertices[i] - mean).magnitude * (vertices[i] - mean).magnitude;
+		}
+		result /= vertices.Length;
+		return result;
+	}
+
+	public static float vectorVariance(List<Vector3> vertices) {
+		Vector3 mean = vectorMean(vertices);
+		float result = 0;
+		if (vertices.Count == 0) {
+			return 0;
+		}
+		for (int i=0;i<vertices.Count;i++) {
+			result += (vertices[i] - mean).magnitude * (vertices[i] - mean).magnitude;
+		}
+		result /= vertices.Count;
+		return result;
+	}
+
 }
