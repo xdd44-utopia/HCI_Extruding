@@ -89,6 +89,11 @@ public class ObjectControllerRevised : MonoBehaviour
 			isGeometryUpdated = false;
 			isMeshUpdated = false;
 		}
+
+		if (testBool) {
+			selectLine(20);
+			testBool = false;
+		}
 	}
 
 	private void sendTransform() {
@@ -125,6 +130,9 @@ public class ObjectControllerRevised : MonoBehaviour
 				bfs.Push(i);
 				while (bfs.Count > 0) { //Sharing edge && coplanar
 					int cur = bfs.Pop();
+					if (isCategorized[cur]) {
+						continue;
+					}
 					newFace.Add(cur);
 					isCategorized[cur] = true;
 					for (int j=0;j<num;j++) {
@@ -154,26 +162,7 @@ public class ObjectControllerRevised : MonoBehaviour
 					faceTriangleEdges[j * 3 + k] = triangleEdges[faces[i][j] * 3 + k];
 				}
 			}
-			boundaries.Add(MeshCalculator.extractBoundaries(ref vertices, ref faceTriangleEdges, ref edges, (i == 20)));
-		}
-
-		Debug.Log(boundaries[20][0].Count);
-		Debug.Log(boundaries[20][1].Count);
-		Debug.Log(faces[20].Count);
-		
-		//#20 hole lost one vertex
-		for (int dbg=20;dbg<21;dbg++) {
-			for (int i=0;i<boundaries[dbg].Count;i++) {
-				for (int j=0;j<boundaries[dbg][i].Count;j++) {
-					Debug.DrawLine(
-						transform.TransformPoint(vertices[boundaries[dbg][i][j]]),
-						transform.TransformPoint(vertices[boundaries[dbg][i][(j+1)%boundaries[dbg][i].Count]]),
-						Color.blue,
-						5000,
-						false
-					);
-				}
-			}
+			boundaries.Add(MeshCalculator.extractBoundaries(ref vertices, ref faceTriangleEdges, ref edges));
 		}
 
 	}
@@ -184,7 +173,7 @@ public class ObjectControllerRevised : MonoBehaviour
 		while (faces.Count > faceObj.Count) {
 			faceObj.Add(Instantiate(facePrefab, new Vector3(0, 0, 0), Quaternion.identity));
 			faceObj[faceObj.Count - 1].transform.parent = this.transform;
-			faceObj[faceObj.Count - 1].transform.localScale = new Vector3(1.001f, 1.001f, 1.001f);
+			faceObj[faceObj.Count - 1].transform.localScale = new Vector3(1f, 1f, 1f);
 			faceObj[faceObj.Count - 1].transform.localPosition = new Vector3(0, 0, 0);
 			faceObj[faceObj.Count - 1].transform.localRotation = Quaternion.identity;
 			faceObj[faceObj.Count - 1].GetComponent<MeshFilter>().mesh = new Mesh();
@@ -199,7 +188,7 @@ public class ObjectControllerRevised : MonoBehaviour
 			Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[faces[i][0] * 3 + 0]] - vertices[triangles[faces[i][0] * 3 + 1]], vertices[triangles[faces[i][0] * 3 + 0]] - vertices[triangles[faces[i][0] * 3 + 2]]).normalized;
 			Vector3[] faceVertices = new Vector3[vertices.Length];
 			for (int j=0;j<vertices.Length;j++) {
-				faceVertices[j] = vertices[j];
+				faceVertices[j] = vertices[j] + 0.00001f * localNormal;
 			}
 			int[] faceTriangles = new int[faces[i].Count * 3];
 			for (int j=0;j<faces[i].Count;j++) {
@@ -227,18 +216,20 @@ public class ObjectControllerRevised : MonoBehaviour
 			lineObj.Add(Instantiate(linePrefab, new Vector3(0, 0, 0), Quaternion.identity));
 			lineObj[lineObj.Count - 1].transform.parent = this.transform;
 		}
-		while (boundaries[x].Count < lineObj.Count) {
-			GameObject temp = lineObj[lineObj.Count - 1];
-			lineObj.RemoveAt(lineObj.Count - 1);
-			Destroy(temp, 0);
-		}
 
 		for (int i=0;i<boundaries[x].Count;i++) {
 			LineRenderer lr = lineObj[i].GetComponent<LineRenderer>();
 			lr.positionCount = boundaries[x][i].Count + 1;
-			for (int j=0;j<boundaries[x][i].Count;j++) {
-				lr.SetPosition(j % boundaries[x][i].Count, transform.TransformPoint(vertices[boundaries[x][i][j]]));
+			lr.startWidth = transform.localScale.magnitude * 0.0125f;
+			lr.endWidth = transform.localScale.magnitude * 0.0125f;
+			for (int j=0;j<=boundaries[x][i].Count;j++) {
+				lr.SetPosition(j, transform.TransformPoint(vertices[boundaries[x][i][j % boundaries[x][i].Count]]));
 			}
+		}
+
+		for (int i=boundaries[x].Count;i<lineObj.Count;i++) {
+			LineRenderer lr = lineObj[i].GetComponent<LineRenderer>();
+			lr.positionCount = 0;
 		}
 
 	}

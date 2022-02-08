@@ -104,21 +104,13 @@ public static class MeshCalculator {
 
 	}
 
-	public static List<List<int>> extractBoundaries(ref Vector3[] vertices, ref int[] triangleEdges, ref int[] edges, bool debug)  {
+	public static List<List<int>> extractBoundaries(ref Vector3[] vertices, ref int[] triangleEdges, ref int[] edges)  {
 
 		//Boundaries consist of edges that appear only once
 		List<List<int>> boundaries = new List<List<int>>();
 		int[] appear = new int[edges.Length / 2];
 		for (int i=0;i<triangleEdges.Length;i++) {
 			appear[triangleEdges[i]]++;
-		}
-
-		if (debug) {
-			string msg = "";
-			for (int i=0;i<appear.Length;i++) {
-				msg += appear[i] + " ";
-			}
-			Debug.Log(msg);
 		}
 
 		for (int i=0;i<appear.Length;i++) {
