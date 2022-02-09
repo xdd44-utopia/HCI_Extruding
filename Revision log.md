@@ -55,6 +55,11 @@ Highlight face
    - Remap triangles
    - Recreate triangularization?
 
+4. Generate cover mesh
+   Input: vertices, boundaries, faceTriangles (of a single face)
+   Return: faceVertices, faceTriangles
+   - Offset in normal direction
+   - Offset to fake boundaries
 
 ### Vector calculator
 

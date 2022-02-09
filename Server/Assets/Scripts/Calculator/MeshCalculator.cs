@@ -181,4 +181,43 @@ public static class MeshCalculator {
 		return boundaries;
 	}
 
+	public static void generateFaceCover(ref Vector3[] vertices, ref int[] triangles, ref List<List<int>> boundary, float thickness) {
+
+		Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[0]] - vertices[triangles[1]], vertices[triangles[0]] - vertices[triangles[2]]).normalized;
+
+		//Offset towards normal direction
+		for (int i=0;i<vertices.Length;i++) {
+			vertices[i] += localNormal * 0.00001f;
+		}
+
+		//Offset towards central
+		Vector3[] offsets = new Vector3[vertices.Length];
+		for (int i=0;i<boundary.Count;i++) {
+			float angleAcc = 0;
+			Vector3[] dir = new Vector3[boundary[i].Count];
+			float[] angle = new float[boundary[i].Count];
+			bool[] isConvex = new bool[boundary[i].Count];
+			for (int j=0;j<boundary[i].Count;j++) {
+				Vector3 va = (vertices[boundary[i][j]] - vertices[boundary[i][(j + boundary[i].Count - 1) % boundary[i].Count]]).normalized;
+				Vector3 vb = (vertices[boundary[i][(j + 1) % boundary[i].Count]] - vertices[boundary[i][j]]).normalized;
+				isConvex[j] = (Mathf.Abs((VectorCalculator.crossProduct(va, vb).normalized - localNormal).magnitude) < eps);
+				angle[j] = VectorCalculator.vectorAngle(va, vb);
+				dir[j] = (vb - va).normalized;
+				angleAcc += angle[j] * (isConvex[j] ? 1 : -1);
+			}
+			bool isClockwise = angleAcc > 0;
+			bool isOuter = (i == 0);
+			for (int j=0;j<boundary[i].Count;j++) {
+				offsets[boundary[i][j]] = dir[j] * thickness * (isConvex[j] ^ isClockwise ^ isOuter ? 1 : -1) / Mathf.Cos(angle[j] / 2);
+			}
+		}
+
+		for (int i=0;i<vertices.Length;i++) {
+			vertices[i] += offsets[i];
+		}
+
+		simplifyMesh(ref vertices, ref triangles);
+
+	}
+
 }

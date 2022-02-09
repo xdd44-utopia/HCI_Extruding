@@ -33,6 +33,10 @@ public static class VectorCalculator {
 		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 
+	public static float vectorAngle(Vector3 a, Vector3 b) { //radians
+		return Mathf.Acos(dotProduct(a, b) / a.magnitude / b.magnitude);
+	}
+
 	public static Vector3 vectorMean(Vector3[] vertices) {
 		Vector3 result = new Vector3(0, 0, 0);
 		if (vertices.Length == 0) {
