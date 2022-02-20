@@ -1145,7 +1145,6 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	private void adjustAlign(bool isMainScreen) {
-		return;
 		if (isMainScreen && !isOtherScreenPenetrate) {
 			int faceNum = selectEdgeVertices.Count;
 			closestVertex = -1;

@@ -3,93 +3,57 @@
     "m_SelectedPackage": {
         "deviceId": "R5CN70PGV4F",
         "name": "com.DefaultCompany.CylinderClient",
-        "processId": 12680,
+        "processId": 19397,
         "exited": false
     },
     "m_SelectedPriority": 0,
     "m_KnownPackagesForSerialization": [
         {
             "deviceId": "R5CN70PGV4F",
-            "name": "com.sec.android.app.launcher",
-            "processId": 2748,
-            "exited": false
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 20155,
-            "exited": true
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 20495,
-            "exited": true
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 27073,
-            "exited": true
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 28987,
-            "exited": true
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 31486,
-            "exited": true
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 31763,
-            "exited": false
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 2665,
-            "exited": false
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 5326,
-            "exited": false
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 5855,
-            "exited": false
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
-            "name": "com.DefaultCompany.CylinderClient",
-            "processId": 6004,
-            "exited": false
-        },
-        {
-            "deviceId": "R5CN70PGV4F",
             "name": "com.DefaultCompany.CylinderClient",
             "processId": 7088,
-            "exited": false
+            "exited": true
         },
         {
             "deviceId": "R5CN70PGV4F",
             "name": "com.DefaultCompany.CylinderClient",
             "processId": 7743,
-            "exited": false
+            "exited": true
         },
         {
             "deviceId": "R5CN70PGV4F",
             "name": "com.DefaultCompany.CylinderClient",
             "processId": 12680,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 14544,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 13353,
+            "exited": true
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.sec.android.app.launcher",
+            "processId": 2813,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 13354,
+            "exited": false
+        },
+        {
+            "deviceId": "R5CN70PGV4F",
+            "name": "com.DefaultCompany.CylinderClient",
+            "processId": 19397,
             "exited": false
         }
     ],

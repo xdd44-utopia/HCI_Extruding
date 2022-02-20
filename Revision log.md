@@ -61,6 +61,22 @@ Highlight face
    - Offset in normal direction
    - Offset to fake boundaries
 
+5. Triangulation
+   Input: vertices, boundaries
+   Return: triangles
+   5.1 Holes?
+      Split polygon into polygon without holes
+      removeHoles():
+      Input: vertices, boundaries (first - outer)
+      Return: boundaries of new polygons
+   5.2 Non-monotone?
+      Trapezoidalization and split
+      Input: vertices, boundary
+      Return: boundaries of new polygons
+   5.3 Triangulation of monotone polygon
+      Input: vertices, boundary
+      Return: triangles
+
 ### Vector calculator
 
 1. areLinesIntersect

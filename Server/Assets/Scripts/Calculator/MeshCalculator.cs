@@ -159,22 +159,9 @@ public static class MeshCalculator {
 				}
 			}
 			if (maxi != 0) {
-				List<int> at = new List<int>();
-				List<int> bt = new List<int>();
-				for (int i=0;i<boundaries[0].Count;i++) {
-					bt.Add(boundaries[0][i]);
-				}
-				for (int i=0;i<boundaries[maxi].Count;i++) {
-					at.Add(boundaries[maxi][i]);
-				}
-				boundaries[0].Clear();
-				boundaries[maxi].Clear();
-				for (int i=0;i<at.Count;i++) {
-					boundaries[0].Add(at[i]);
-				}
-				for (int i=0;i<bt.Count;i++) {
-					boundaries[maxi].Add(bt[i]);
-				}
+				List<int> t = boundaries[0];
+				boundaries[0] = boundaries[maxi];
+				boundaries[maxi] = t;
 			}
 		}
 
@@ -193,7 +180,7 @@ public static class MeshCalculator {
 		//Offset towards central
 		Vector3[] offsets = new Vector3[vertices.Length];
 		for (int i=0;i<boundary.Count;i++) {
-			float angleAcc = 0;
+			boundary[i] = clockwiseBoundary(ref vertices, boundary[i], localNormal);
 			Vector3[] dir = new Vector3[boundary[i].Count];
 			float[] angle = new float[boundary[i].Count];
 			bool[] isConvex = new bool[boundary[i].Count];
@@ -203,12 +190,10 @@ public static class MeshCalculator {
 				isConvex[j] = (Mathf.Abs((VectorCalculator.crossProduct(va, vb).normalized - localNormal).magnitude) < eps);
 				angle[j] = VectorCalculator.vectorAngle(va, vb);
 				dir[j] = (vb - va).normalized;
-				angleAcc += angle[j] * (isConvex[j] ? 1 : -1);
 			}
-			bool isClockwise = angleAcc > 0;
 			bool isOuter = (i == 0);
 			for (int j=0;j<boundary[i].Count;j++) {
-				offsets[boundary[i][j]] = dir[j] * thickness * (isConvex[j] ^ isClockwise ^ isOuter ? 1 : -1) / Mathf.Cos(angle[j] / 2);
+				offsets[boundary[i][j]] = dir[j] * thickness * (isConvex[j] ^ isOuter ? -1 : 1) / Mathf.Cos(angle[j] / 2);
 			}
 		}
 
@@ -217,6 +202,90 @@ public static class MeshCalculator {
 		}
 
 		simplifyMesh(ref vertices, ref triangles);
+
+	}
+
+	public static int[] triangulation(ref Vector3[] vertices, ref List<List<int>> boundaries, bool simplify) {
+
+		List<Vector3> la = new List<Vector3>();
+		la.Add(new Vector3(0, 0, 0));
+		la.Add(new Vector3(1, 0, 0));
+		la.Add(new Vector3(2, 0, 0));
+		List<Vector3> lb = la;
+		lb[1] = new Vector3(1, 2, 3);
+		Debug.Log(la[1] + " " + lb[1]);
+
+		List<List<int>> noHolePolygons = new List<List<int>>();
+
+		if (boundaries.Count > 1) {
+			noHolePolygons = splitHolePolygon(ref vertices, ref boundaries);
+		}
+		else {
+			noHolePolygons.Add(boundaries[0]);
+		}
+
+		List<List<int>> monotonePolygons = new List<List<int>>();
+
+		for (int i=0;i<noHolePolygons.Count;i++) {
+			List<int> noHolePolygon = noHolePolygons[i];
+			monotonePolygons.AddRange(splitMonotonePolygon(ref vertices, ref noHolePolygon));
+		}
+
+		List<int> trianglesList = new List<int>();
+
+		for (int i=0;i<monotonePolygons.Count;i++) {
+			List<int> monotonePolygon = monotonePolygons[i];
+			trianglesList.AddRange(triangulizeMonotonePolygon(ref vertices, ref monotonePolygon));
+		}
+
+		int[] triangles = new int[trianglesList.Count];
+		for (int i=0;i<triangles.Length;i++) {
+			triangles[i] = trianglesList[i];
+		}
+
+		if (simplify) {
+			simplifyMesh(ref vertices, ref triangles);
+		}
+
+		return triangles;
+
+	}
+
+	private static List<List<int>> splitHolePolygon(ref Vector3[] vertices, ref List<List<int>> boundaries) {
+
+		return null;
+
+	}
+	private static List<List<int>> splitMonotonePolygon(ref Vector3[] vertices, ref List<int> boundary) {
+
+		return null;
+
+	}
+	private static List<int> triangulizeMonotonePolygon(ref Vector3[] vertices, ref List<int> boundary) {
+
+		return null;
+
+	}
+
+	private static List<int> clockwiseBoundary(ref Vector3[] vertices, List<int> boundary, Vector3 localNormal) {
+
+		float angleAcc = 0;
+		for (int i=0;i<boundary.Count;i++) {
+			Vector3 va = (vertices[boundary[i]] - vertices[boundary[(i + boundary.Count - 1) % boundary.Count]]).normalized;
+			Vector3 vb = (vertices[boundary[(i + 1) % boundary.Count]] - vertices[boundary[i]]).normalized;
+			bool isConvex = (Mathf.Abs((VectorCalculator.crossProduct(va, vb).normalized - localNormal).magnitude) < eps);
+			angleAcc += VectorCalculator.vectorAngle(va, vb) * (isConvex ? 1 : -1);
+		}
+		if (angleAcc < 0) {
+			List<int> newBoundary = new List<int>();
+			for (int i=boundary.Count-1;i>=0;i--) {
+				newBoundary.Add(boundary[i]);
+			}
+			return newBoundary;
+		}
+		else {
+			return boundary;
+		}
 
 	}
 

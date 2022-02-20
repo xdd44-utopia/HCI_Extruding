@@ -343,7 +343,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "192.168.182.79";
+		string address = "192.168.142.79";
 		//address = "192.168.0.106";
 		//Samsung connecting to SCM: 144.214.112.225
 		//Samsung connecting to CS Lab: 144.214.112.123

@@ -63,6 +63,9 @@ public class ObjectControllerRevised : MonoBehaviour
 
 		updateMesh(true);
 		updateTransform();
+
+		List<List<int>> bt = boundaries[0];
+		MeshCalculator.triangulation(ref vertices, ref bt, false);
 	}
 
 	void Update() {
