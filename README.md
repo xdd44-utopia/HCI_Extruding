@@ -22,13 +22,14 @@ Current setting is for two Samsung Note 20 Ultra with Android
 
 - Operating System: Mac OSX (Windows testing)
   
-- Hardware: Two Android phones ([Support Google ARCore library](https://developers.google.com/ar/devices)) (iOS testing)
+- Hardware: Two Android phones ([Support Google ARCore library](https://developers.google.com/ar/devices)) or iPhones (iOS 11.0 or above)
 
 ### Getting Started
 
 - Install Unity 2019.4.18f1 with Android modules from [Unity download archive page](https://unity3d.com/get-unity/download/archive)
   
-- Install Gradle 5.6.4 [manually](https://gradle.org/install/) (since the latest Gradle version is v7.x) from [Gradle Releases page](https://gradle.org/releases/)
+- (For Android) Install Gradle 5.6.4 [manually](https://gradle.org/install/) (since the latest Gradle version is v7.x) from [Gradle Releases page](https://gradle.org/releases/)
+- (For iOS) Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12) and register an Apple Developer account
   
 - [Clone this repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
   
@@ -51,11 +52,11 @@ Current setting is for two Samsung Note 20 Ultra with Android
 
   ![Application running](/Files/Application%20running.png)
 
-- In Unity's preference (*Unity* Menu > Preferences... or Command + ,) > External Tools: Uncheck *Gradle Installed with Unity (recommended)*; Fill `/opt/gradle/gradle-5.6.4` to *Gradle* slot (Or your Gradle path if you didn't use the path in Gradle's manual)
+- (For Android) In Unity's preference (*Unity* Menu > Preferences... or Command + ,) > External Tools: Uncheck *Gradle Installed with Unity (recommended)*; Fill `/opt/gradle/gradle-5.6.4` to *Gradle* slot (Or your Gradle path if you didn't use the path in Gradle's manual)
 
 ### Phone Setup
 
-- Install *Google Play Services for AR* from both phones' *Google Play Store* or in this [link](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en&gl=US)
+- (For Android) Install *Google Play Services for AR* from both phones' *Google Play Store* or in this [link](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en&gl=US)
   
 - Connect them to the same Wi-Fi (Or connect the left phone to the right phone's hotspot)
 - Find the left phone's IP address in its settings, typically `xxx.xxx.xxx.xxx` (xxx denotes a number, often but not necessarily has three digits)
@@ -65,8 +66,23 @@ Current setting is for two Samsung Note 20 Ultra with Android
 
 - Connect phones to computer
   
-- (First time building) In Files > Build Settings...: Choose platform Android, click *Switch Platform*
+- (First time building) In Files > Build Settings...: Choose platform Android / iOS, click *Switch Platform*
   
-- Choose Files > Build And Run or Command + B. If success, the application will run on phones
+- Choose Files > Build And Run or Command + B.
+  
+- (For Android) If success, the application will run on phones
+  
+- (For iOS) If success, an Xcode project will open automatically. A few things need to be checked before click *Run* button:
+  1. In File > Project Settings..., make sure Build System is *New Build System (Default)*
+  2. Make sure iPhone is connected and selected at the top of the window
+  3. Select *Unity-iPhone project* at the left explorer, make sure settings are completed in *Signing & Capabilities*
+  
+  ![Xcode settings](/Files/Xcode%20setup.png)
+
+  Click *Run* button at top left. If success, the application will be built to phones
+  At the first time of building, the app may be untrusted by iOS. Go to Settings > General > VPN & Device Management to trust the profile, and then open the app.
+
+  ![iOS setting 1](/Files/iOS%20setup%201.jpg)
+  ![iOS setting 2](/Files/iOS%20setup%202.jpg)
 
 - Tap *Connect* to connect. If success, backgrounds of the applications will turn black.
