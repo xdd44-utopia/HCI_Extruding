@@ -440,6 +440,7 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void updateExtrudeScale(float factor, bool isThisScreen) {
+		factor /= hitObj.transform.localScale.x;
 		if (smode != SelectMode.selectFace) {
 			return;
 		}
