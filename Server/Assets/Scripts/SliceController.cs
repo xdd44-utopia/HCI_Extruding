@@ -16,7 +16,7 @@ public class SliceController : MonoBehaviour
 	void Update()
 	{
 		if (!locked) {
-			transform.position = new Vector3(2.2f, 0, 0.05f);
+			transform.position = new Vector3(5f * Camera.main.aspect, 0, 0);
 			float angle = GameObject.Find("SliderController").GetComponent<SliderController>().angle;
 			transform.rotation = Quaternion.Euler(-90, angle * 180 / Mathf.PI, 0);
 		}

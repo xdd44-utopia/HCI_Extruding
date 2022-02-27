@@ -26,7 +26,7 @@ Current setting is for two Samsung Note 20 Ultra with Android
 
 ### Getting Started
 
-- Install Unity 2019.4.18f1 with Android modules from [Unity download archive page](https://unity3d.com/get-unity/download/archive)
+- Install Unity 2019.4.18f1 with Android/iOS modules from [Unity download archive page](https://unity3d.com/get-unity/download/archive)
   
 - (For Android) Install Gradle 5.6.4 [manually](https://gradle.org/install/) (since the latest Gradle version is v7.x) from [Gradle Releases page](https://gradle.org/releases/)
 - (For iOS) Install [Xcode](https://apps.apple.com/us/app/xcode/id497799835?mt=12) and register an Apple Developer account

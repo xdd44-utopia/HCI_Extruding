@@ -103,14 +103,16 @@ public class TouchProcessor : MonoBehaviour
 			for (int i=0;i<touchCountThisScreen;i++) {
 				Touch tch = Input.touches[i];
 				touchPosThisScreen[i] = tch.position;
-				touchPosThisScreen[i] -= new Vector3(360, 772, 0);
-				touchPosThisScreen[i] *= Camera.main.orthographicSize / 772;
+				touchPosThisScreen[i] -= new Vector3(Screen.width / 2, Screen.height / 2, 0);
+				touchPosThisScreen[i] *= Camera.main.orthographicSize / (Screen.height / 2);
 				touchPrevPosThisScreen[i] = tch.position - tch.deltaPosition;
-				touchPrevPosThisScreen[i] -= new Vector3(360, 772, 0);
-				touchPrevPosThisScreen[i] *= Camera.main.orthographicSize / 772;
+				touchPrevPosThisScreen[i] -= new Vector3(Screen.width / 2, Screen.height / 2, 0);
+				touchPrevPosThisScreen[i] *= Camera.main.orthographicSize / (Screen.height / 2);
 				touchPhaseThisScreen[i] = tch.phase;
 			}
 		}
+
+		debugText.text = touchPosThisScreen[0].x + " " + touchPosThisScreen[0].y + " " + touchPosThisScreen[0].z;
 
 		visualize();
 		calculate();
