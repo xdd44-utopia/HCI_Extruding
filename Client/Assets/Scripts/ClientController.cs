@@ -10,16 +10,18 @@ using UnityEngine.UI;
 
 public class ClientController : MonoBehaviour {
 
-	private GameObject touchProcessor;
-	private GameObject faceTracker;
-	private GameObject objectController;
+	private FaceTracker faceTracker;
+	private ObjectController objectController;
 	private GameObject drilledObject;
-	private GameObject sliceTraceVisualizer;
-	private GameObject sliderController;
+	private SliceTraceVisualizer sliceTraceVisualizer;
+	private SliderController sliderController;
 	private GameObject gridController;
 	private GameObject depthFrame;
-	private GameObject extrudeHandle;
+	private ExtrudeHandle extrudeHandle;
 	private GameObject connectButton;
+	private GameObject IPInput;
+
+
 	public Camera renderCamera;
 	public Text debugText;
 	public Text errorText;
@@ -48,16 +50,16 @@ public class ClientController : MonoBehaviour {
 	private Vector3 accPrev = Vector3.zero;
 	
 	void Start () {
-		touchProcessor = GameObject.Find("TouchProcessor");
-		faceTracker = GameObject.Find("FaceTracker");
-		objectController = GameObject.Find("OBJECT");
+		faceTracker = GameObject.Find("FaceTracker").GetComponent<FaceTracker>();
+		objectController = GameObject.Find("OBJECT").GetComponent<ObjectController>();
 		drilledObject = GameObject.Find("DRILLED");
-		sliceTraceVisualizer = GameObject.Find("Slice Trace");
-		sliderController = GameObject.Find("SliderController");
+		sliceTraceVisualizer = GameObject.Find("Slice Trace").GetComponent<SliceTraceVisualizer>();
+		sliderController = GameObject.Find("SliderController").GetComponent<SliderController>();
 		gridController = GameObject.Find("RulerGrid");
 		depthFrame = GameObject.Find("Depth");
-		extrudeHandle = GameObject.Find("ExtrudeHandleController");
+		extrudeHandle = GameObject.Find("ExtrudeHandleController").GetComponent<ExtrudeHandle>();
 		connectButton = GameObject.Find("Connect");
+		IPInput = GameObject.Find("IPInput");
 
 		Camera cam = Camera.main;
 		camHeight = 10;
@@ -69,7 +71,7 @@ public class ClientController : MonoBehaviour {
 	}
 	
 	void Update () {
-		angle = sliderController.GetComponent<SliderController>().angle;
+		angle = sliderController.angle;
 		if (!isConnected && socketConnection != null) {
 			renderCamera.backgroundColor = connectColor;
 			isConnected = true;
@@ -206,19 +208,22 @@ public class ClientController : MonoBehaviour {
 	}
 
 	private void getVector() {
+
 		connectButton.SetActive(false);
+		IPInput.SetActive(false);
+
 		Debug.Log(receivedMessage);
 		try {
 			switch (receivedMessage[0]) {
 				case 'F':
 					string[] temp1 = receivedMessage.Split('\n');
 					if (temp1[1][0] == 'O') {
-						faceTracker.GetComponent<FaceTracker>().useOrtho = true;
+						faceTracker.useOrtho = true;
 					}
 					else {
-						faceTracker.GetComponent<FaceTracker>().useOrtho = false;
+						faceTracker.useOrtho = false;
 						string[] temp2 = temp1[1].Split(',');
-						faceTracker.GetComponent<FaceTracker>().observeOther =
+						faceTracker.observeOther =
 							new Vector3(
 								System.Convert.ToSingle(temp2[0]),
 								System.Convert.ToSingle(temp2[1]),
@@ -238,7 +243,7 @@ public class ClientController : MonoBehaviour {
 							System.Convert.ToSingle(tempVertex[2])
 						));
 					}
-					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateTrace(vertices);
+					sliceTraceVisualizer.updateTrace(vertices);
 					break;
 				case 'C':
 					string[] tempPlane = receivedMessage.Split('\n');
@@ -269,17 +274,17 @@ public class ClientController : MonoBehaviour {
 					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(touchPointThisScreen, touchPointOtherScreen, touchStartThisScreen, touchStartOtherScreen);
 					break;
 				case 'M':
-					objectController.GetComponent<ObjectController>().updateMesh(receivedMessage);
+					objectController.updateMesh(receivedMessage);
 					break;
 				case 'T':
-					objectController.GetComponent<ObjectController>().updateTransform(receivedMessage);
+					objectController.updateTransform(receivedMessage);
 					break;
 				case 'H':
-					objectController.GetComponent<ObjectController>().updateHighlight(receivedMessage);
+					objectController.updateHighlight(receivedMessage);
 					break;
 				case 'A':
 					temp1 = receivedMessage.Split('\n');
-					sliderController.GetComponent<SliderController>().angle = System.Convert.ToSingle(temp1[1]);
+					sliderController.angle = System.Convert.ToSingle(temp1[1]);
 					break;
 				case 'G':
 					temp1 = receivedMessage.Split('\n');
@@ -288,7 +293,7 @@ public class ClientController : MonoBehaviour {
 					break;
 				case 'E':
 					temp1 = receivedMessage.Split('\n');
-					extrudeHandle.GetComponent<ExtrudeHandle>().updateDist(System.Convert.ToSingle(temp1[1]));
+					extrudeHandle.updateDist(System.Convert.ToSingle(temp1[1]));
 					break;
 				case 'D':
 					temp1 = receivedMessage.Split('\n');
@@ -343,7 +348,7 @@ public class ClientController : MonoBehaviour {
 	}
 
 	public void connect() {
-		string address = "172.168.3.62";
+		string address = IPInput.GetComponent<InputField>().text;
 		ConnectToTcpServer(address);
 	}
 

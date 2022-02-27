@@ -409,7 +409,7 @@ public class ObjectController : MonoBehaviour
 				Vector3 localNormal = crossProduct(vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 1]], vertices[triangles[faceToMeshPointers[i][j] * 3 + 0]] - vertices[triangles[faceToMeshPointers[i][j] * 3 + 2]]);
 				localNormal = localNormal.normalized;
 				for (int k=0;k<3;k++) {
-					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.01f * localNormal;
+					faceVertices[j * 3 + k] = vertices[triangles[faceToMeshPointers[i][j] * 3 + k]] + 0.00001f * localNormal;
 					faceTriangles[j * 3 + k] = j * 3 + k;
 					faceCenter += faceVertices[j * 3 + k];
 				}

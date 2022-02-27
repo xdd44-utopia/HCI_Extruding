@@ -59,8 +59,7 @@ Current setting is for two Samsung Note 20 Ultra with Android
 - (For Android) Install *Google Play Services for AR* from both phones' *Google Play Store* or in this [link](https://play.google.com/store/apps/details?id=com.google.ar.core&hl=en&gl=US)
   
 - Connect them to the same Wi-Fi (Or connect the left phone to the right phone's hotspot)
-- Find the left phone's IP address in its settings, typically `xxx.xxx.xxx.xxx` (xxx denotes a number, often but not necessarily has three digits)
-- Go to ClientController.cs and fill the IP adress in the last public method `public void connect()`
+- (For iPhone) Take note of the left phone's IP address in Wi-Fi connection details, typically `xxx.xxx.xxx.xxx` (xxx denotes a number, often but not necessarily has three digits)
 
 ### Upload Projects to Phones
 
@@ -85,4 +84,4 @@ Current setting is for two Samsung Note 20 Ultra with Android
   ![iOS setting 1](/Files/iOS%20setup%201.jpg)
   ![iOS setting 2](/Files/iOS%20setup%202.jpg)
 
-- Tap *Connect* to connect. If success, backgrounds of the applications will turn black.
+- There's an input field on top of the RIGHT phone's screen. (For Android) Input the ip address displayed on bottom of the LEFT phone's screen / (For iPhone) Input the ip address recorded in Phone Setup Step. If success, the input field will disappear and the background of both phones will turn black.
