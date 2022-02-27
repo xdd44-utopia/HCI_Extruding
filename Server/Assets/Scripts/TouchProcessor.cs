@@ -112,8 +112,6 @@ public class TouchProcessor : MonoBehaviour
 			}
 		}
 
-		debugText.text = touchPosThisScreen[0].x + " " + touchPosThisScreen[0].y + " " + touchPosThisScreen[0].z;
-
 		visualize();
 		calculate();
 
@@ -328,7 +326,9 @@ public class TouchProcessor : MonoBehaviour
 						tapTimerOtherScreen = -1;
 					}
 					else {
-						dragDelta = (touchPosOtherScreen[0] - touchPrevPosOtherScreen[0]).x;
+						Vector3 touchDeltaPosOtherScreen = touchPosOtherScreen[0] - touchPrevPosOtherScreen[0];
+						touchDeltaPosOtherScreen = new Vector3(touchDeltaPosOtherScreen.x, 0, touchDeltaPosOtherScreen.z);
+						dragDelta = touchDeltaPosOtherScreen.magnitude * (touchDeltaPosOtherScreen.x > 0 || touchDeltaPosOtherScreen.z > 0 ? 1 : -1);
 						Vector3 panStart = touchPrevPosOtherScreen[0];
 						Vector3 panEnd = touchPosOtherScreen[0];
 						panOtherScreen = panEnd - panStart;
