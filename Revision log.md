@@ -76,6 +76,9 @@ Highlight face
    5.3 Triangulation of monotone polygon
       Input: vertices, boundary
       Return: triangles
+   5.4 (Supplementary) Split boundaries by edges
+      Input: vertices, boundaries, edges
+      Return: splitted new boundaries
 
 ### Vector calculator
 

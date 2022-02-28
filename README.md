@@ -6,7 +6,7 @@ Current setting is for two Samsung Note 20 Ultra with Android
 
 ## Documents:
 
-[REVISION LOG](3d.md)
+[REVISION LOG](Revision%20log.md)
 
 [TCP Protocol for information exchange between two phones](Protocol.md)
 

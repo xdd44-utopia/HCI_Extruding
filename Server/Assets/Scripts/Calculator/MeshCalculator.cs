@@ -170,7 +170,7 @@ public static class MeshCalculator {
 
 	public static void generateFaceCover(ref Vector3[] vertices, ref int[] triangles, ref List<List<int>> boundary, float thickness) {
 
-		Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[0]] - vertices[triangles[1]], vertices[triangles[0]] - vertices[triangles[2]]).normalized;
+		Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[1]] - vertices[triangles[0]], vertices[triangles[2]] - vertices[triangles[1]]).normalized;
 
 		//Offset towards normal direction
 		for (int i=0;i<vertices.Length;i++) {
@@ -206,6 +206,8 @@ public static class MeshCalculator {
 	}
 
 	public static int[] triangulation(ref Vector3[] vertices, ref List<List<int>> boundaries, bool simplify) {
+
+		return null;
 
 		List<Vector3> la = new List<Vector3>();
 		la.Add(new Vector3(0, 0, 0));
@@ -253,7 +255,61 @@ public static class MeshCalculator {
 
 	private static List<List<int>> splitHolePolygon(ref Vector3[] vertices, ref List<List<int>> boundaries) {
 
-		return null;
+		int bn = boundaries.Count;
+
+		//Define a disjoint set
+		int[] father = new int[bn];
+		for (int i=0;i<bn;i++) {
+			father[i] = i;
+		}
+		
+		int find(int x) {
+			int p = father[x];
+			while (p != father[p]) {
+				p = father[p];
+			}
+			father[x] = p;
+			return p;
+		}
+
+		void union(int x, int y) {
+			int px = find(x);
+			int py = find(y);
+			if (px != py) {
+				father[px] = py;
+				father[x] = py;
+			}
+		}
+
+		//Add edges to break holes
+		List<int> edges = new List<int>();
+		for (int cNum=0;cNum < bn - 1;cNum++) {
+			//there should be #boundaries - 1 additional edges
+			//Find the closest distance between two unconnected boundaries
+			(float dist, int ub, int ue, int vb, int ve) minEdge = (2147483647, -1, -1, -1, -1); //Min dist, boundary a, vertex a, boundary b, vertex b
+			for (int ib=0;ib<bn;ib++) {
+				for (int jb=0;jb<bn;jb++) {
+					if (find(ib) != find(jb)) {
+						for (int ie=0;ie<boundaries[ib].Count;ie++) {
+							for (int je=0;je<boundaries[jb].Count;je++) {
+								Vector3 diff = vertices[boundaries[ib][ie]] - vertices[boundaries[jb][je]];
+								if (diff.magnitude < minEdge.dist) {
+									minEdge.ub = ib;
+									minEdge.ue = ie;
+									minEdge.vb = jb;
+									minEdge.ve = je;
+								}
+							}
+						}
+					}
+				}
+			}
+			edges.Add(boundaries[minEdge.ub][minEdge.ue]);
+			edges.Add(boundaries[minEdge.vb][minEdge.ve]);
+			union(minEdge.ub, minEdge.vb);
+		}
+
+		return splitBoundariesByEdges(ref vertices, ref boundaries, ref edges);
 
 	}
 	private static List<List<int>> splitMonotonePolygon(ref Vector3[] vertices, ref List<int> boundary) {
@@ -265,6 +321,90 @@ public static class MeshCalculator {
 
 		return null;
 
+	}
+
+	private static List<List<int>> splitBoundariesByEdges(ref Vector3[] vertices, ref List<List<int>> boundaries, ref List<int> edges) {
+
+		Vector3 localNormal = VectorCalculator.crossProduct(vertices[boundaries[0][1]] - vertices[boundaries[0][0]], vertices[boundaries[0][2]] - vertices[boundaries[0][1]]).normalized;
+
+		//Create an adjacency list
+		List<(int edge, int visitCount)>[] adjList = new List<(int edge, int visitCount)>[vertices.Length];
+		for (int i=0;i<vertices.Length;i++) {
+			adjList[i] = new List<(int edge, int visitCount)>();
+		}
+		for (int b=0;b<boundaries.Count;b++) {
+			for (int e=0;e<boundaries[b].Count;e++) {
+				int u = boundaries[b][e];
+				int v = boundaries[b][(e + 1) % boundaries[b].Count];
+				//edges on boundaries can be used once
+				adjList[u].Add((v, 1));
+				adjList[v].Add((u, 1));
+			}
+		}
+		for (int i=0;i<edges.Count/2;i++) {
+			//edges that connected boundaries can be used twice
+			adjList[edges[i * 2]].Add((edges[i * 2 + 1], 2));
+			adjList[edges[i * 2 + 1]].Add((edges[i * 2], 2));
+		}
+
+		List<List<int>> newBoundaries = new List<List<int>>();
+		while (true) {
+			//Find a starting edge
+			(int u, int v) cur = (-1, -1);
+			for (int i=0;i<vertices.Length;i++) {
+				if (adjList[i].Count > 0) {
+					cur = (i, adjList[i][0].edge);
+					break;
+				}
+			}
+			if (cur.u == -1) {
+				break;
+			}
+
+			List<int> newBoundary = new List<int>();
+			int start = cur.u;
+			newBoundary.Add(cur.u);
+			while (true) {
+				if (cur.v == start) {
+					break;
+				}
+				else {
+					newBoundary.Add(cur.v);
+					//Remove used edge
+					for (int i=0;i<adjList[cur.u].Count;i++) {
+						if (adjList[cur.u][i].edge == cur.v) {
+							adjList[cur.u][i] = (adjList[cur.u][i].edge, adjList[cur.u][i].visitCount - 1);
+							if (adjList[cur.u][i].visitCount == 0) {
+								adjList[cur.u].RemoveAt(i);
+							}
+						}
+					}
+					for (int i=0;i<adjList[cur.v].Count;i++) {
+						if (adjList[cur.v][i].edge == cur.u) {
+							adjList[cur.v][i] = (adjList[cur.v][i].edge, adjList[cur.v][i].visitCount - 1);
+							if (adjList[cur.v][i].visitCount == 0) {
+								adjList[cur.v].RemoveAt(i);
+							}
+						}
+					}
+				}
+				//Find the most clockwise edge
+				(float minAngle, int v) minEdge = (2147483647, -1);
+				Vector3 v1 = vertices[cur.v] - vertices[cur.u];
+				for (int i=0;i<adjList[cur.v].Count;i++) {
+					int nex = adjList[cur.v][i].edge;
+					Vector3 v2 = vertices[nex] - vertices[cur.v];
+					if (VectorCalculator.vectorAngle(v1, v2) < minEdge.minAngle && Mathf.Abs((VectorCalculator.crossProduct(v1, v2).normalized - localNormal).magnitude) < eps) {
+						minEdge = (VectorCalculator.vectorAngle(v1, v2), nex);
+					}
+				}
+				cur.u = cur.v;
+				cur.v = minEdge.v;
+			}
+			newBoundaries.Add(newBoundary);
+		}
+
+		return newBoundaries;
 	}
 
 	private static List<int> clockwiseBoundary(ref Vector3[] vertices, List<int> boundary, Vector3 localNormal) {
