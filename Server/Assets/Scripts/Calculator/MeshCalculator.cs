@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public static class MeshCalculator {
 
-	private static float eps = 0.0000001f;
+	private static float eps = 0.01f;
 
 	public static void simplifyMesh(ref Vector3[] vertices, ref int[] triangles) {
 
@@ -217,21 +217,9 @@ public static class MeshCalculator {
 		lb[1] = new Vector3(1, 2, 3);
 		Debug.Log(la[1] + " " + lb[1]);
 
-		List<List<int>> noHolePolygons = new List<List<int>>();
+		List<int> noHolePolygon = boundaries.Count > 1 ? splitHolePolygon(ref vertices, ref boundaries) : boundaries[0];
 
-		if (boundaries.Count > 1) {
-			noHolePolygons = splitHolePolygon(ref vertices, ref boundaries);
-		}
-		else {
-			noHolePolygons.Add(boundaries[0]);
-		}
-
-		List<List<int>> monotonePolygons = new List<List<int>>();
-
-		for (int i=0;i<noHolePolygons.Count;i++) {
-			List<int> noHolePolygon = noHolePolygons[i];
-			monotonePolygons.AddRange(splitMonotonePolygon(ref vertices, ref noHolePolygon));
-		}
+		List<List<int>> monotonePolygons = splitMonotonePolygon(ref vertices, ref noHolePolygon);
 
 		List<int> trianglesList = new List<int>();
 
@@ -253,7 +241,7 @@ public static class MeshCalculator {
 
 	}
 
-	private static List<List<int>> splitHolePolygon(ref Vector3[] vertices, ref List<List<int>> boundaries) {
+	private static List<int> splitHolePolygon(ref Vector3[] vertices, ref List<List<int>> boundaries) {
 
 		int bn = boundaries.Count;
 
@@ -284,7 +272,7 @@ public static class MeshCalculator {
 		//Add edges to break holes
 		List<int> edges = new List<int>();
 		for (int cNum=0;cNum < bn - 1;cNum++) {
-			//there should be #boundaries - 1 additional edges
+			//there should be #holes additional edges
 			//Find the closest distance between two unconnected boundaries
 			(float dist, int ub, int ue, int vb, int ve) minEdge = (2147483647, -1, -1, -1, -1); //Min dist, boundary a, vertex a, boundary b, vertex b
 			for (int ib=0;ib<bn;ib++) {
@@ -309,7 +297,8 @@ public static class MeshCalculator {
 			union(minEdge.ub, minEdge.vb);
 		}
 
-		return splitBoundariesByEdges(ref vertices, ref boundaries, ref edges);
+		//Polygon with holes should be cut into a whole boundary
+		return splitBoundariesByEdges(ref vertices, ref boundaries, ref edges)[0];
 
 	}
 	private static List<List<int>> splitMonotonePolygon(ref Vector3[] vertices, ref List<int> boundary) {
@@ -323,7 +312,7 @@ public static class MeshCalculator {
 
 	}
 
-	private static List<List<int>> splitBoundariesByEdges(ref Vector3[] vertices, ref List<List<int>> boundaries, ref List<int> edges) {
+	public static List<List<int>> splitBoundariesByEdges(ref Vector3[] vertices, ref List<List<int>> boundaries, ref List<int> edges) {
 
 		Vector3 localNormal = VectorCalculator.crossProduct(vertices[boundaries[0][1]] - vertices[boundaries[0][0]], vertices[boundaries[0][2]] - vertices[boundaries[0][1]]).normalized;
 
@@ -365,41 +354,42 @@ public static class MeshCalculator {
 			int start = cur.u;
 			newBoundary.Add(cur.u);
 			while (true) {
+				//Remove used edge
+				for (int i=0;i<adjList[cur.u].Count;i++) {
+					if (adjList[cur.u][i].edge == cur.v) {
+						adjList[cur.u][i] = (adjList[cur.u][i].edge, adjList[cur.u][i].visitCount - 1);
+						if (adjList[cur.u][i].visitCount == 0) {
+							adjList[cur.u].RemoveAt(i);
+						}
+					}
+				}
+				for (int i=0;i<adjList[cur.v].Count;i++) {
+					if (adjList[cur.v][i].edge == cur.u) {
+						adjList[cur.v][i] = (adjList[cur.v][i].edge, adjList[cur.v][i].visitCount - 1);
+						if (adjList[cur.v][i].visitCount == 0) {
+							adjList[cur.v].RemoveAt(i);
+						}
+					}
+				}
 				if (cur.v == start) {
 					break;
 				}
 				else {
 					newBoundary.Add(cur.v);
-					//Remove used edge
-					for (int i=0;i<adjList[cur.u].Count;i++) {
-						if (adjList[cur.u][i].edge == cur.v) {
-							adjList[cur.u][i] = (adjList[cur.u][i].edge, adjList[cur.u][i].visitCount - 1);
-							if (adjList[cur.u][i].visitCount == 0) {
-								adjList[cur.u].RemoveAt(i);
-							}
-						}
-					}
-					for (int i=0;i<adjList[cur.v].Count;i++) {
-						if (adjList[cur.v][i].edge == cur.u) {
-							adjList[cur.v][i] = (adjList[cur.v][i].edge, adjList[cur.v][i].visitCount - 1);
-							if (adjList[cur.v][i].visitCount == 0) {
-								adjList[cur.v].RemoveAt(i);
-							}
-						}
-					}
 				}
 				//Find the most clockwise edge
-				(float minAngle, int v) minEdge = (2147483647, -1);
+				(float maxAngle, int v) maxEdge = (-2147483647, -1);
 				Vector3 v1 = vertices[cur.v] - vertices[cur.u];
 				for (int i=0;i<adjList[cur.v].Count;i++) {
 					int nex = adjList[cur.v][i].edge;
 					Vector3 v2 = vertices[nex] - vertices[cur.v];
-					if (VectorCalculator.vectorAngle(v1, v2) < minEdge.minAngle && Mathf.Abs((VectorCalculator.crossProduct(v1, v2).normalized - localNormal).magnitude) < eps) {
-						minEdge = (VectorCalculator.vectorAngle(v1, v2), nex);
+					float angle = VectorCalculator.vectorAngle(v1, v2) * (Mathf.Abs((VectorCalculator.crossProduct(v1, v2).normalized - localNormal).magnitude) < eps ? 1 : -1);
+					if (angle > maxEdge.maxAngle) {
+						maxEdge = (VectorCalculator.vectorAngle(v1, v2), nex);
 					}
 				}
 				cur.u = cur.v;
-				cur.v = minEdge.v;
+				cur.v = maxEdge.v;
 			}
 			newBoundaries.Add(newBoundary);
 		}
