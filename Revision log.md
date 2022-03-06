@@ -7,26 +7,26 @@
 If geometry changed (when adding or removing vertices):
   
 1. Simplify mesh
-   Input: vertices, triangles
-   Return: simplified vertices, remapped triangles
+   * Input: vertices, triangles
+   * Return: simplified vertices, remapped triangles
 
 2. Extract edges
-   Input: vertices, triangles
-   Return: edges (`int edges[#edge * 2 / #edge * 2 + 1]` pointing to #vertex), edges for each triangles (`int triangleEdges[#triangle]` pointing to #edge)
+   * Input: vertices, triangles
+   * Return: edges (`int edges[#edge * 2 / #edge * 2 + 1]` pointing to #vertex), edges for each triangles (`int triangleEdges[#triangle]` pointing to #edge)
 
 3. Categorize face
-   Input: vertices, triangles
-   Return: Categorized #triangle index by faces (`List<List<int>> faces[#triangles]`)
+   * Input: vertices, triangles
+   * Return: Categorized #triangle index by faces (`List<List<int>> faces[#triangles]`)
 
 4. Extract boundaries
-   Use `MeshCalculator.extractBoundary()`
-   Result: Corresponding boundaries (`List<List<List<int>>> boundaries[#face][#boundary][#vertex]`)
+   * Use `MeshCalculator.extractBoundary()`
+   * Result: Corresponding boundaries (`List<List<List<int>>> boundaries[#face][#boundary][#vertex]`)
 
 If anything changed:
 
 5. Generate covers
-   Input: Mesh
-   Result: Cover face (`Gameobjects`)
+   * Input: Mesh
+   * Result: Cover face (`Gameobjects`)
 
 6. Send mesh
    
@@ -41,50 +41,50 @@ Highlight face
 ### Mesh calculator
 
 1. Extract boundary
-   Input: vertices, triangles, triangleEdges, edges, for a single planar face.
-   Return: boundary for the face (`List<List<int>> boundaries[#boundary][#vertice]`, first for outline, then holes if exist)
+   * Input: vertices, triangles, triangleEdges, edges, for a single planar face.
+   * Return: boundary for the face (`List<List<int>> boundaries[#boundary][#vertice]`, first for outline, then holes if exist)
 
 2. Extract edges
-   Input: vertices, triangles
-   Return: edges (`int edges[#edge * 2 / #edge * 2 + 1]` pointing to #vertex), edges for each triangles (`int triangleEdges[#triangle]` pointing to #edge)
+   * Input: vertices, triangles
+   * Return: edges (`int edges[#edge * 2 / #edge * 2 + 1]` pointing to #vertex), edges for each triangles (`int triangleEdges[#triangle]` pointing to #edge)
 
 3. Simplify mesh
-   Input: vertices, triangles
-   Return: vertices, triangles
+   * Input: vertices, triangles
+   * Return: vertices, triangles
    - Remove duplicated & unused vertices
    - Remap triangles
    - Recreate triangularization?
 
-4. Generate cover mesh
-   Input: vertices, boundaries, faceTriangles (of a single face)
-   Return: faceVertices, faceTriangles
+4. Generate cover mesh  
+   * Input: vertices, boundaries, faceTriangles (of a single face)  
+   * Return: faceVertices, faceTriangles
    - Offset in normal direction
    - Offset to fake boundaries
 
 5. Triangulation
-   Input: vertices, boundaries
-   Return: triangles
-   5.1 Holes?
-      Split polygon into polygon without holes
-      removeHoles():
-      Input: vertices, boundaries (first - outer)
-      Return: boundaries of new polygons
-   5.2 Non-monotone?
-      Trapezoidalization and split
-      Input: vertices, boundary
-      Return: boundaries of new polygons
-   5.3 Triangulation of monotone polygon
-      Input: vertices, boundary
-      Return: triangles
-   5.4 (Supplementary) Split boundaries by edges
-      Input: vertices, boundaries, edges
-      Return: splitted new boundaries
+   * Input: vertices, boundaries
+   * Return: triangles  
+   * 5.1 Holes?  
+      - Split polygon into polygon without holes  
+      - removeHoles():  
+      - Input: vertices, boundaries (first - outer)  
+      - Return: boundaries of new polygons  
+   * 5.2 Non-monotone?  
+      - Trapezoidalization and split  
+      - Input: vertices, boundary  
+      - Return: boundaries of new polygons  
+   * 5.3 Triangulation of monotone polygon  
+      - Input: vertices, boundary  
+      - Return: triangles  
+   * 5.4 (Supplementary) Split boundaries by edges  
+      - Input: vertices, boundaries, edges  
+      - Return: splitted new boundaries  
 
 ### Vector calculator
 
 1. areLinesIntersect
-   Input: two end vertices for two lines.
-   Return: bool
+   * Input: two end vertices for two lines.  
+   * Return: bool  
 
 2. Cross product
    

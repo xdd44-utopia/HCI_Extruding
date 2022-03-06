@@ -53,7 +53,16 @@ public class Debugger : MonoBehaviour
         boundaries.Add(new List<int>{20, 21, 22});
         List<int> edges = new List<int>{1, 6, 7, 18, 15, 17, 2, 22};
         List<List<int>> newBoundaries = MeshCalculator.splitBoundariesByEdges(ref vertices, ref boundaries, ref edges);
-        displayBoundaries(ref vertices, ref newBoundaries, new Vector3(0, 0, 0));
+
+        Vector2[] verticesXY = VectorCalculator.facePlaneFront(vertices);
+
+		List<List<int>> monotonePolygons = new List<List<int>>();
+        for (int i=0;i<newBoundaries.Count;i++) {
+            List<int> boundary = newBoundaries[i];
+            monotonePolygons.AddRange(MeshCalculator.splitMonotonePolygon(ref vertices, ref boundary));
+        }
+
+        displayBoundaries(ref vertices, ref monotonePolygons, new Vector3(0, 0, 0));
     }
 
     private void displayBoundaries(ref Vector3[] vertices, ref List<List<int>> boundaries, Vector3 offset) {
