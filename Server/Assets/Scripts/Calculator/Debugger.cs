@@ -8,6 +8,7 @@ public class Debugger : MonoBehaviour
 {
     private List<GameObject> lineObj = new List<GameObject>();
 	public GameObject linePrefab;
+    public GameObject facePrefab;
     public bool update;
     void Start() {
         update = false;
@@ -51,18 +52,31 @@ public class Debugger : MonoBehaviour
         boundaries.Add(new List<int>{14, 15, 16});
         boundaries.Add(new List<int>{17, 18, 19});
         boundaries.Add(new List<int>{20, 21, 22});
-        List<int> edges = new List<int>{1, 6, 7, 18, 15, 17, 2, 22};
-        List<List<int>> newBoundaries = MeshCalculator.splitBoundariesByEdges(ref vertices, ref boundaries, ref edges);
 
-        Vector2[] verticesXY = VectorCalculator.facePlaneFront(vertices);
+        int[] triangles = MeshCalculator.triangulation(ref vertices, ref boundaries);
+        MeshCalculator.simplifyMesh(ref vertices, ref triangles);
 
-		List<List<int>> monotonePolygons = new List<List<int>>();
-        for (int i=0;i<newBoundaries.Count;i++) {
-            List<int> boundary = newBoundaries[i];
-            monotonePolygons.AddRange(MeshCalculator.splitMonotonePolygon(ref vertices, ref boundary));
-        }
+        GameObject faceObj = Instantiate(facePrefab, new Vector3(-80, 0, 0), Quaternion.identity);
+        Mesh mesh = faceObj.GetComponent<MeshFilter>().mesh;
+        mesh.Clear();
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.uv = new Vector2[vertices.Length];
+        mesh.MarkModified();
+        mesh.RecalculateNormals();
+        faceObj.GetComponent<MeshFilter>().mesh = mesh;
+        // List<int> edges = new List<int>{1, 6, 7, 18, 15, 17, 2, 22};
+        // List<List<int>> newBoundaries = MeshCalculator.splitBoundariesByEdges(ref vertices, ref boundaries, ref edges);
 
-        displayBoundaries(ref vertices, ref monotonePolygons, new Vector3(0, 0, 0));
+        // Vector2[] verticesXY = VectorCalculator.facePlaneFront(vertices);
+
+		// List<List<int>> monotonePolygons = new List<List<int>>();
+        // for (int i=0;i<newBoundaries.Count;i++) {
+        //     List<int> boundary = newBoundaries[i];
+        //     monotonePolygons.AddRange(MeshCalculator.splitMonotonePolygon(ref vertices, ref boundary));
+        // }
+
+        //displayBoundaries(ref vertices, ref monotonePolygons, new Vector3(0, 0, 0));
     }
 
     private void displayBoundaries(ref Vector3[] vertices, ref List<List<int>> boundaries, Vector3 offset) {

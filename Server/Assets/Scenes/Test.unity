@@ -479,6 +479,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   linePrefab: {fileID: 7703595843352867331, guid: 62f0c249b0fc14a49bede9d0a5305c91,
     type: 3}
+  facePrefab: {fileID: 4956307745498296045, guid: a3a7b1516e8444886a4684c3040763cd,
+    type: 3}
   update: 0
 --- !u!1 &493195179
 GameObject:

@@ -7,7 +7,7 @@ using Random = UnityEngine.Random;
 
 public static class VectorCalculator {
 
-	private static float eps = 0.0000001f;
+	private static float eps = 0.0001f;
 	private static float inf = 2147483647f;
 	private static bool debugging = false;
 
@@ -132,7 +132,7 @@ public static class VectorCalculator {
 
 	}
 
-	public static bool isPointInsidePolygon(ref Vector2[] vertices, ref List<int> boundary, Vector2 p) {
+	public static bool isPointInsidePolygon(Vector2[] vertices, List<int> boundary, Vector2 p) {
 		
 		//If any ray starting from the point intersect with the polygon even times, then it is outside the polygon
 		int upperCount = 0;
@@ -151,12 +151,12 @@ public static class VectorCalculator {
 
 	}
 
-	public static bool isLineSegmentInsidePolygon(ref Vector2[] vertices, ref List<int> boundary, Vector2 p1, Vector2 p2) {
+	public static bool isLineSegmentInsidePolygon(Vector2[] vertices, List<int> boundary, Vector2 p1, Vector2 p2) {
 		
 		Vector2 d = p2 - p1;
-		p1 += 0.0001f * d;
-		p2 -= 0.0001f * d;
-		if (!isPointInsidePolygon(ref vertices, ref boundary, p1)) {
+		p1 += 0.001f * d;
+		p2 -= 0.001f * d;
+		if (!isPointInsidePolygon(vertices, boundary, p1) || !isPointInsidePolygon(vertices, boundary, p2)) {
 			return false;
 		}
 
