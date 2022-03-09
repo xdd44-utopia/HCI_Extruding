@@ -39,6 +39,7 @@ public class FaceTracker : MonoBehaviour
 
 	private Vector3 currentObserve = new Vector3(6f, -1f, -10f);
 	private Vector3 previousObserve = new Vector3(6f, -1f, -10f);
+	private bool previousOrtho = false;
 	private Vector3 observe = new Vector3(6f, -1f, -10f);
 	private Vector3 defaultObserve = new Vector3(6f, -1f, -10f);
 	private float correction = 3f;
@@ -69,11 +70,15 @@ public class FaceTracker : MonoBehaviour
 
 		if (cam.orthographic) {
 			renderCam.transform.position = new Vector3(0, 0, -5);
-			string msg = "Face\nO\n";
-			sender.GetComponent<ServerController>().sendMessage(msg);
+			if (!previousOrtho) {
+				string msg = "Face\nO\n";
+				sender.GetComponent<ServerController>().sendMessage(msg);
+				previousOrtho = true;
+			}
 			currentObserve = new Vector3(0, 0, -5);
 		}
 		else {
+			previousOrtho = false;
 			if (useFaceTrack) {
 				GameObject[] objects = GameObject.FindGameObjectsWithTag("Player");
 				facePosText.text = "No face";

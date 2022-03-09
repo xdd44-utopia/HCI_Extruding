@@ -24,6 +24,11 @@ public class SliderController : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
+
+		Camera cam = Camera.main;
+		VectorCalculator.camHeight = 2f * cam.orthographicSize;
+		VectorCalculator.camWidth = VectorCalculator.camHeight * cam.aspect;
+
 		sender = GameObject.Find("Server");
 		debugText = GameObject.Find("Debug").GetComponent<Text>();
 		screenSide = GameObject.Find("SideViewSceen").GetComponent<LineRenderer>();
@@ -66,5 +71,7 @@ public class SliderController : MonoBehaviour
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle + "\n");
 		}
 		prevAngle = angle;
+		VectorCalculator.angle = angle;
+		
 	}
 }

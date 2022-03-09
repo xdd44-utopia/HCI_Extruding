@@ -29,5 +29,6 @@ public class SliderController : MonoBehaviour
 	void Update() {
 		protractor.transform.rotation = Quaternion.Euler(-90, - angle * 180 / Mathf.PI, 0);
 		angleText.text = Math.Round((- angle * 180 / Mathf.PI), 1) + "°";
+		VectorCalculator.angle = angle;
 	}
 }

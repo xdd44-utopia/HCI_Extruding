@@ -516,6 +516,7 @@ public static class MeshCalculator {
 					break;
 				}
 			}
+			bool found = false;
 			for (int i=leftMost[2];i<verticesPointers.Count;i++) {
 				if (!verticesPointers[i].removed) {
 					int prev = verticesPointers.FindIndex(a => a.index == verticesPointers[i].prev);
@@ -528,6 +529,9 @@ public static class MeshCalculator {
 						verticesPointers[i] = (verticesPointers[i].index, verticesPointers[prevprev].index, false);
 						break;
 					}
+				}
+				if (found) {
+					break;
 				}
 			}
 		}

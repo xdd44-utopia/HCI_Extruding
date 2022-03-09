@@ -12,7 +12,6 @@ public class ClientController : MonoBehaviour {
 
 	private FaceTracker faceTracker;
 	private ObjectController objectController;
-	private GameObject drilledObject;
 	private SliceTraceVisualizer sliceTraceVisualizer;
 	private SliderController sliderController;
 	private GameObject gridController;
@@ -25,10 +24,6 @@ public class ClientController : MonoBehaviour {
 	public Camera renderCamera;
 	public Text debugText;
 	public Text errorText;
-
-	private float angle = - Mathf.PI / 2;
-	private float camWidth;
-	private float camHeight;
 
 	private Color disconnectColor = new Color(0.8156f, 0.3529f, 0.4313f);
 	//private Color connectColor = new Color(0.5254f, 0.7568f, 0.4f);
@@ -52,7 +47,6 @@ public class ClientController : MonoBehaviour {
 	void Start () {
 		faceTracker = GameObject.Find("FaceTracker").GetComponent<FaceTracker>();
 		objectController = GameObject.Find("OBJECT").GetComponent<ObjectController>();
-		drilledObject = GameObject.Find("DRILLED");
 		sliceTraceVisualizer = GameObject.Find("Slice Trace").GetComponent<SliceTraceVisualizer>();
 		sliderController = GameObject.Find("SliderController").GetComponent<SliderController>();
 		gridController = GameObject.Find("RulerGrid");
@@ -61,9 +55,6 @@ public class ClientController : MonoBehaviour {
 		connectButton = GameObject.Find("Connect");
 		IPInput = GameObject.Find("IPInput");
 
-		Camera cam = Camera.main;
-		camHeight = 10;
-		camWidth = camHeight * cam.aspect;
 		socketConnection = null;
 		for (int i=0;i<msgTypes;i++) {
 			sendBuffer[i] = "";
@@ -71,7 +62,6 @@ public class ClientController : MonoBehaviour {
 	}
 	
 	void Update () {
-		angle = sliderController.angle;
 		if (!isConnected && socketConnection != null) {
 			renderCamera.backgroundColor = connectColor;
 			isConnected = true;
@@ -187,26 +177,6 @@ public class ClientController : MonoBehaviour {
 		}
 	}
 
-	private Vector3 convertFromServer(Vector3 v) {
-		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(angle), 0, - Mathf.Sin(angle));
-		Vector3 z = new Vector3(Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
-		v -= origin;
-		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
-	}
-
-	private Vector3 convertToServer(Vector3 v) {
-		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
-		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
-		v -= origin;
-		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
-	}
-
-	private float multXZ(Vector3 from, Vector3 to) {
-		return from.x * to.x + from.z * to.z;
-	}
-
 	private void getVector() {
 
 		connectButton.SetActive(false);
@@ -237,7 +207,7 @@ public class ClientController : MonoBehaviour {
 					Vector3[] vertices = new Vector3[count];
 					for (int j=0;j<count;j++) {
 						string[] tempVertex = tempSlice[2 + j].Split(',');
-						vertices[j] = convertFromServer(new Vector3(
+						vertices[j] = VectorCalculator.convertFromServer(new Vector3(
 							System.Convert.ToSingle(tempVertex[0]),
 							System.Convert.ToSingle(tempVertex[1]),
 							System.Convert.ToSingle(tempVertex[2])
@@ -251,22 +221,22 @@ public class ClientController : MonoBehaviour {
 					string[] tempEndOtherScreen = tempPlane[2].Split(',');
 					string[] tempStartThisScreen = tempPlane[3].Split(',');
 					string[] tempStartOtherScreen = tempPlane[4].Split(',');
-					Vector3 touchPointThisScreen = convertFromServer(new Vector3(
+					Vector3 touchPointThisScreen = VectorCalculator.convertFromServer(new Vector3(
 						System.Convert.ToSingle(tempEndThisScreen[0]),
 						System.Convert.ToSingle(tempEndThisScreen[1]),
 						System.Convert.ToSingle(tempEndThisScreen[2])
 					));
-					Vector3 touchPointOtherScreen = convertFromServer(new Vector3(
+					Vector3 touchPointOtherScreen = VectorCalculator.convertFromServer(new Vector3(
 						System.Convert.ToSingle(tempEndOtherScreen[0]),
 						System.Convert.ToSingle(tempEndOtherScreen[1]),
 						System.Convert.ToSingle(tempEndOtherScreen[2])
 					));
-					Vector3 touchStartThisScreen = convertFromServer(new Vector3(
+					Vector3 touchStartThisScreen = VectorCalculator.convertFromServer(new Vector3(
 						System.Convert.ToSingle(tempStartThisScreen[0]),
 						System.Convert.ToSingle(tempStartThisScreen[1]),
 						System.Convert.ToSingle(tempStartThisScreen[2])
 					));
-					Vector3 touchStartOtherScreen = convertFromServer(new Vector3(
+					Vector3 touchStartOtherScreen = VectorCalculator.convertFromServer(new Vector3(
 						System.Convert.ToSingle(tempStartOtherScreen[0]),
 						System.Convert.ToSingle(tempStartOtherScreen[1]),
 						System.Convert.ToSingle(tempStartOtherScreen[2])
@@ -295,32 +265,6 @@ public class ClientController : MonoBehaviour {
 					temp1 = receivedMessage.Split('\n');
 					extrudeHandle.updateDist(System.Convert.ToSingle(temp1[1]));
 					break;
-				case 'D':
-					temp1 = receivedMessage.Split('\n');
-					if (temp1[1][0] == 'X') {
-						disableDrillSimulation();
-					}
-					else {
-						string[] tempOffset = temp1[1].Split(',');
-						string[] tempDir = temp1[2].Split(',');
-						Vector3 offset = new Vector3(
-							System.Convert.ToSingle(tempOffset[0]),
-							System.Convert.ToSingle(tempOffset[1]),
-							System.Convert.ToSingle(tempOffset[2])
-						);
-						Vector3 dir = new Vector3(
-							System.Convert.ToSingle(tempDir[0]),
-							System.Convert.ToSingle(tempDir[1]),
-							System.Convert.ToSingle(tempDir[2])
-						);
-						debugText.text = receivedMessage + "\n" + dir.x + ", " + dir.y + ", " + dir.z;
-						if (drilledObject == null) {
-							drilledObject = GameObject.Find("DRILLED");
-						}
-						drilledObject.GetComponent<DrilledObjectController>().offset = offset;
-						drilledObject.GetComponent<DrilledObjectController>().dir = dir;
-					}
-					break;
 			}
 		}
 		catch (Exception e) {
@@ -332,15 +276,6 @@ public class ClientController : MonoBehaviour {
 			// }
 			errorText.text = receivedMessage + "\n" + Time.deltaTime + "\n" + e.Message;
 		}
-	}
-	private void disableDrillSimulation() {
-		GameObject.Find("OBJECT").GetComponent<MeshRenderer>().enabled = true;
-		GameObject.Find("Inside").GetComponent<MeshRenderer>().enabled = true;
-		GameObject[] faces = GameObject.FindGameObjectsWithTag("FaceObj");
-		foreach (GameObject face in faces) {
-			face.GetComponent<MeshRenderer>().enabled = true;
-		}
-		drilledObject.SetActive(false);
 	}
 
 	public void snap() {

@@ -7,9 +7,9 @@ using UnityEngine.UI;
 public class TouchProcessor : MonoBehaviour
 {
 
-	public GameObject meshManipulator;
+	private MeshManipulator meshManipulator;
 	public GameObject sliderController;
-	public GameObject sender;
+	private ServerController sender;
 	public GameObject slicePlane;
 	public GameObject sliceTraceVisualizer;
 	public LineRenderer crossScreenLine;
@@ -86,7 +86,15 @@ public class TouchProcessor : MonoBehaviour
 
 	void Start()
 	{
-		
+		GameObject findObject;
+		findObject = GameObject.Find("OBJECT");
+		if (findObject != null) {
+			meshManipulator = findObject.GetComponent<MeshManipulator>();
+		}
+		findObject = GameObject.Find("Server");
+		if (findObject != null) {
+			sender = findObject.GetComponent<ServerController>();
+		}
 	}
 
 	// Update is called once per frame
@@ -118,23 +126,23 @@ public class TouchProcessor : MonoBehaviour
 		if (touchTimer > 0) {
 			switch (state) {
 				case Status.singleScreen1This:
-					meshManipulator.GetComponent<MeshManipulator>().startMoving(panThisScreen, true);
-					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, true);
+					meshManipulator.startMoving(panThisScreen, true);
+					meshManipulator.updateExtrudeScale(dragDelta, true);
 					break;
 				case Status.singleScreen1Other:
-					meshManipulator.GetComponent<MeshManipulator>().startMoving(panOtherScreen, false);
-					meshManipulator.GetComponent<MeshManipulator>().updateExtrudeScale(dragDelta, false);
-					meshManipulator.GetComponent<MeshManipulator>().updateDrillScale(dragDelta);
+					meshManipulator.startMoving(panOtherScreen, false);
+					meshManipulator.updateExtrudeScale(dragDelta, false);
+					// meshManipulator.updateDrillScale(dragDelta);
 					break;
 				case Status.singleScreen2This:
-					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnThisScreen, true);
-					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, true);
-					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
+					meshManipulator.startRotating(turnThisScreen, true);
+					meshManipulator.startScaling(pinchDelta, true);
+					meshManipulator.updateTaperScale(pinchDelta);
 					break;
 				case Status.singleScreen2Other:
-					meshManipulator.GetComponent<MeshManipulator>().startRotating(turnOtherScreen, false);
-					meshManipulator.GetComponent<MeshManipulator>().startScaling(pinchDelta, false);
-					meshManipulator.GetComponent<MeshManipulator>().updateTaperScale(pinchDelta);
+					meshManipulator.startRotating(turnOtherScreen, false);
+					meshManipulator.startScaling(pinchDelta, false);
+					meshManipulator.updateTaperScale(pinchDelta);
 					break;
 			}
 		}
@@ -144,7 +152,7 @@ public class TouchProcessor : MonoBehaviour
 
 		cutPlaneVisualizer.enabled = (crossScreenSliceTimer >= 0 && slicePrepared);
 		if (crossScreenSliceTimer <= 0 && slicePrepared) {
-			meshManipulator.GetComponent<MeshManipulator>().executeSlice();
+			meshManipulator.executeSlice();
 			startSliceThisScreen = Vector3.zero;
 			startSliceOtherScreen = Vector3.zero;
 			endSliceThisScreen = Vector3.zero;
@@ -184,7 +192,7 @@ public class TouchProcessor : MonoBehaviour
 		turnThisScreen = 0;
 		turnOtherScreen = 0;
 		pinchDelta = 0;
-		meshManipulator.GetComponent<MeshManipulator>().touchPosition = INF;
+		meshManipulator.touchPosition = INF;
 
 		if (touchCountThisScreen == 0 && touchCountOtherScreen == 0) {
 			state = Status.none;
@@ -280,20 +288,7 @@ public class TouchProcessor : MonoBehaviour
 				break;
 			}
 			case Status.crossScreen2: {
-				if (crossScreenSliceTimer <= 0) {
-					startSliceThisScreen = touchPosThisScreen[0];
-					startSliceOtherScreen = touchPosOtherScreen[0];
-				}
-				else {
-					endSliceThisScreen = touchPosThisScreen[0];
-					endSliceOtherScreen = touchPosOtherScreen[0];
-					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().touchPointThisScreen = endSliceThisScreen;
-					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().touchPointOtherScreen = endSliceOtherScreen;
-					processCrossScreenSlice();
-					visualizeCrossScreenSlice();
-				}
-				crossScreenSliceTimer = crossScreenSliceTolerance;
-				endGestureLock = 0.25f;
+				
 				break;
 			}
 			case Status.singleScreen1This: {
@@ -302,8 +297,8 @@ public class TouchProcessor : MonoBehaviour
 						tapTimerThisScreen = tapDurationTolerance;
 					}
 					else if (touchPhaseThisScreen[0] == TouchPhase.Ended && tapTimerThisScreen >= 0) {
-						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosThisScreen[0];
-						meshManipulator.GetComponent<MeshManipulator>().castRay();
+						meshManipulator.touchPosition = touchPosThisScreen[0];
+						meshManipulator.castRay();
 						tapTimerThisScreen = -1;
 					}
 					else if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
@@ -321,8 +316,8 @@ public class TouchProcessor : MonoBehaviour
 						tapTimerOtherScreen = tapDurationTolerance;
 					}
 					else if (touchPhaseOtherScreen[0] == TouchPhase.Ended && tapTimerOtherScreen >= 0) {
-						meshManipulator.GetComponent<MeshManipulator>().touchPosition = touchPosOtherScreen[0];
-						meshManipulator.GetComponent<MeshManipulator>().castRay();
+						meshManipulator.touchPosition = touchPosOtherScreen[0];
+						meshManipulator.castRay();
 						tapTimerOtherScreen = -1;
 					}
 					else {
@@ -337,62 +332,6 @@ public class TouchProcessor : MonoBehaviour
 				break;
 			}
 		}
-	}
-
-	private void processCrossScreenSlice() {
-
-		if ((endSliceThisScreen - startSliceThisScreen).magnitude < sliceMinDist || (endSliceOtherScreen - startSliceOtherScreen).magnitude < sliceMinDist) {
-			return;
-		}
-
-		Vector3 centerPos = (endSliceThisScreen + endSliceOtherScreen) / 2;
-		Vector3 normal = crossProduct(endSliceThisScreen - endSliceOtherScreen, new Vector3(0, 1, 0));
-		// Vector3 normal = crossProduct(centerPos - endSliceOtherScreen, centerPos - endSliceThisScreen);
-
-		if (normal.z < 0) {
-			normal = -normal;
-		}
-
-		Vector3 axisToFocus = crossProduct(normal, new Vector3(0, -1, 0));
-		float angleToFocus = -Vector3.Angle(normal, new Vector3(0, -1, 0));
-
-		Quaternion originRotation = Quaternion.identity;
-		originRotation.eulerAngles = new Vector3(0, -1, 0);
-		slicePlane.GetComponent<SliceController>().locked = true;
-		slicePlane.transform.position = centerPos;
-		slicePlane.transform.rotation = Quaternion.AngleAxis(angleToFocus, axisToFocus) * originRotation;
-		slicePrepared = true;
-		meshManipulator.GetComponent<MeshManipulator>().startSlice(false, true);
-	}
-
-	private void visualizeCrossScreenSlice() {
-		Vector3 centerPos = (startSliceThisScreen + startSliceOtherScreen) / 2;
-		// Vector3 startThis = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceThisScreen, new Vector3(0, 0, 1));
-		// Vector3 startOther = intersectLinePlane(centerPos, centerPos + endSliceThisScreen - endSliceOtherScreen, endSliceOtherScreen, new Vector3(Mathf.Sin(-angle), 0, -Mathf.Cos(angle)));
-		Vector3 startThis = new Vector3(endSliceThisScreen.x, 10, endSliceThisScreen.z);
-		Vector3 startOther = new Vector3(endSliceOtherScreen.x, 10, endSliceOtherScreen.z);
-		cutPlaneVisualizer.SetPosition(0, endSliceThisScreen);
-		cutPlaneVisualizer.SetPosition(1, startThis);
-		cutPlaneVisualizer.SetPosition(2, startOther);
-		cutPlaneVisualizer.SetPosition(3, endSliceOtherScreen);
-
-		string msg = "Cutting\n";
-		msg += endSliceThisScreen.x + "," + endSliceThisScreen.y + "," + endSliceThisScreen.z + "\n";
-		msg += endSliceOtherScreen.x + "," + endSliceOtherScreen.y + "," + endSliceOtherScreen.z + "\n";
-		msg += startThis.x + "," + startThis.y + "," + startThis.z + "\n";
-		msg += startOther.x + "," + startOther.y + "," + startOther.z + "\n";
-		sender.GetComponent<ServerController>().sendMessage(msg);
-	}
-	private Vector3 crossProduct(Vector3 a, Vector3 b) {
-		return new Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-	}
-	private float dotProduct(Vector3 a, Vector3 b) {
-		return a.x * b.x + a.y * b.y + a.z * b.z;
-	}
-
-	private Vector3 intersectLinePlane(Vector3 a, Vector3 b, Vector3 p, Vector3 n) { //line passes a and b, plane passes p with normal n
-		float t = (dotProduct(p, n) - dotProduct(a, n)) / dotProduct(n, a - b);
-		return a + t * (a - b);
 	}
  
 	private float Angle (Vector2 pos1, Vector2 pos2) {

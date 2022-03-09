@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7703595843352867332}
   - component: {fileID: 7703595843352867333}
   m_Layer: 0
-  m_Name: SELECT
+  m_Name: LineObj
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -120,7 +120,7 @@ LineRenderer:
       m_NumAlphaKeys: 2
     numCornerVertices: 90
     numCapVertices: 90
-    alignment: 1
+    alignment: 0
     textureMode: 0
     shadowBias: 0.5
     generateLightingData: 0

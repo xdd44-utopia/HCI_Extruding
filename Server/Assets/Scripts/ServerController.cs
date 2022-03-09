@@ -14,8 +14,8 @@ public class ServerController : MonoBehaviour {
 	public Text rcvText;
 	public Text errorText;
 	public Text ipText;
-	public GameObject meshManipulator;
-	public GameObject objectController;
+	private MeshManipulator meshManipulator;
+	private ObjectController objectController;
 	public GameObject sliderController;
 	public GameObject touchProcessor;
 	public GameObject faceTracker;
@@ -39,6 +39,13 @@ public class ServerController : MonoBehaviour {
 
 	
 	void Start () {
+		GameObject findObject;
+		findObject = GameObject.Find("OBJECT");
+		if (findObject != null) {
+			meshManipulator = findObject.GetComponent<MeshManipulator>();
+			objectController = findObject.GetComponent<ObjectController>();
+		}
+
 		tcpListenerThread = new Thread (new ThreadStart(ListenForIncommingRequests));
 		tcpListenerThread.IsBackground = true;
 		tcpListenerThread.Start();
@@ -199,6 +206,8 @@ public class ServerController : MonoBehaviour {
 					break;
 				}
 				case 'H': {
+					objectController.updateMesh(false);
+					objectController.updateTransform();
 					break;
 				}
 				case 'A': {
@@ -230,32 +239,24 @@ public class ServerController : MonoBehaviour {
 					break;
 				}
 				case 'S': {
-					meshManipulator.GetComponent<MeshManipulator>().startNewFocusOtherScreen();
+					meshManipulator.startNewFocusOtherScreen();
 					break;
 				}
 				case 'E': {
 					if (receivedMessage[7] == 'c') {
-						meshManipulator.GetComponent<MeshManipulator>().enableCuttingPlaneOtherScreen();
+						meshManipulator.enableCuttingPlaneOtherScreen();
 					}
 					else if (receivedMessage[8] == 'c') {
-						meshManipulator.GetComponent<MeshManipulator>().executeCuttingPlaneOtherScreen();
+						meshManipulator.executeCuttingPlaneOtherScreen();
 					}
-					else if (receivedMessage[7] == 'd') {
-						meshManipulator.GetComponent<MeshManipulator>().enableDrillSimulation();
-					}
-					break;
-				}
-				case 'D': {
-
-					meshManipulator.GetComponent<MeshManipulator>().exitDrillSimulation();
 					break;
 				}
 				case 'R': {
 					if (receivedMessage[1] == 'M') {
-						objectController.GetComponent<ObjectController>().isMeshUpdated = true;
+						objectController.updateMesh(false);
 					}
 					else if (receivedMessage[1] == 'T') {
-						objectController.GetComponent<ObjectController>().isTransformUpdated = true;
+						objectController.updateTransform();
 					}
 					break;
 				}
