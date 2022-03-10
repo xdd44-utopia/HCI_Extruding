@@ -7,6 +7,7 @@ public class ObjectController : MonoBehaviour
 {
 
 	private GameObject inside;
+	private Text debugText;
 
 	//Mesh
 	private Mesh mesh;
@@ -33,7 +34,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.0000001f;
+	private const float eps = 0.0001f;
 
 
 	private float timer = 0;
@@ -45,6 +46,7 @@ public class ObjectController : MonoBehaviour
 		GameObject findObject;
 		inside = GameObject.Find("Inside");
 
+		debugText = GameObject.Find("DebugText").GetComponent<Text>();
 	}
 
 	void Update() {
@@ -279,6 +281,14 @@ public class ObjectController : MonoBehaviour
 			System.Convert.ToSingle(positionStr[1]),
 			System.Convert.ToSingle(positionStr[2])
 		);
+		debugText.text =
+			this.transform.position.x + ", "+
+			this.transform.position.y + ", " +
+			this.transform.position.z + ", " +
+			VectorCalculator.convertFromServer(this.transform.position).x + ", " +
+			VectorCalculator.convertFromServer(this.transform.position).y + ", " +
+			VectorCalculator.convertFromServer(this.transform.position).z;
+
 		this.transform.position = VectorCalculator.convertFromServer(this.transform.position);
 		Quaternion currentRot = this.transform.rotation;
 		currentRot = Quaternion.Euler(

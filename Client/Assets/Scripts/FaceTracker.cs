@@ -37,7 +37,7 @@ public class FaceTracker : MonoBehaviour
 
 	void Update() {
 		angle = sliderController.GetComponent<SliderController>().angle;
-		currentObserve = convertFromServer(observeOther);
+		currentObserve = VectorCalculator.convertFromServer(observeOther);
 		updateObservation();
 		updateFov();
 	}
@@ -50,7 +50,7 @@ public class FaceTracker : MonoBehaviour
 		Vector3 faceDetectedForServer;
 		if (objects.Length == 0) {
 			Vector3 temp = new Vector3(0, 0, -10);
-			temp = (temp + convertToServer(temp)) / 2;
+			temp = (temp + VectorCalculator.convertToServer(temp)) / 2;
 			faceDetectedForServer = new Vector3(temp.x, 100, temp.z);
 		}
 		else {
@@ -83,7 +83,7 @@ public class FaceTracker : MonoBehaviour
 			faceDetected.y += correction;
 			faceDetected.z *= observationScaleVertical;
 			Destroy(testObj, 0f);
-			faceDetectedForServer = convertToServer(faceDetected);
+			faceDetectedForServer = VectorCalculator.convertToServer(faceDetected);
 		}
 		if (Vector3.Distance(faceDetectedForServer, prevFaceDetected) > 0.05f) {
 			string msg = "Face\n" + faceDetectedForServer.x + "," + faceDetectedForServer.y + "," + faceDetectedForServer.z + "\n";
@@ -109,26 +109,6 @@ public class FaceTracker : MonoBehaviour
 		float fovVertical = Mathf.Atan(-(Mathf.Abs(currentObserve.y) + camHeight / 2) / currentObserve.z) * 2;
 		fovVertical = fovVertical * 180 / Mathf.PI;
 		cam.fieldOfView = (fovVertical > fovHorizontal ? fovVertical : fovHorizontal);
-	}
-
-	private Vector3 convertFromServer(Vector3 v) {
-		Vector3 origin = new Vector3(camWidth / 2 + camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(angle), 0, - Mathf.Sin(angle));
-		Vector3 z = new Vector3(Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
-		v -= origin;
-		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
-	}
-
-	private Vector3 convertToServer(Vector3 v) {
-		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
-		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
-		v -= origin;
-		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
-	}
-
-	private float multXZ(Vector3 from, Vector3 to) {
-		return from.x * to.x + from.z * to.z;
 	}
 	
 }

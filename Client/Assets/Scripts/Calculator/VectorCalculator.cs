@@ -14,15 +14,6 @@ public static class VectorCalculator {
 	public static float camHeight;
 	public static float angle;
 
-	static void Start()
-	{
-
-		Camera cam = Camera.main;
-		camHeight = 2f * cam.orthographicSize;
-		camWidth = camHeight * cam.aspect;
-	
-	}
-
 
 	public static bool areLineSegmentIntersect(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2) {
 		bool result = true;
@@ -78,6 +69,28 @@ public static class VectorCalculator {
 		Vector3 z = new Vector3(Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
 		v -= origin;
 		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
+	}
+
+	public static Vector3 convertToServer(Vector3 v) {
+		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
+		v -= origin;
+		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
+	}
+
+	public static float Angle (Vector2 pos1, Vector2 pos2) {
+		Vector2 from = pos2 - pos1;
+		Vector2 to = new Vector2(1, 0);
+ 
+		float result = Vector2.Angle( from, to );
+		Vector3 cross = Vector3.Cross( from, to );
+ 
+		if (cross.z > 0) {
+			result = 360f - result;
+		}
+ 
+		return result;
 	}
 
 	public static float vectorAngle(Vector3 a, Vector3 b) { //radians

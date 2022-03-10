@@ -30,7 +30,7 @@ public class TouchProcessor : MonoBehaviour
 	void Update()
 	{
 
-		angle = sliderController.GetComponent<SliderController>().angle;
+		angle = VectorCalculator.angle;
 		
 		touchCountThisScreen = Input.touchCount;
 		if(touchCountThisScreen > 0) {
@@ -57,8 +57,8 @@ public class TouchProcessor : MonoBehaviour
 		if (touchCountThisScreen > 0) {
 			string msg = "Touch\n" + touchCountThisScreen + "\n";
 			for (int i=0;i<touchCountThisScreen;i++) {
-				Vector3 currPos = convertToServer(touchPosThisScreen[i]);
-				Vector3 prevPos = convertToServer(touchPrevPosThisScreen[i]);
+				Vector3 currPos = VectorCalculator.convertToServer(touchPosThisScreen[i]);
+				Vector3 prevPos = VectorCalculator.convertToServer(touchPrevPosThisScreen[i]);
 				msg += currPos.x + "," + currPos.y + "," + currPos.z + "," + prevPos.x + "," + prevPos.y + "," + prevPos.z + "\n";
 			}
 			for (int i=0;i<touchCountThisScreen;i++) {
@@ -83,30 +83,5 @@ public class TouchProcessor : MonoBehaviour
 			sender.GetComponent<ClientController>().sendMessage(msg);
 		}
 	}
- 
-	private float Angle (Vector2 pos1, Vector2 pos2) {
-		Vector2 from = pos2 - pos1;
-		Vector2 to = new Vector2(1, 0);
- 
-		float result = Vector2.Angle( from, to );
-		Vector3 cross = Vector3.Cross( from, to );
- 
-		if (cross.z > 0) {
-			result = 360f - result;
-		}
- 
-		return result;
-	}
 
-	private Vector3 convertToServer(Vector3 v) {
-		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
-		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
-		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
-		v -= origin;
-		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
-	}
-
-	private float multXZ(Vector3 from, Vector3 to) {
-		return from.x * to.x + from.z * to.z;
-	}
 }

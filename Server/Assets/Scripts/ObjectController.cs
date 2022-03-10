@@ -8,6 +8,7 @@ public class ObjectController : MonoBehaviour
 
 	private GameObject inside;
 	private ServerController sender;
+	private Text debugText;
 	private MeshManipulator meshManipulator;
 	[HideInInspector]
 	public bool isRealMeasure;
@@ -39,7 +40,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.0000001f;
+	private const float eps = 0.0001f;
 
 
 	private float timer = 0;
@@ -57,6 +58,8 @@ public class ObjectController : MonoBehaviour
 		}
 
 		isRealMeasure = false;
+
+		debugText = GameObject.Find("Debug").GetComponent<Text>();
 
 		updateMesh(true);
 		updateTransform();
@@ -304,6 +307,11 @@ public class ObjectController : MonoBehaviour
 			return;
 		}
 
+		debugText.text =
+			this.transform.position.x + ", "+
+			this.transform.position.y + ", " +
+			this.transform.position.z;
+
 		string msg =
 			"Transform\n" + 
 			this.transform.position.x + "," +
@@ -326,12 +334,10 @@ public class ObjectController : MonoBehaviour
 					int edgeShared = triangleEdges[a * 3 + i];
 					int vertexA = triangles[a * 3 + (i + 2) % 3];
 					int vertexB = triangles[b * 3 + (j + 2) % 3];
-					Vector3 vectorA = vertices[vertexA] - vertices[edges[edgeShared * 2]];
-					Vector3 vectorB = vertices[vertexB] - vertices[edges[edgeShared * 2]];
-					Vector3 vectorShared = vertices[edges[edgeShared * 2]] - vertices[edges[edgeShared * 2 + 1]];
-					Vector3 normalA = VectorCalculator.crossProduct(vectorA, vectorShared).normalized;
-					Vector3 normalB = VectorCalculator.crossProduct(vectorB, vectorShared).normalized;
-					if ((normalA - normalB).magnitude < eps || (normalA + normalB).magnitude < eps) {
+					Vector3 v1 = vertices[vertexA] - vertices[edges[edgeShared * 2]];
+					Vector3 v2 = vertices[vertexA] - vertices[edges[edgeShared * 2 + 1]];
+					Vector3 v3 = vertices[vertexA] - vertices[vertexB];
+					if (Mathf.Abs(VectorCalculator.dotProduct(v1, VectorCalculator.crossProduct(v2, v3))) < eps) {
 						return true;
 					}
 				}

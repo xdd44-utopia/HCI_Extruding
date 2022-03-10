@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public class MeshManipulator : MonoBehaviour
 {
@@ -31,10 +32,8 @@ public class MeshManipulator : MonoBehaviour
 	private ObjectController obj;
 	public Mesh defaultMesh;
 	private RaycastHit hit;
-	private Vector3[] hitVertices;
-	private int[] hitTriangles;
-	private int hitVerticesNum;
-	private int hitTrianglesNum;
+	private Vector3[] vertices;
+	private int[] triangles;
 
 	//Focus
 	[HideInInspector]
@@ -86,11 +85,10 @@ public class MeshManipulator : MonoBehaviour
 	private bool taperStarted = false;
 
 	//slice
-	private List<Vector3> leftVerticesList;
+	private List<Vector3> remainVerticesList;
 	private List<Vector3> rightVerticesList;
 	private List<Vector3> edgeVerticesList;
 	private List<Vector3> cuttingPlaneVerticesList;
-	private Vector3 planeNormalWorld;
 	public MeshRenderer cuttingPlaneRenderer;
 
 	//Undo
@@ -99,6 +97,8 @@ public class MeshManipulator : MonoBehaviour
 	private int[] undoTriangles;
 	private bool undoAvailable = false;
 	private Vector3 undoPos;
+	private Vector3 undoScale;
+	private Quaternion undoRot;
 
 	//Object status
 	private bool isThisScreenFocused = false;
@@ -150,6 +150,10 @@ public class MeshManipulator : MonoBehaviour
 	void Update() {
 
 		measureButton.sprite = (obj.isRealMeasure ? measureRecoveredSprite : measureRecoverSprite);
+		
+		vertices = gameObject.GetComponent<MeshFilter>().mesh.vertices;
+		triangles = gameObject.GetComponent<MeshFilter>().mesh.triangles;
+		
 		if (isEdgeAligned) {
 			if (isThisScreenFocused) {
 				string msg = "Extrude\n" + extrudeDist;
@@ -175,13 +179,6 @@ public class MeshManipulator : MonoBehaviour
 		}
 		if (isEdgeAligned) {
 			focusText.text += "\nEdge snapped";
-		}
-
-		if (state == Status.select) {
-			hitVertices = gameObject.GetComponent<MeshFilter>().mesh.vertices;
-			hitTriangles = gameObject.GetComponent<MeshFilter>().mesh.triangles;
-			hitVerticesNum = hitVertices.Length;
-			hitTrianglesNum = hitTriangles.Length;
 		}
 
 		if (Mathf.Abs(VectorCalculator.angle - prevAngle) > 0.005f) {
@@ -273,10 +270,10 @@ public class MeshManipulator : MonoBehaviour
 		int targetTriangle = -1;
 		if (isEdgeAligned) {
 			if (isThisScreenFocused) {
-				for (int i=0;i<hitTriangles.Length / 3;i++) {
+				for (int i=0;i<triangles.Length / 3;i++) {
 					int cnt = 0;
 					for (int j=0;j<3;j++) {
-						if (Mathf.Abs(VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]])).z) < 0.05f) {
+						if (Mathf.Abs(VectorCalculator.convertFromServer(transform.TransformPoint(vertices[triangles[i * 3 + j]])).z) < 0.05f) {
 							cnt++;
 						}
 					}
@@ -287,10 +284,10 @@ public class MeshManipulator : MonoBehaviour
 				}
 			}
 			else if (isOtherScreenFocused) {
-				for (int i=0;i<hitTriangles.Length / 3;i++) {
+				for (int i=0;i<triangles.Length / 3;i++) {
 					int cnt = 0;
 					for (int j=0;j<3;j++) {
-						if (Mathf.Abs(obj.transform.TransformPoint(hitVertices[hitTriangles[i * 3 + j]]).z) < 0.05f) {
+						if (Mathf.Abs(transform.TransformPoint(vertices[triangles[i * 3 + j]]).z) < 0.05f) {
 							cnt++;
 						}
 					}
@@ -312,15 +309,17 @@ public class MeshManipulator : MonoBehaviour
 
 	private void prepareUndo() {
 		undoAvailable = true;
-		undoVertices = new Vector3[hitVertices.Length];
-		undoTriangles = new int[hitTriangles.Length];
-		for (int i=0;i<hitVertices.Length;i++) {
-			undoVertices[i] = hitVertices[i];
+		undoVertices = new Vector3[vertices.Length];
+		undoTriangles = new int[triangles.Length];
+		for (int i=0;i<vertices.Length;i++) {
+			undoVertices[i] = vertices[i];
 		}
-		for (int i=0;i<hitTriangles.Length;i++) {
-			undoTriangles[i] = hitTriangles[i];
+		for (int i=0;i<triangles.Length;i++) {
+			undoTriangles[i] = triangles[i];
 		}
-		undoPos = obj.transform.position;
+		undoPos = transform.position;
+		undoScale = transform.localScale;
+		undoRot = transform.rotation;
 	}
 
 	public void loadUndo() {
@@ -330,28 +329,22 @@ public class MeshManipulator : MonoBehaviour
 		else {
 			undoAvailable = false;
 		}
-		hitVertices = gameObject.GetComponent<MeshFilter>().mesh.vertices;
-		hitTriangles = gameObject.GetComponent<MeshFilter>().mesh.triangles;
-		hitVertices = new Vector3[undoVertices.Length];
-		hitTriangles = new int[undoTriangles.Length];
-		for (int i=0;i<hitVertices.Length;i++) {
-			hitVertices[i] = undoVertices[i];
-		}
-		for (int i=0;i<hitTriangles.Length;i++) {
-			hitTriangles[i] = undoTriangles[i];
-		}
 
-		Mesh tempMesh = gameObject.GetComponent<MeshFilter>().mesh;
+		Mesh mesh = gameObject.GetComponent<MeshFilter>().mesh;
+		mesh.Clear();
+		mesh.vertices = undoVertices;
+		mesh.triangles = undoTriangles;
+		mesh.uv = new Vector2[undoVertices.Length];
+		mesh.MarkModified();
+		mesh.RecalculateNormals();
+		gameObject.GetComponent<MeshFilter>().mesh = mesh;
 
-		tempMesh.triangles = hitTriangles;
-		tempMesh.vertices = hitVertices;
-		tempMesh.MarkModified();
-		tempMesh.RecalculateNormals();
-		gameObject.GetComponent<MeshFilter>().mesh = tempMesh;
-		gameObject.GetComponent<MeshCollider>().sharedMesh = tempMesh;
+		transform.position = undoPos;
+		transform.localScale = undoScale;
+		transform.rotation = undoRot;
+
 		obj.updateTransform();
 		obj.updateMesh(true);
-		obj.transform.position = undoPos;
 	}
 
 	/* #endregion */
@@ -366,7 +359,7 @@ public class MeshManipulator : MonoBehaviour
 		int edgeLength = selectEdgeVertices.Count;
 		
 		extrudeDist = 0;
-		extrudeStartPos = obj.transform.position;
+		extrudeStartPos = transform.position;
 		if (isThisScreen) {
 			extrudeDir = new Vector3(-1, 0, 0);
 		}
@@ -375,42 +368,42 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		extrudedMesh = new Mesh();
-		extrudedMesh.vertices = new Vector3[hitVerticesNum + edgeLength];
-		extrudedMesh.uv = new Vector2[hitVerticesNum + edgeLength];
-		extrudedMesh.triangles = new int[hitTrianglesNum + edgeLength * 6];
+		extrudedMesh.vertices = new Vector3[vertices.Length + edgeLength];
+		extrudedMesh.uv = new Vector2[vertices.Length + edgeLength];
+		extrudedMesh.triangles = new int[triangles.Length + edgeLength * 6];
 		
 		extrudedVertices = extrudedMesh.vertices;
 		extrudedTriangles = extrudedMesh.triangles;
 		//Original mesh
-		for (int i=0;i<hitVerticesNum;i++) {
-			extrudedVertices[i] = hitVertices[i];
+		for (int i=0;i<vertices.Length;i++) {
+			extrudedVertices[i] = vertices[i];
 		}
 		//Copy edge
 		for (int i=0;i<edgeLength;i++) {
-			extrudedVertices[hitVerticesNum + i] = hitVertices[selectEdgeVertices[i]];
+			extrudedVertices[vertices.Length + i] = vertices[selectEdgeVertices[i]];
 		}
 		//Original triangles
-		for (int i=0;i<hitTrianglesNum;i++) {
-			extrudedTriangles[i] = hitTriangles[i];
+		for (int i=0;i<triangles.Length;i++) {
+			extrudedTriangles[i] = triangles[i];
 		}
 		//Reassign triangles of extruded face
 		for (int i=0;i<selectTriangles.Count;i++) {
 			for (int j=0;j<3;j++) {
 				for (int k=0;k<edgeLength;k++) {
-					if (Vector3.Distance(extrudedVertices[hitVerticesNum + k], extrudedVertices[extrudedTriangles[selectTriangles[i] * 3 + j]]) < 0.0001f) {
-						extrudedTriangles[selectTriangles[i] * 3 + j] = hitVerticesNum + k;
+					if (Vector3.Distance(extrudedVertices[vertices.Length + k], extrudedVertices[extrudedTriangles[selectTriangles[i] * 3 + j]]) < 0.0001f) {
+						extrudedTriangles[selectTriangles[i] * 3 + j] = vertices.Length + k;
 					}
 				}
 			}
 		}
 		//Assign triangles from extrusion
 		for (int i=0;i<edgeLength;i++) {
-			extrudedTriangles[hitTrianglesNum + i * 6 + 0] = selectEdgeVertices[i];
-			extrudedTriangles[hitTrianglesNum + i * 6 + 1] = selectEdgeVertices[(i+1)%edgeLength];
-			extrudedTriangles[hitTrianglesNum + i * 6 + 2] = hitVerticesNum + (i+1)%edgeLength;
-			extrudedTriangles[hitTrianglesNum + i * 6 + 3] = selectEdgeVertices[i];
-			extrudedTriangles[hitTrianglesNum + i * 6 + 4] = hitVerticesNum + (i+1)%edgeLength;
-			extrudedTriangles[hitTrianglesNum + i * 6 + 5] = hitVerticesNum + i;
+			extrudedTriangles[triangles.Length + i * 6 + 0] = selectEdgeVertices[i];
+			extrudedTriangles[triangles.Length + i * 6 + 1] = selectEdgeVertices[(i+1)%edgeLength];
+			extrudedTriangles[triangles.Length + i * 6 + 2] = vertices.Length + (i+1)%edgeLength;
+			extrudedTriangles[triangles.Length + i * 6 + 3] = selectEdgeVertices[i];
+			extrudedTriangles[triangles.Length + i * 6 + 4] = vertices.Length + (i+1)%edgeLength;
+			extrudedTriangles[triangles.Length + i * 6 + 5] = vertices.Length + i;
 		}
 
 		extrudedMesh.vertices = extrudedVertices;
@@ -420,7 +413,7 @@ public class MeshManipulator : MonoBehaviour
 		extrudedMesh.RecalculateNormals();
 
 		extrudedVerticesOriginal = new Vector3[extrudedVertices.Length];
-		for (int i=0;i<hitVerticesNum + edgeLength;i++) {
+		for (int i=0;i<vertices.Length + edgeLength;i++) {
 			extrudedVerticesOriginal[i] = extrudedVertices[i];
 		}
 		state = Status.extrude;
@@ -429,7 +422,7 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	public void updateExtrudeScale(float factor, bool isThisScreen) {
-		factor /= obj.transform.localScale.x;
+		factor /= transform.localScale.x;
 		if (smode != SelectMode.selectFace) {
 			return;
 		}
@@ -460,11 +453,11 @@ public class MeshManipulator : MonoBehaviour
 		extrudedTriangles = extrudedMesh.triangles;
 		int faceNum = selectTriangles.Count;
 		int edgeLength = selectEdgeVertices.Count;
-		Vector3 localNormal = obj.transform.InverseTransformPoint(obj.transform.position - extrudeDir);
+		Vector3 localNormal = transform.InverseTransformPoint(transform.position - extrudeDir);
 
 		localNormal = localNormal.normalized;
 		for (int i=0;i<edgeLength;i++) {
-			extrudedVertices[hitVerticesNum + i] = extrudedVerticesOriginal[hitVerticesNum + i] + localNormal * extrudeDist;
+			extrudedVertices[vertices.Length + i] = extrudedVerticesOriginal[vertices.Length + i] + localNormal * extrudeDist;
 		}
 
 		extrudedMesh.vertices = extrudedVertices;
@@ -472,9 +465,9 @@ public class MeshManipulator : MonoBehaviour
 		extrudedMesh.MarkModified();
 		extrudedMesh.RecalculateNormals();
 
-		extrudeDir = extrudeDir.normalized * obj.transform.localScale.x;
+		extrudeDir = extrudeDir.normalized * transform.localScale.x;
 
-		obj.transform.position = extrudeStartPos + extrudeDir * extrudeDist;
+		transform.position = extrudeStartPos + extrudeDir * extrudeDist;
 
 		debugText2.text += " " + extrudeDir * extrudeDist;
 
@@ -544,7 +537,7 @@ public class MeshManipulator : MonoBehaviour
 
 		for (int i=0;i<faceNum;i++) {
 			for (int j=0;j<3;j++) {
-				taperCenter += hitVertices[hitTriangles[selectTriangles[i] * 3 + j]];
+				taperCenter += vertices[triangles[selectTriangles[i] * 3 + j]];
 			}
 		}
 		taperCenter /= faceNum * 3;
@@ -575,7 +568,7 @@ public class MeshManipulator : MonoBehaviour
 
 		for (int i=0;i<faceNum;i++) {
 			for (int j=0;j<3;j++) {
-				taperedVertices[hitTriangles[selectTriangles[i] * 3 + j]] = taperScale * (hitVertices[hitTriangles[selectTriangles[i] * 3 + j]] - taperCenter) + taperCenter;
+				taperedVertices[triangles[selectTriangles[i] * 3 + j]] = taperScale * (vertices[triangles[selectTriangles[i] * 3 + j]] - taperCenter) + taperCenter;
 			}
 		}
 
@@ -583,8 +576,8 @@ public class MeshManipulator : MonoBehaviour
 
 		for (int i=0;i<taperedVertices.Length;i++) {
 			for (int j=0;j<edgeLength;j++) {
-				if (hitVertices[selectEdgeVertices[j]] == hitVertices[i]) {
-					taperedVertices[i] = taperScale * (hitVertices[selectEdgeVertices[j]] - taperCenter) + taperCenter;
+				if (vertices[selectEdgeVertices[j]] == vertices[i]) {
+					taperedVertices[i] = taperScale * (vertices[selectEdgeVertices[j]] - taperCenter) + taperCenter;
 				}
 			}
 		}
@@ -614,8 +607,7 @@ public class MeshManipulator : MonoBehaviour
 		isEdgeAligned = false;
 	}
 	public void executeCuttingPlaneOtherScreen() {
-		startSlice(true, false);
-		executeSlice();
+		cut(false);
 		isOtherScreenPenetrate = false;
 	}
 	private void enableCuttingPlaneThisScreen() {
@@ -624,8 +616,7 @@ public class MeshManipulator : MonoBehaviour
 		isEdgeAligned = false;
 	}
 	private void executeCuttingPlaneThisScreen() {
-		startSlice(true, true);
-		executeSlice();
+		cut(true);
 		isThisScreenCuttingPlane = false;
 		cuttingPlaneRenderer.enabled = false;
 	}
@@ -637,28 +628,22 @@ public class MeshManipulator : MonoBehaviour
 			executeCuttingPlaneThisScreen();
 		}
 	}
-	public void startSlice(bool isScreenCut, bool isMainScreen) {
-		GameObject slicePlane = GameObject.Find("SlicePlane");
-		if (state == Status.select) {
-			if (isScreenCut && isMainScreen) {
-				prepareSlice(new Vector3(0, 0, 0.025f), new Vector3(0, 0, -1), isScreenCut);
-			}
-			else {
-				Vector3 normalTemp = slicePlane.transform.rotation * new Vector3(0, 1, 0);
-				prepareSlice(slicePlane.transform.position, normalTemp, isScreenCut);
-			}
+	public void cut(bool isMainScreen) {
+		if (state != Status.select) {
+			return;
 		}
-	}
-	private void prepareSlice(Vector3 planePos, Vector3 planeNormal, bool isScreenCut) {
+		GameObject slicePlane = GameObject.Find("SlicePlane");
+		Vector3 planePos = isMainScreen ? new Vector3(0, 0, 0) : slicePlane.transform.position;
+		Vector3 planeNormal = isMainScreen ? new Vector3(0, 0, -1) : slicePlane.transform.rotation * new Vector3(0, 1, 0);
 
 		prepareUndo();
 
 		// x ⋅ planePos - VectorCalculator.dotProduct(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
-		planeNormalWorld = new Vector3(planeNormal.x, planeNormal.y, planeNormal.z);
-		planePos = obj.transform.InverseTransformPoint(planePos);
-		planeNormal = obj.transform.InverseTransformPoint(planeNormal + obj.transform.position);
-		Vector3 avoidZeroVector = new Vector3(UnityEngine.Random.Range(0.01f, 0.02f), UnityEngine.Random.Range(0.01f, 0.02f), UnityEngine.Random.Range(0.01f, 0.02f));
+		planePos = transform.InverseTransformPoint(planePos);
+		planeNormal = transform.InverseTransformPoint(planeNormal + transform.position).normalized;
+
+		Vector3 avoidZeroVector = new Vector3(Random.Range(0.001f, 0.002f), Random.Range(0.001f, 0.002f), Random.Range(0.001f, 0.002f));
 		if (planeNormal.x != 0) {
 			avoidZeroVector.x = - (avoidZeroVector.y * planeNormal.y + avoidZeroVector.z * planeNormal.z) / planeNormal.x;
 		}
@@ -670,51 +655,49 @@ public class MeshManipulator : MonoBehaviour
 		}
 		planePos += avoidZeroVector;
 
-		leftVerticesList = new List<Vector3>();
-		rightVerticesList = new List<Vector3>();
+		Debug.DrawLine(
+			transform.position,
+			transform.TransformPoint(planeNormal),
+			Color.yellow,
+			5000,
+			false
+		);
+
+		remainVerticesList = new List<Vector3>();
 		edgeVerticesList = new List<Vector3>();
 
 		//Calculate edge of cutting plane & reconstruct faces along the edge
-		int[] triangleSide = new int[hitTrianglesNum / 3]; // -1 left, 0 cross, 1 right
+		int[] triangleSide = new int[triangles.Length / 3]; // -1 left, 0 cross, 1 right
 		float pn = VectorCalculator.dotProduct(planePos, planeNormal);
-		for (int i=0;i<hitTrianglesNum / 3;i++) {
+		for (int i=0;i<triangles.Length / 3;i++) {
 			float[] verticesPos = new float[3]{
-				VectorCalculator.dotProduct(hitVertices[hitTriangles[i * 3 + 0]], planeNormal) - pn,
-				VectorCalculator.dotProduct(hitVertices[hitTriangles[i * 3 + 1]], planeNormal) - pn,
-				VectorCalculator.dotProduct(hitVertices[hitTriangles[i * 3 + 2]], planeNormal) - pn
+				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 0]], planeNormal) - pn,
+				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 1]], planeNormal) - pn,
+				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 2]], planeNormal) - pn
 			};
 			if (verticesPos[0] <= 0 && verticesPos[1] <= 0 && verticesPos[2] <= 0) {
 				triangleSide[i] = -1;
 				for (int j=0;j<3;j++) {
-					leftVerticesList.Add(hitVertices[hitTriangles[i * 3 + j]]);
+					remainVerticesList.Add(vertices[triangles[i * 3 + j]]);
 				}
 			}
-			else if (verticesPos[0] > 0 && verticesPos[1] > 0 && verticesPos[2] > 0) {
-				triangleSide[i] = 1;
-				for (int j=0;j<3;j++) {
-					rightVerticesList.Add(hitVertices[hitTriangles[i * 3 + j]]);
-				}
-			}
-			else {
+			else if (verticesPos[0] <= 0 || verticesPos[1] <= 0 || verticesPos[2] <= 0) {
 				triangleSide[i] = 0;
 				for (int j=0;j<3;j++) {
 					Vector3[] curVec = new Vector3[3]{
-						hitVertices[hitTriangles[i * 3 + j]],
-						hitVertices[hitTriangles[i * 3 + ((j+1)%3)]],
-						hitVertices[hitTriangles[i * 3 + ((j+2)%3)]]
+						vertices[triangles[i * 3 + j]],
+						vertices[triangles[i * 3 + ((j + 1) % 3)]],
+						vertices[triangles[i * 3 + ((j + 2) % 3)]]
 					};
-					if (verticesPos[j] <= 0 && verticesPos[(j+1)%3] <= 0) {
+					if (verticesPos[j] <= 0 && verticesPos[(j + 1) % 3] <= 0) {
 						Vector3 newVec1 = VectorCalculator.getLinePlaneIntersection(curVec[0], curVec[2], planePos, planeNormal);
 						Vector3 newVec2 = VectorCalculator.getLinePlaneIntersection(curVec[1], curVec[2], planePos, planeNormal);
-						leftVerticesList.Add(curVec[0]);
-						leftVerticesList.Add(curVec[1]);
-						leftVerticesList.Add(newVec1);
-						leftVerticesList.Add(curVec[1]);
-						leftVerticesList.Add(newVec2);
-						leftVerticesList.Add(newVec1);
-						rightVerticesList.Add(curVec[2]);
-						rightVerticesList.Add(newVec1);
-						rightVerticesList.Add(newVec2);
+						remainVerticesList.Add(curVec[0]);
+						remainVerticesList.Add(curVec[1]);
+						remainVerticesList.Add(newVec1);
+						remainVerticesList.Add(curVec[1]);
+						remainVerticesList.Add(newVec2);
+						remainVerticesList.Add(newVec1);
 						edgeVerticesList.Add(newVec1);
 						edgeVerticesList.Add(newVec2);
 						break;
@@ -722,15 +705,9 @@ public class MeshManipulator : MonoBehaviour
 					else if (verticesPos[j] > 0 && verticesPos[(j+1)%3] > 0) {
 						Vector3 newVec1 = VectorCalculator.getLinePlaneIntersection(curVec[0], curVec[2], planePos, planeNormal);
 						Vector3 newVec2 = VectorCalculator.getLinePlaneIntersection(curVec[1], curVec[2], planePos, planeNormal);
-						rightVerticesList.Add(curVec[0]);
-						rightVerticesList.Add(curVec[1]);
-						rightVerticesList.Add(newVec1);
-						rightVerticesList.Add(curVec[1]);
-						rightVerticesList.Add(newVec2);
-						rightVerticesList.Add(newVec1);
-						leftVerticesList.Add(curVec[2]);
-						leftVerticesList.Add(newVec1);
-						leftVerticesList.Add(newVec2);
+						remainVerticesList.Add(curVec[2]);
+						remainVerticesList.Add(newVec1);
+						remainVerticesList.Add(newVec2);
 						edgeVerticesList.Add(newVec1);
 						edgeVerticesList.Add(newVec2);
 						break;
@@ -744,147 +721,98 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		//Extract edge as successive vertices
-		List<Vector3> sortedEdgeVerticesList = new List<Vector3>();
-		int curEdge = 0;
-		Vector3 curVect = edgeVerticesList[1];
-		bool done = false;
-		sortedEdgeVerticesList.Clear();
+		List<List<Vector3>> sortedEdgeVerticesList = new List<List<Vector3>>();
+		bool[] used = new bool[edgeVerticesList.Count / 2];
+		int boundaryCount = 0;
 
-		for (int i=0;i<edgeVerticesList.Count / 2;i++) {
-			for (int j=0;j<edgeVerticesList.Count / 2;j++) {
-				if (curEdge != j) {
-					if (edgeVerticesList[j * 2] == curVect) {
-						sortedEdgeVerticesList.Add(edgeVerticesList[j * 2]);
-						curVect = edgeVerticesList[j * 2 + 1];
-						curEdge = j;
-						break;
-					}
-					else if (edgeVerticesList[j * 2 + 1] == curVect) {
-						sortedEdgeVerticesList.Add(edgeVerticesList[j * 2 + 1]);
-						curVect = edgeVerticesList[j * 2];
-						curEdge = j;
-						break;
-					}
-				}
-			}
-		}
-
-		//Simplify edge
 		while (true) {
-			int prevCount = sortedEdgeVerticesList.Count;
-			for (int i=0;i<sortedEdgeVerticesList.Count;i++) {
-				int prev = (i + sortedEdgeVerticesList.Count - 1) % sortedEdgeVerticesList.Count;
-				int next = (i + 1) % sortedEdgeVerticesList.Count;
-				if (VectorCalculator.crossProduct(sortedEdgeVerticesList[next] - sortedEdgeVerticesList[i], sortedEdgeVerticesList[i] - sortedEdgeVerticesList[prev]).magnitude < 0.001f) {
-					sortedEdgeVerticesList.RemoveAt(i);
+
+			int curEdge = -1;
+			Vector3 curStart = new Vector3(0, 0, 0);
+			Vector3 curVect = new Vector3(0, 0, 0);
+			for (int i=0;i<edgeVerticesList.Count / 2;i++) {
+				if (!used[i]) {
+					curEdge = i;
+					curStart = edgeVerticesList[i * 2];
+					curVect = edgeVerticesList[i * 2 + 1];
+					used[i] = true;
 					break;
 				}
 			}
-			if (sortedEdgeVerticesList.Count == prevCount) {
+			if (curEdge == -1) {
 				break;
 			}
-		}
 
-		Vector3[] sortedEdgeVertices = new Vector3[sortedEdgeVerticesList.Count];
-		for (int i=0;i<sortedEdgeVerticesList.Count;i++){
-			sortedEdgeVertices[i] = obj.transform.TransformPoint(sortedEdgeVerticesList[i]);
-		}
+			boundaryCount++;
+			sortedEdgeVerticesList.Add(new List<Vector3>());
+			sortedEdgeVerticesList[boundaryCount - 1].Add(curStart);
 
-		//Construct cutting plane
-		cuttingPlaneVerticesList = new List<Vector3>();
-		while (sortedEdgeVerticesList.Count > 3) {
-			int prevCount = sortedEdgeVerticesList.Count;
-			int loopCount = 0;
-			int i = UnityEngine.Random.Range(0, sortedEdgeVerticesList.Count);
-			while (loopCount < prevCount) {
-				int prev1 = (i + sortedEdgeVerticesList.Count - 1) % sortedEdgeVerticesList.Count;
-				int prev2 = (i + sortedEdgeVerticesList.Count - 2) % sortedEdgeVerticesList.Count;
-				int next1 = (i + 1) % sortedEdgeVerticesList.Count;
-				int next2 = (i + 2) % sortedEdgeVerticesList.Count;
-				bool isIntersect = false;
-				if (Vector3.Angle(
-						sortedEdgeVerticesList[next1] - sortedEdgeVerticesList[i],
-						sortedEdgeVerticesList[next2] - sortedEdgeVerticesList[next1]
-					) <
-					Vector3.Angle(
-						sortedEdgeVerticesList[next1] - sortedEdgeVerticesList[i],
-						sortedEdgeVerticesList[prev1] - sortedEdgeVerticesList[next1]
-					)
-				) {
-					for (int j=0;j<sortedEdgeVerticesList.Count;j++) {
-						if (j != i && j != prev1 && j != prev2 && j != next1 &&
-							VectorCalculator.areLineSegmentIntersect(
-								sortedEdgeVerticesList[prev1],
-								sortedEdgeVerticesList[next1],
-								sortedEdgeVerticesList[j],
-								sortedEdgeVerticesList[(j+1)%sortedEdgeVerticesList.Count]
-							)
-						) {
-							isIntersect = true;
-							break;
+			bool done = false;
+			do {
+				for (int j=0;j<edgeVerticesList.Count / 2;j++) {
+					if (curEdge != j) {
+						for (int k=0;k<2;k++) {
+							if (edgeVerticesList[j * 2 + k] == curVect) {
+								sortedEdgeVerticesList[boundaryCount - 1].Add(edgeVerticesList[j * 2 + k]);
+								curVect = edgeVerticesList[j * 2 + (1 - k)];
+								if (curVect == curStart) {
+									done = true;
+								}
+								curEdge = j;
+								used[j] = true;
+								break;
+							}
 						}
 					}
-					if (!isIntersect) {
-						cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[prev1]);
-						cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[i]);
-						cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[next1]);
-						sortedEdgeVerticesList.RemoveAt(i);
+					if (done) {
+						break;
 					}
 				}
-				if (!isIntersect) {
+			} while (!done);
+
+			//Simplify edge
+			while (true) {
+				int prevCount = sortedEdgeVerticesList[boundaryCount - 1].Count;
+				for (int i=0;i<sortedEdgeVerticesList[boundaryCount - 1].Count;i++) {
+					int prev = (i + sortedEdgeVerticesList[boundaryCount - 1].Count - 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
+					int next = (i + 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
+					if (VectorCalculator.crossProduct(sortedEdgeVerticesList[boundaryCount - 1][next] - sortedEdgeVerticesList[boundaryCount - 1][i], sortedEdgeVerticesList[boundaryCount - 1][i] - sortedEdgeVerticesList[boundaryCount - 1][prev]).magnitude < 0.001f) {
+						sortedEdgeVerticesList[boundaryCount - 1].RemoveAt(i);
+						break;
+					}
+				}
+				if (sortedEdgeVerticesList[boundaryCount - 1].Count == prevCount) {
 					break;
 				}
-				i++;
-				loopCount++;
-				if (i == sortedEdgeVerticesList.Count) {
-					i = 0;
-				}
 			}
-			if (prevCount == sortedEdgeVerticesList.Count) {
-				Debug.Log(prevCount);
-				break;
-			}
-		}
-		cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[0]);
-		cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[1]);
-		cuttingPlaneVerticesList.Add(sortedEdgeVerticesList[2]);
 
-		//Verify direction
-		for (int i=0;i<cuttingPlaneVerticesList.Count / 3;i++) {
-			Vector3 normalFace = VectorCalculator.crossProduct(
-				cuttingPlaneVerticesList[i * 3 + 1] - cuttingPlaneVerticesList[i * 3 + 0],
-				cuttingPlaneVerticesList[i * 3 + 2] - cuttingPlaneVerticesList[i * 3 + 1]
-			);
-			if (
-				(normalFace.x != 0 && planeNormal.x != 0 && planeNormal.x / normalFace.x < 0) ||
-				(normalFace.y != 0 && planeNormal.y != 0 && planeNormal.y / normalFace.y < 0) ||
-				(normalFace.z != 0 && planeNormal.z != 0 && planeNormal.z / normalFace.z < 0)
-			) {
-				Vector3 tempVertex = cuttingPlaneVerticesList[i * 3 + 1];
-				cuttingPlaneVerticesList[i * 3 + 1] = new Vector3(cuttingPlaneVerticesList[i * 3 + 0].x, cuttingPlaneVerticesList[i * 3 + 0].y, cuttingPlaneVerticesList[i * 3 + 0].z);
-				cuttingPlaneVerticesList[i * 3 + 0] = tempVertex;
-			}
-		}
-	}
-	
-	public void executeSlice(){
-
-		Mesh leftMesh = gameObject.GetComponent<MeshFilter>().mesh;
-		leftMesh.Clear();
-		leftMesh.vertices = new Vector3[leftVerticesList.Count + cuttingPlaneVerticesList.Count];
-		leftMesh.triangles = new int[leftVerticesList.Count + cuttingPlaneVerticesList.Count];
-		Vector3[] leftVertices = leftMesh.vertices;
-		int[] leftTriangles = leftMesh.triangles;
-		for (int i=0;i<leftVerticesList.Count;i++) {
-			leftVertices[i] = leftVerticesList[i];
-			leftTriangles[i] = i;
 		}
 
-		for (int i=0;i<cuttingPlaneVerticesList.Count / 3;i++) {
-			for (int j=0;j<3;j++) {
-				leftVertices[i * 3 + j + leftVerticesList.Count] = cuttingPlaneVerticesList[i * 3 + j];
-				leftTriangles[i * 3 + j + leftVerticesList.Count] = i * 3 + j + leftVerticesList.Count;
+		List<Vector3> allEdgeVerticesList = new List<Vector3>();
+		List<List<int>> boundaries = new List<List<int>>();
+		int acc = 0;
+		for (int i=0;i<sortedEdgeVerticesList.Count;i++) {
+			allEdgeVerticesList.AddRange(sortedEdgeVerticesList[i]);
+			boundaries.Add(new List<int>());
+			for (int j=0;j<sortedEdgeVerticesList[i].Count;j++) {
+				boundaries[i].Add(acc);
+				acc++;
 			}
+		}
+
+		int[] cuttingPlaneTriangles = MeshCalculator.triangulationUnorderedBoundaries(allEdgeVerticesList.ToArray(), boundaries, planeNormal);
+
+		Vector3[] newVertices = new Vector3[remainVerticesList.Count + allEdgeVerticesList.Count];
+		int[] newTriangles = new int[remainVerticesList.Count + cuttingPlaneTriangles.Length];
+		for (int i=0;i<remainVerticesList.Count;i++) {
+			newVertices[i] = remainVerticesList[i];
+			newTriangles[i] = i;
+		}
+		for (int i=0;i<allEdgeVerticesList.Count;i++) {
+			newVertices[i + remainVerticesList.Count] = allEdgeVerticesList[i];
+		}
+		for (int i=0;i<cuttingPlaneTriangles.Length;i++) {
+			newTriangles[i + remainVerticesList.Count] = cuttingPlaneTriangles[i] + remainVerticesList.Count;
 		}
 
 		//relocate mesh center
@@ -894,88 +822,35 @@ public class MeshManipulator : MonoBehaviour
 		float maxx = -2147483647;
 		float maxy = -2147483647;
 		float maxz = -2147483647;
-		for (int i=0;i<leftVertices.Length;i++) {
-			minx = Math.Min(minx, leftVertices[i].x);
-			miny = Math.Min(miny, leftVertices[i].y);
-			minz = Math.Min(minz, leftVertices[i].z);
-			maxx = Math.Max(maxx, leftVertices[i].x);
-			maxy = Math.Max(maxy, leftVertices[i].y);
-			maxz = Math.Max(maxz, leftVertices[i].z);
+		for (int i=0;i<newVertices.Length;i++) {
+			minx = Math.Min(minx, newVertices[i].x);
+			miny = Math.Min(miny, newVertices[i].y);
+			minz = Math.Min(minz, newVertices[i].z);
+			maxx = Math.Max(maxx, newVertices[i].x);
+			maxy = Math.Max(maxy, newVertices[i].y);
+			maxz = Math.Max(maxz, newVertices[i].z);
 		}
 		Vector3 meshCenter = new Vector3((maxx + minx) / 2, (maxy + miny) / 2, (maxz + minz) / 2);
-		for (int i=0;i<leftVertices.Length;i++) {
-			leftVertices[i] -= meshCenter;
+		for (int i=0;i<newVertices.Length;i++) {
+			newVertices[i] -= meshCenter;
 		}
 		meshCenter = transform.TransformPoint(meshCenter);
 		transform.position = meshCenter;
 
 		//update mesh
 
-		leftMesh.vertices = leftVertices;
-		leftMesh.triangles = leftTriangles;
-		leftMesh.MarkModified();
-		leftMesh.RecalculateNormals();
-		gameObject.GetComponent<MeshFilter>().mesh = leftMesh;
-		gameObject.GetComponent<MeshCollider>().sharedMesh = leftMesh;
+		Mesh mesh = gameObject.GetComponent<MeshFilter>().mesh;
+		mesh.Clear();
+		mesh.vertices = newVertices;
+		mesh.triangles = newTriangles;
+		mesh.MarkModified();
+		mesh.RecalculateNormals();
+		gameObject.GetComponent<MeshFilter>().mesh = mesh;
 
 		obj.updateMesh(true);
 		obj.updateTransform();
 
 	}
-	/* #endregion */
-
-	/* #region Drill */
-
-	// public void enableDrillSimulation() {
-
-	// 	// if (smode != SelectMode.selectFace) {
-	// 	// 	return;
-	// 	// }
-		
-	// 	isOtherScreenPenetrate = true;
-	// 	isEdgeAligned = false;
-	// 	drillDist = 0;
-
-	// 	obj.GetComponent<MeshRenderer>().enabled = false;
-	// 	GameObject.Find("Inside").GetComponent<MeshRenderer>().enabled = false;
-	// 	GameObject[] faces = GameObject.FindGameObjectsWithTag("FaceObj");
-	// 	foreach (GameObject face in faces) {
-	// 		face.GetComponent<MeshRenderer>().enabled = false;
-	// 	}
-	// 	drillObj.SetActive(true);
-
-	// 	state = Status.drill;
-	// }
-	// public void exitDrillSimulation() {
-	// 	isOtherScreenPenetrate = false;
-	// 	state = Status.select;
-	// }
-	// public void disableDrillSimulation() {
-
-	// 	obj.GetComponent<MeshRenderer>().enabled = true;
-	// 	GameObject.Find("Inside").GetComponent<MeshRenderer>().enabled = true;
-	// 	GameObject[] faces = GameObject.FindGameObjectsWithTag("FaceObj");
-	// 	foreach (GameObject face in faces) {
-	// 		face.GetComponent<MeshRenderer>().enabled = true;
-	// 	}
-	// 	drillObj.SetActive(false);
-	// 	sender.GetComponent<ServerController>().sendMessage("Drill\nX");
-
-	// 	state = Status.select;
-	// }
-
-	// public void updateDrillScale(float factor) {
-	// 	if (smode != SelectMode.selectFace) {
-	// 		return;
-	// 	}
-	// 	if (state == Status.drill) {
-	// 		drillDist += factor;
-	// 		drillDist = drillDist > 0 ? drillDist : 0;
-	// 		Vector3 dir = drillObj.transform.InverseTransformPoint(new Vector3(Mathf.Cos(-VectorCalculator.angle), 0, Mathf.Sin(-VectorCalculator.angle)) * drillDist + drillObj.transform.position);
-	// 		drillObj.GetComponent<DrilledObjectController>().dir = dir;
-	// 	}
-	// }
-
 	/* #endregion */
 
 	/* #region Transform */
@@ -985,35 +860,35 @@ public class MeshManipulator : MonoBehaviour
 			return;
 		}
 		if (!isThisScreenFocused && !isOtherScreenFocused) {
-			obj.transform.position += panDelta;
+			transform.position += panDelta;
 		}
 		else {
-			obj.transform.position += new Vector3(0, panDelta.y, 0);
+			transform.position += new Vector3(0, panDelta.y, 0);
 			if (isThisScreenFocused && isMainScreen) {
 				if (isEdgeAligned) {
 					if (panDelta.x < 0) {
-						obj.transform.position += new Vector3(panDelta.x, 0, 0);
+						transform.position += new Vector3(panDelta.x, 0, 0);
 						isEdgeAligned = false;
 						closestVertex = -1;
 						secondVertex = -1;
 					}
 				}
 				else {
-					obj.transform.position += new Vector3(panDelta.x, 0, 0);
+					transform.position += new Vector3(panDelta.x, 0, 0);
 					adjustAlign(true);
 				}
 			}
 			if (isOtherScreenFocused && !isMainScreen) {
 				if (isEdgeAligned) {
 					if (panDelta.x > 0) {
-						obj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
+						transform.position += new Vector3(panDelta.x, 0, panDelta.z);
 						isEdgeAligned = false;
 						closestVertex = -1;
 						secondVertex = -1;
 					}
 				}
 				else {
-					obj.transform.position += new Vector3(panDelta.x, 0, panDelta.z);
+					transform.position += new Vector3(panDelta.x, 0, panDelta.z);
 					adjustAlign(false);
 				}
 			}
@@ -1025,8 +900,8 @@ public class MeshManipulator : MonoBehaviour
 		if (state != Status.select) {
 			return;
 		}
-		if (obj.transform.localScale.x + pinchDelta > 0) {
-			obj.transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
+		if (transform.localScale.x + pinchDelta > 0) {
+			transform.localScale += new Vector3(pinchDelta, pinchDelta, pinchDelta);
 			isEdgeAligned = false;
 			closestVertex = -1;
 			secondVertex = -1;
@@ -1047,7 +922,7 @@ public class MeshManipulator : MonoBehaviour
 			return;
 		}
 		Quaternion rot = Quaternion.AngleAxis(turnDelta, (isMainScreen ? new Vector3(0, 0, 1) : new Vector3(-Mathf.Sin(-VectorCalculator.angle), 0, Mathf.Cos(-VectorCalculator.angle))));
-		obj.transform.rotation = rot * obj.transform.rotation;
+		transform.rotation = rot * transform.rotation;
 		obj.updateTransform();
 	}
 
@@ -1058,37 +933,37 @@ public class MeshManipulator : MonoBehaviour
 			closestVertex = -1;
 			secondVertex = -1;
 			for (int i=0;i<faceNum;i++) {
-				if (closestVertex == -1 || obj.transform.TransformPoint(hitVertices[closestVertex]).x < obj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]]).x) {
+				if (closestVertex == -1 || transform.TransformPoint(vertices[closestVertex]).x < transform.TransformPoint(vertices[selectEdgeVertices[i]]).x) {
 					closestVertex = selectEdgeVertices[i];
 				}
 			}
 			for (int i=0;i<faceNum;i++) {
-				if ((secondVertex == -1 || obj.transform.TransformPoint(hitVertices[secondVertex]).x < obj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]]).x) && selectEdgeVertices[i] != closestVertex) {
+				if ((secondVertex == -1 || transform.TransformPoint(vertices[secondVertex]).x < transform.TransformPoint(vertices[selectEdgeVertices[i]]).x) && selectEdgeVertices[i] != closestVertex) {
 					secondVertex = selectEdgeVertices[i];
 				}
 			}
-			Vector3 closestVector = obj.transform.TransformPoint(hitVertices[closestVertex]);
-			Vector3 secondVector = obj.transform.TransformPoint(hitVertices[secondVertex]);
+			Vector3 closestVector = transform.TransformPoint(vertices[closestVertex]);
+			Vector3 secondVector = transform.TransformPoint(vertices[secondVertex]);
 			if (closestVector.x > VectorCalculator.camWidth / 2 && secondVector.x > VectorCalculator.camWidth / 2) {
 				if (closestVector.x != secondVector.x) {
 					float k = (closestVector.y - secondVector.y) / (closestVector.x - secondVector.x);
 					k = 1/k;
 					float deltaAngle = Mathf.Atan(k);
 					Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(0, 0, 1));
-					obj.transform.rotation = rot * obj.transform.rotation;
+					transform.rotation = rot * transform.rotation;
 				}
-				closestVector = obj.transform.TransformPoint(hitVertices[closestVertex]);
-				obj.transform.position -= new Vector3(closestVector.x - VectorCalculator.camWidth / 2, 0, 0);
+				closestVector = transform.TransformPoint(vertices[closestVertex]);
+				transform.position -= new Vector3(closestVector.x - VectorCalculator.camWidth / 2, 0, 0);
 				isEdgeAligned = true;
 			}
 			else if (closestVector.x > VectorCalculator.camWidth / 2) {
-				float dist = (closestVector - new Vector3(obj.transform.position.x, obj.transform.position.y, 0)).magnitude;
-				Vector3 targetVector = new Vector3(VectorCalculator.camWidth / 2, Mathf.Sqrt(dist * dist - (VectorCalculator.camWidth / 2 - obj.transform.position.x) * (VectorCalculator.camWidth / 2 - obj.transform.position.x)) * (closestVector.y > obj.transform.position.y ? 1 : -1), 0);
-				Vector3 a = targetVector - new Vector3(obj.transform.position.x, obj.transform.position.y, 0);
-				Vector3 b = closestVector - new Vector3(obj.transform.position.x, obj.transform.position.y, 0);
-				float deltaAngle = Mathf.Acos(VectorCalculator.dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > obj.transform.position.y ? 1 : -1);
+				float dist = (closestVector - new Vector3(transform.position.x, transform.position.y, 0)).magnitude;
+				Vector3 targetVector = new Vector3(VectorCalculator.camWidth / 2, Mathf.Sqrt(dist * dist - (VectorCalculator.camWidth / 2 - transform.position.x) * (VectorCalculator.camWidth / 2 - transform.position.x)) * (closestVector.y > transform.position.y ? 1 : -1), 0);
+				Vector3 a = targetVector - new Vector3(transform.position.x, transform.position.y, 0);
+				Vector3 b = closestVector - new Vector3(transform.position.x, transform.position.y, 0);
+				float deltaAngle = Mathf.Acos(VectorCalculator.dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > transform.position.y ? 1 : -1);
 				Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(0, 0, 1));
-				obj.transform.rotation = rot * obj.transform.rotation;
+				transform.rotation = rot * transform.rotation;
 			}
 		}
 		else if (!isMainScreen && !isThisScreenCuttingPlane) {
@@ -1096,37 +971,37 @@ public class MeshManipulator : MonoBehaviour
 			closestVertex = -1;
 			secondVertex = -1;
 			for (int i=0;i<faceNum;i++) {
-				if (closestVertex == -1 || VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[closestVertex])).x > VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]])).x) {
+				if (closestVertex == -1 || VectorCalculator.convertFromServer(transform.TransformPoint(vertices[closestVertex])).x > VectorCalculator.convertFromServer(transform.TransformPoint(vertices[selectEdgeVertices[i]])).x) {
 					closestVertex = selectEdgeVertices[i];
 				}
 			}
 			for (int i=0;i<faceNum;i++) {
-				if ((secondVertex == -1 || VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[secondVertex])).x > VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[selectEdgeVertices[i]])).x) && selectEdgeVertices[i] != closestVertex) {
+				if ((secondVertex == -1 || VectorCalculator.convertFromServer(transform.TransformPoint(vertices[secondVertex])).x > VectorCalculator.convertFromServer(transform.TransformPoint(vertices[selectEdgeVertices[i]])).x) && selectEdgeVertices[i] != closestVertex) {
 					secondVertex = selectEdgeVertices[i];
 				}
 			}
-			Vector3 closestVector = VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[closestVertex]));
-			Vector3 secondVector = VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[secondVertex]));
+			Vector3 closestVector = VectorCalculator.convertFromServer(transform.TransformPoint(vertices[closestVertex]));
+			Vector3 secondVector = VectorCalculator.convertFromServer(transform.TransformPoint(vertices[secondVertex]));
 			if (closestVector.x < - VectorCalculator.camWidth / 2 && secondVector.x < - VectorCalculator.camWidth / 2) {
 				if (closestVector.x != secondVector.x) {
 					float k = (closestVector.y - secondVector.y) / (closestVector.x - secondVector.x);
 					k = 1/k;
 					float deltaAngle = Mathf.Atan(k);
 					Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(-Mathf.Sin(-VectorCalculator.angle), 0, Mathf.Cos(-VectorCalculator.angle)));
-					obj.transform.rotation = rot * obj.transform.rotation;
+					transform.rotation = rot * transform.rotation;
 				}
-				closestVector = VectorCalculator.convertFromServer(obj.transform.TransformPoint(hitVertices[closestVertex]));
-				obj.transform.position += new Vector3(Mathf.Cos(-VectorCalculator.angle) * (- closestVector.x - VectorCalculator.camWidth / 2), 0, Mathf.Sin(-VectorCalculator.angle) * (- closestVector.x - VectorCalculator.camWidth / 2));
+				closestVector = VectorCalculator.convertFromServer(transform.TransformPoint(vertices[closestVertex]));
+				transform.position += new Vector3(Mathf.Cos(-VectorCalculator.angle) * (- closestVector.x - VectorCalculator.camWidth / 2), 0, Mathf.Sin(-VectorCalculator.angle) * (- closestVector.x - VectorCalculator.camWidth / 2));
 				isEdgeAligned = true;
 			}
 			else if (closestVector.x < - VectorCalculator.camWidth / 2) {
-				float dist = (closestVector - new Vector3(VectorCalculator.convertFromServer(obj.transform.position).x, VectorCalculator.convertFromServer(obj.transform.position).y, 0)).magnitude;
-				Vector3 targetVector = new Vector3(- VectorCalculator.camWidth / 2, Mathf.Sqrt(dist * dist - (VectorCalculator.camWidth / 2 + VectorCalculator.convertFromServer(obj.transform.position).x) * (VectorCalculator.camWidth / 2 + VectorCalculator.convertFromServer(obj.transform.position).x)) * (closestVector.y > obj.transform.position.y ? 1 : -1), 0);
-				Vector3 a = targetVector - new Vector3(VectorCalculator.convertFromServer(obj.transform.position).x, VectorCalculator.convertFromServer(obj.transform.position).y, 0);
-				Vector3 b = closestVector - new Vector3(VectorCalculator.convertFromServer(obj.transform.position).x, VectorCalculator.convertFromServer(obj.transform.position).y, 0);
-				float deltaAngle = Mathf.Acos(VectorCalculator.dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > obj.transform.position.y ? 1 : -1);
+				float dist = (closestVector - new Vector3(VectorCalculator.convertFromServer(transform.position).x, VectorCalculator.convertFromServer(transform.position).y, 0)).magnitude;
+				Vector3 targetVector = new Vector3(- VectorCalculator.camWidth / 2, Mathf.Sqrt(dist * dist - (VectorCalculator.camWidth / 2 + VectorCalculator.convertFromServer(transform.position).x) * (VectorCalculator.camWidth / 2 + VectorCalculator.convertFromServer(transform.position).x)) * (closestVector.y > transform.position.y ? 1 : -1), 0);
+				Vector3 a = targetVector - new Vector3(VectorCalculator.convertFromServer(transform.position).x, VectorCalculator.convertFromServer(transform.position).y, 0);
+				Vector3 b = closestVector - new Vector3(VectorCalculator.convertFromServer(transform.position).x, VectorCalculator.convertFromServer(transform.position).y, 0);
+				float deltaAngle = Mathf.Acos(VectorCalculator.dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > transform.position.y ? 1 : -1);
 				Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, new Vector3(-Mathf.Sin(-VectorCalculator.angle), 0, Mathf.Cos(-VectorCalculator.angle)));
-				obj.transform.rotation = rot * obj.transform.rotation;
+				transform.rotation = rot * transform.rotation;
 			}
 		}
 	}
@@ -1134,10 +1009,10 @@ public class MeshManipulator : MonoBehaviour
 	private void focus() {
 		float deltaAngle = angleToFocus - Mathf.Lerp(angleToFocus, 0, focusSpeed * Time.deltaTime);
 		angleToFocus -= deltaAngle;
-		obj.transform.rotation = Quaternion.AngleAxis(deltaAngle, axisToFocus) * obj.transform.rotation;
+		transform.rotation = Quaternion.AngleAxis(deltaAngle, axisToFocus) * transform.rotation;
 		if (Mathf.Abs(angleToFocus) < 0.01f) {
 			angleToFocus = 0;
-			obj.transform.position = posToFocus;
+			transform.position = posToFocus;
 			obj.updateTransform();
 			if (focusingThisScreen) {
 				state = Status.select;
@@ -1154,7 +1029,7 @@ public class MeshManipulator : MonoBehaviour
 			Camera.main.orthographic = true;
 			gridController.GetComponent<GridController>().isFixed = true;
 		}
-		obj.transform.position = Vector3.Lerp(obj.transform.position, posToFocus, focusSpeed * Time.deltaTime);
+		transform.position = Vector3.Lerp(transform.position, posToFocus, focusSpeed * Time.deltaTime);
 		obj.updateTransform();
 	}
 
@@ -1172,34 +1047,34 @@ public class MeshManipulator : MonoBehaviour
 			axisToFocus = VectorCalculator.crossProduct(focusNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-VectorCalculator.angle), 0, -Mathf.Cos(-VectorCalculator.angle))));
 			angleToFocus = Vector3.Angle(focusNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-VectorCalculator.angle), 0, -Mathf.Cos(-VectorCalculator.angle))));
 			centerToHitFace =
-				obj.transform.InverseTransformPoint(
-						focusNormal + obj.transform.position
+				transform.InverseTransformPoint(
+						focusNormal + transform.position
 					).normalized *
 				VectorCalculator.dotProduct(
-					obj.transform.InverseTransformPoint(
-						focusNormal + obj.transform.position
+					transform.InverseTransformPoint(
+						focusNormal + transform.position
 					).normalized,
-					hitVertices[hitTriangles[focusTriangleIndex * 3 + 0]]
+					vertices[triangles[focusTriangleIndex * 3 + 0]]
 				);
 
-			float depth = (obj.transform.TransformPoint(centerToHitFace) - obj.transform.position).magnitude;
+			float depth = (transform.TransformPoint(centerToHitFace) - transform.position).magnitude;
 			depth += 0.025f;
 			float offset = VectorCalculator.camWidth / 2;
 			if (!isNewFocus) {
 				if (isThisScreen) {
-					offset = VectorCalculator.camWidth / 2 - obj.transform.position.x;
+					offset = VectorCalculator.camWidth / 2 - transform.position.x;
 				}
 				else {
-					offset = VectorCalculator.camWidth / 2 + VectorCalculator.convertFromServer(obj.transform.position).x;
+					offset = VectorCalculator.camWidth / 2 + VectorCalculator.convertFromServer(transform.position).x;
 				}
 			}
 
 			if (isThisScreen) {
-				posToFocus = new Vector3(VectorCalculator.camWidth / 2 - offset, isNewFocus ? 0 : obj.transform.position.y, depth);
+				posToFocus = new Vector3(VectorCalculator.camWidth / 2 - offset, isNewFocus ? 0 : transform.position.y, depth);
 				focusingThisScreen = true;
 			}
 			else {
-				posToFocus = new Vector3(VectorCalculator.camWidth / 2 + Mathf.Cos(-VectorCalculator.angle) * offset - Mathf.Sin(-VectorCalculator.angle) * depth, isNewFocus ? 0 : obj.transform.position.y, Mathf.Sin(-VectorCalculator.angle) * offset + Mathf.Cos(-VectorCalculator.angle) * depth);
+				posToFocus = new Vector3(VectorCalculator.camWidth / 2 + Mathf.Cos(-VectorCalculator.angle) * offset - Mathf.Sin(-VectorCalculator.angle) * depth, isNewFocus ? 0 : transform.position.y, Mathf.Sin(-VectorCalculator.angle) * offset + Mathf.Cos(-VectorCalculator.angle) * depth);
 				focusingOtherScreen = true;
 			}
 			state = Status.focus;
@@ -1221,7 +1096,7 @@ public class MeshManipulator : MonoBehaviour
 
 	public void recordRealMeasure() {
 		obj.isRealMeasure = true;
-		obj.realMeasure = obj.transform.localScale;
+		obj.realMeasure = transform.localScale;
 	}
 
 	public void recoverRealMeasure() {
@@ -1240,9 +1115,9 @@ public class MeshManipulator : MonoBehaviour
 	public void restart() {
 		cancel();
 
-		obj.transform.position = new Vector3(0, 0, 2f);
-		obj.transform.localScale = new Vector3(2, 2, 2);
-		obj.transform.rotation = Quaternion.Euler(30, 60, 45);
+		transform.position = new Vector3(0, 0, 2f);
+		transform.localScale = new Vector3(2, 2, 2);
+		transform.rotation = Quaternion.Euler(30, 60, 45);
 
 		gameObject.GetComponent<MeshFilter>().mesh = defaultMesh;
 		gameObject.GetComponent<MeshCollider>().sharedMesh = defaultMesh;

@@ -23,6 +23,10 @@ public class SliderController : MonoBehaviour
 	void Start()
 	{
 		angle = defaultAngle;
+		VectorCalculator.angle = angle;
+		Camera cam = Camera.main;
+		VectorCalculator.camHeight = 2f * cam.orthographicSize;
+		VectorCalculator.camWidth = VectorCalculator.camHeight * cam.aspect;
 	}
 
 	// Update is called once per frame

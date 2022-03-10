@@ -53,7 +53,7 @@ public class Debugger : MonoBehaviour
         boundaries.Add(new List<int>{17, 18, 19});
         boundaries.Add(new List<int>{20, 21, 22});
 
-        int[] triangles = MeshCalculator.triangulation(ref vertices, ref boundaries);
+        int[] triangles = MeshCalculator.triangulation(vertices, boundaries, new Vector3(0, 1, 0));
         MeshCalculator.simplifyMesh(ref vertices, ref triangles);
 
         GameObject faceObj = Instantiate(facePrefab, new Vector3(-80, 0, 0), Quaternion.identity);

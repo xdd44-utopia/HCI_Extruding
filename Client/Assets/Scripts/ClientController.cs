@@ -12,7 +12,6 @@ public class ClientController : MonoBehaviour {
 
 	private FaceTracker faceTracker;
 	private ObjectController objectController;
-	private SliceTraceVisualizer sliceTraceVisualizer;
 	private SliderController sliderController;
 	private GameObject gridController;
 	private GameObject depthFrame;
@@ -47,7 +46,6 @@ public class ClientController : MonoBehaviour {
 	void Start () {
 		faceTracker = GameObject.Find("FaceTracker").GetComponent<FaceTracker>();
 		objectController = GameObject.Find("OBJECT").GetComponent<ObjectController>();
-		sliceTraceVisualizer = GameObject.Find("Slice Trace").GetComponent<SliceTraceVisualizer>();
 		sliderController = GameObject.Find("SliderController").GetComponent<SliderController>();
 		gridController = GameObject.Find("RulerGrid");
 		depthFrame = GameObject.Find("Depth");
@@ -82,7 +80,6 @@ public class ClientController : MonoBehaviour {
 			rcvBuffer = rcvBuffer.Substring(1);
 		}
 		if (refreshed) {
-			Debug.Log(receivedMessage);
 			refreshed = false;
 			getVector();
 		}
@@ -166,7 +163,7 @@ public class ClientController : MonoBehaviour {
 						if (stream.CanWrite) {
 							byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
 							stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
-							Debug.Log("Client sent his message： " + "?" + msg + "!");
+							// Debug.Log("Client sent his message： " + "?" + msg + "!");
 							sendBuffer[i] = "";
 						}
 				}
@@ -178,11 +175,11 @@ public class ClientController : MonoBehaviour {
 	}
 
 	private void getVector() {
+		Debug.Log(receivedMessage);
 
 		connectButton.SetActive(false);
 		IPInput.SetActive(false);
 
-		Debug.Log(receivedMessage);
 		try {
 			switch (receivedMessage[0]) {
 				case 'F':
@@ -200,48 +197,6 @@ public class ClientController : MonoBehaviour {
 								System.Convert.ToSingle(temp2[2])
 							);
 					}
-					break;
-				case 'S':
-					string[] tempSlice = receivedMessage.Split('\n');
-					int count = System.Convert.ToInt32(tempSlice[1]);
-					Vector3[] vertices = new Vector3[count];
-					for (int j=0;j<count;j++) {
-						string[] tempVertex = tempSlice[2 + j].Split(',');
-						vertices[j] = VectorCalculator.convertFromServer(new Vector3(
-							System.Convert.ToSingle(tempVertex[0]),
-							System.Convert.ToSingle(tempVertex[1]),
-							System.Convert.ToSingle(tempVertex[2])
-						));
-					}
-					sliceTraceVisualizer.updateTrace(vertices);
-					break;
-				case 'C':
-					string[] tempPlane = receivedMessage.Split('\n');
-					string[] tempEndThisScreen = tempPlane[1].Split(',');
-					string[] tempEndOtherScreen = tempPlane[2].Split(',');
-					string[] tempStartThisScreen = tempPlane[3].Split(',');
-					string[] tempStartOtherScreen = tempPlane[4].Split(',');
-					Vector3 touchPointThisScreen = VectorCalculator.convertFromServer(new Vector3(
-						System.Convert.ToSingle(tempEndThisScreen[0]),
-						System.Convert.ToSingle(tempEndThisScreen[1]),
-						System.Convert.ToSingle(tempEndThisScreen[2])
-					));
-					Vector3 touchPointOtherScreen = VectorCalculator.convertFromServer(new Vector3(
-						System.Convert.ToSingle(tempEndOtherScreen[0]),
-						System.Convert.ToSingle(tempEndOtherScreen[1]),
-						System.Convert.ToSingle(tempEndOtherScreen[2])
-					));
-					Vector3 touchStartThisScreen = VectorCalculator.convertFromServer(new Vector3(
-						System.Convert.ToSingle(tempStartThisScreen[0]),
-						System.Convert.ToSingle(tempStartThisScreen[1]),
-						System.Convert.ToSingle(tempStartThisScreen[2])
-					));
-					Vector3 touchStartOtherScreen = VectorCalculator.convertFromServer(new Vector3(
-						System.Convert.ToSingle(tempStartOtherScreen[0]),
-						System.Convert.ToSingle(tempStartOtherScreen[1]),
-						System.Convert.ToSingle(tempStartOtherScreen[2])
-					));
-					sliceTraceVisualizer.GetComponent<SliceTraceVisualizer>().updateCuttingPlane(touchPointThisScreen, touchPointOtherScreen, touchStartThisScreen, touchStartOtherScreen);
 					break;
 				case 'M':
 					objectController.updateMesh(receivedMessage);
@@ -268,12 +223,12 @@ public class ClientController : MonoBehaviour {
 			}
 		}
 		catch (Exception e) {
-			// if (receivedMessage[0] == 'M') {
-			// 	sendMessage("RM\n");
-			// }
-			// if (receivedMessage[0] == 'T') {
-			// 	sendMessage("RT\n");
-			// }
+			if (receivedMessage[0] == 'M') {
+				sendMessage("RM\n");
+			}
+			if (receivedMessage[0] == 'T') {
+				sendMessage("RT\n");
+			}
 			errorText.text = receivedMessage + "\n" + Time.deltaTime + "\n" + e.Message;
 		}
 	}

@@ -6,7 +6,7 @@ using UnityEngine.UI;
 
 public static class MeshCalculator {
 
-	private static float eps = 0.01f;
+	private static float eps = 0.001f;
 	public static bool debugging = true;
 
 	public static void simplifyMesh(ref Vector3[] vertices, ref int[] triangles) {
@@ -214,7 +214,59 @@ public static class MeshCalculator {
 
 	}
 
-	public static int[] triangulation(ref Vector3[] vertices, ref List<List<int>> boundaries) {
+	public static int[] triangulationUnorderedBoundaries(Vector3[] vertices, List<List<int>> boundaries, Vector3 localNormal) {
+
+		for (int i=0;i<boundaries.Count;i++) {
+			boundaries[i] = clockwiseBoundary(vertices, boundaries[i], localNormal);
+		}
+
+		Vector2[] vertices2D = VectorCalculator.facePlaneFront(vertices);
+
+		//Categorize boundaries into faces
+		//If a boundary is contained by even number of larger boundaries, it can be seen as an outline of a face
+		//Otherwise, it can be seen as a hole inside the smallest boundary that contains it.
+		List<int> containCount = new List<int>();
+		for (int i=0;i<boundaries.Count;i++) {
+			containCount.Add(0);
+			for (int j=0;j<boundaries.Count;j++) {
+				if (i != j && VectorCalculator.isPointInsidePolygon(vertices2D, boundaries[j], vertices2D[boundaries[i][0]])) {
+					containCount[i]++;
+				}
+			}
+		}
+
+		List<List<List<int>>> categorizedBoundaries = new List<List<List<int>>>();
+		List<int> levelRecord = new List<int>();
+
+		for (int i=0;i<boundaries.Count;i++) {
+			if (containCount[i] % 2 == 0) {
+				categorizedBoundaries.Add(new List<List<int>>());
+				categorizedBoundaries[categorizedBoundaries.Count - 1].Add(boundaries[i]);
+				levelRecord.Add(containCount[i]);
+			}
+		}
+		for (int i=0;i<boundaries.Count;i++) {
+			if (containCount[i] % 2 == 1) {
+				for (int j=0;j<categorizedBoundaries.Count;j++) {
+					if (levelRecord[j] == containCount[i] - 1 && VectorCalculator.isPointInsidePolygon(vertices2D, categorizedBoundaries[j][0], vertices2D[boundaries[i][0]])) {
+						categorizedBoundaries[j].Add(boundaries[i]);
+						break;
+					}
+				}
+			}
+		}
+
+		List<int> trianglesList = new List<int>();
+		for (int i=0;i<categorizedBoundaries.Count;i++) {
+			boundaries = categorizedBoundaries[i];
+			int[] triangles = triangulation(vertices, boundaries, localNormal);
+			trianglesList.AddRange(triangles);
+		}
+		return trianglesList.ToArray();
+
+	}
+
+	public static int[] triangulation(Vector3[] vertices, List<List<int>> boundaries, Vector3 localNormal) {
 
 		if (debugging) {
 			for (int i=0;i<boundaries.Count;i++) {
@@ -229,16 +281,14 @@ public static class MeshCalculator {
 			}
 		}
 
-		Vector3[] offsetVertices;
-
 		List<int> noHolePolygon = boundaries.Count > 1 ? splitHolePolygon(vertices, boundaries) : boundaries[0];
-		Vector3 localNormal = VectorCalculator.crossProduct(vertices[noHolePolygon[1]] - vertices[noHolePolygon[0]], vertices[noHolePolygon[2]] - vertices[noHolePolygon[1]]).normalized;
-
+		if (localNormal.magnitude < eps) {
+			localNormal = VectorCalculator.crossProduct(vertices[noHolePolygon[1]] - vertices[noHolePolygon[0]], vertices[noHolePolygon[2]] - vertices[noHolePolygon[1]]).normalized;
+		}
 		List<List<int>> monotonePolygons = splitMonotonePolygon(vertices, noHolePolygon);
 
 		if (debugging) {
 			for (int i=0;i<monotonePolygons.Count;i++) {
-				offsetVertices = vertices;
 				for (int j=0;j<monotonePolygons[i].Count;j++) {
 					Debug.DrawLine(
 						vertices[monotonePolygons[i][j]] + new Vector3(-40, 0, 0),
@@ -270,6 +320,28 @@ public static class MeshCalculator {
 					);
 				}
 			}
+		}
+
+		int[] trianglesNormalized = checkTriangleNormal(vertices, triangles, localNormal);
+
+		for (int i=0;i<trianglesNormalized.Length / 3;i++) {
+			Debug.DrawLine(
+				vertices[trianglesNormalized[i * 3]],
+				vertices[trianglesNormalized[i * 3]] + VectorCalculator.crossProduct(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3]]).normalized,
+				Color.white,
+				5000,
+				false
+			);
+		}
+		for (int i=0;i<boundaries[0].Count;i++) {
+			Debug.DrawLine(
+				vertices[boundaries[0][i]],
+				vertices[boundaries[0][(i + 1) % boundaries[0].Count]],
+				Color.blue,
+
+				5000,
+				false
+			);
 		}
 
 		return checkTriangleNormal(vertices, triangles, localNormal);
@@ -399,7 +471,7 @@ public static class MeshCalculator {
 			if ((vertices[boundary[pre]] - vertices[boundary[cur]]).normalized.y > (vertices[boundary[nex]] - vertices[boundary[cur]]).normalized.y) {
 				int t = pre; pre = nex; nex = t;
 			}
-			if (vertices[boundary[pre]].x > vertices[boundary[cur]].x) {
+			if (vertices[boundary[pre]].x >= vertices[boundary[cur]].x) {
 				int pointer = 0;
 				while (pointer < intersectingEdges.Count && vertices[boundary[cur]].y >= intersectingY[pointer]) {
 					pointer++;
@@ -414,7 +486,7 @@ public static class MeshCalculator {
 				intersectingEdges.RemoveAt(j);
 				intersectingY.RemoveAt(j);
 			}
-			if (vertices[boundary[nex]].x > vertices[boundary[cur]].x) {
+			if (vertices[boundary[nex]].x >= vertices[boundary[cur]].x) {
 				int pointer = 0;
 				while (pointer < intersectingEdges.Count && vertices[boundary[cur]].y >= intersectingY[pointer]) {
 					pointer++;
@@ -670,7 +742,7 @@ public static class MeshCalculator {
 	private static int[] checkTriangleNormal(Vector3[] vertices, int[] triangles, Vector3 localNormal) {
 		int[] newTriangles = new int[triangles.Length];
 		for (int i=0;i<triangles.Length/3;i++) {
-			if ((VectorCalculator.crossProduct(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3 + 1]]).normalized - localNormal).magnitude < eps) {
+			if ((VectorCalculator.crossProduct(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3]]).normalized - localNormal).magnitude < eps) {
 				for (int j=0;j<3;j++) {
 					newTriangles[i * 3 + j] = triangles[i * 3 + j];
 				}

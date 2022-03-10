@@ -36,18 +36,6 @@ Face Track:
 - First line "Face"
 - Second Line Vector3 or '0' for ortho
 
-Slice Visualize:
-- First line "Slice"
-- Fourth Line n
-- Next n Vector3
-
-Cutting Plane Visualize:
-- First line "Cutting"
-- Second Line Vector3 touchPointThisScreen
-- Third Line Vector3 touchPointOtherScreen
-- Fourth Line Vector3 touchStartThisScreen
-- Fifth Line Vector3 touchStartOtherScreen
-
 Angle
 - First line "Angle"
 - Second line angle in radius

@@ -13,7 +13,6 @@ public class TouchProcessor : MonoBehaviour
 	public GameObject slicePlane;
 	public GameObject sliceTraceVisualizer;
 	public LineRenderer crossScreenLine;
-	public LineRenderer cutPlaneVisualizer;
 	public Text debugText;
 	public Text touchText;
 
@@ -59,16 +58,6 @@ public class TouchProcessor : MonoBehaviour
 	private float tapTimerThisScreen = 0;
 	private float tapTimerOtherScreen = 0;
 	private float tapDurationTolerance = 0.2f;
-
-	//cross-screen slice
-	private float crossScreenSliceTimer = 0;
-	private float crossScreenSliceTolerance = 0.15f;
-	private Vector3 startSliceThisScreen;
-	private Vector3 startSliceOtherScreen;
-	private Vector3 endSliceThisScreen;
-	private Vector3 endSliceOtherScreen;
-	private float sliceMinDist = 0.5f;
-	private bool slicePrepared = false;
 
 	private Status state = Status.none;
 	private enum Status {
@@ -150,20 +139,9 @@ public class TouchProcessor : MonoBehaviour
 			touchCountOtherScreen = 0;
 		}
 
-		cutPlaneVisualizer.enabled = (crossScreenSliceTimer >= 0 && slicePrepared);
-		if (crossScreenSliceTimer <= 0 && slicePrepared) {
-			meshManipulator.executeSlice();
-			startSliceThisScreen = Vector3.zero;
-			startSliceOtherScreen = Vector3.zero;
-			endSliceThisScreen = Vector3.zero;
-			endSliceOtherScreen = Vector3.zero;
-			slicePlane.GetComponent<SliceController>().locked = false;
-			slicePrepared = false;
-		}
 
 		touchTimer -= Time.deltaTime;
 		touchTimerOtherScreen -= Time.deltaTime;
-		crossScreenSliceTimer -= Time.deltaTime;
 		endGestureLock -= Time.deltaTime;
 		tapTimerThisScreen -= Time.deltaTime;
 		tapTimerOtherScreen -= Time.deltaTime;

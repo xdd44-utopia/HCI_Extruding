@@ -136,23 +136,16 @@ public static class VectorCalculator {
 
 	public static Vector2[] facePlaneFront(Vector3[] vertices) {
 
-		Vector3 normal = new Vector3(0, 0, 0);
-		while (normal.magnitude == 0) {
-			int p1 = (int)Random.Range(0, vertices.Length);
-			int p2 = (int)Random.Range(0, vertices.Length);
-			int p3 = (int)Random.Range(0, vertices.Length);
-			normal = VectorCalculator.crossProduct(vertices[p2] - vertices[p1], vertices[p3] - vertices[p2]).normalized;
-		}
-		normal = normal.normalized;
+		Vector3 normal = new Vector3(Random.Range(0, 1), Random.Range(0, 1), Random.Range(0, 1)).normalized;
 		
 		Vector3 axis = VectorCalculator.crossProduct(normal, new Vector3(0, 0, 1));
-		float angle = Vector3.Angle(normal, new Vector3(0, 0, 0));
+		float angle = Vector3.Angle(normal, new Vector3(0, 0, 1));
 		Quaternion rotation = axis.magnitude != 0 ? Quaternion.AngleAxis(angle, axis) : Quaternion.identity;
 
 		Vector2[] newVertices = new Vector2[vertices.Length];
 		for (int i=0;i<vertices.Length;i++) {
-			vertices[i] = rotation * vertices[i];
-			newVertices[i] = new Vector2(vertices[i].x, vertices[i].y);
+			Vector3 vertice2D = rotation * vertices[i];
+			newVertices[i] = new Vector2(vertice2D.x, vertice2D.y);
 		}
 
 		return newVertices;
