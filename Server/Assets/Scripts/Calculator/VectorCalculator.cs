@@ -81,7 +81,7 @@ public static class VectorCalculator {
 	}
 
 	public static float vectorAngle(Vector3 a, Vector3 b) { //radians
-		return Mathf.Acos(dotProduct(a, b) / a.magnitude / b.magnitude);
+		return Vector3.Angle(a, b) * Mathf.PI / 180;
 	}
 
 	public static Vector3 vectorMean(Vector3[] vertices) {
@@ -193,6 +193,21 @@ public static class VectorCalculator {
 
 		return true;
 
+	}
+
+	public static string VectorToString(Vector3[] vertices) {
+		string str = "";
+		for (int i=0;i<vertices.Length;i++) {
+			str += vertices[i].x + ", " + vertices[i].y + ", " + vertices[i].z + "\n";
+		}
+		return str;
+	}
+	public static string VectorToString(List<Vector3> vertices) {
+		string str = "";
+		for (int i=0;i<vertices.Count;i++) {
+			str += vertices[i].x + ", " + vertices[i].y + ", " + vertices[i].z + "\n";
+		}
+		return str;
 	}
 
 }

@@ -655,14 +655,6 @@ public class MeshManipulator : MonoBehaviour
 		}
 		planePos += avoidZeroVector;
 
-		Debug.DrawLine(
-			transform.position,
-			transform.TransformPoint(planeNormal),
-			Color.yellow,
-			5000,
-			false
-		);
-
 		remainVerticesList = new List<Vector3>();
 		edgeVerticesList = new List<Vector3>();
 

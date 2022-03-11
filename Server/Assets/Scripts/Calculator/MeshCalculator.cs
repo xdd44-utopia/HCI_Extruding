@@ -6,8 +6,8 @@ using UnityEngine.UI;
 
 public static class MeshCalculator {
 
-	private static float eps = 0.001f;
-	public static bool debugging = true;
+	private static float eps = 0.01f;
+	public static bool debugging = false;
 
 	public static void simplifyMesh(ref Vector3[] vertices, ref int[] triangles) {
 
@@ -162,20 +162,20 @@ public static class MeshCalculator {
 
 	public static void generateFaceCover(ref Vector3[] vertices, ref int[] triangles, ref List<List<int>> boundary, float thickness) {
 
-		Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[1]] - vertices[triangles[0]], vertices[triangles[2]] - vertices[triangles[1]]).normalized;
+		Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[1]] - vertices[triangles[0]], vertices[triangles[2]] - vertices[triangles[0]]).normalized;
 
 		//Offset towards normal direction
 		for (int i=0;i<vertices.Length;i++) {
-			vertices[i] += localNormal * 0.00001f;
+			vertices[i] += localNormal * 0.001f;
 		}
 		
-		vertices = offsetBoundary(vertices, boundary, localNormal, thickness);
+		offsetBoundary(ref vertices, boundary, localNormal, thickness);
 
 		simplifyMesh(ref vertices, ref triangles);
 
 	}
 
-	private static Vector3[] offsetBoundary(Vector3[] vertices, List<List<int>> boundary, Vector3 localNormal, float thickness) {
+	private static void offsetBoundary(ref Vector3[] vertices, List<List<int>> boundary, Vector3 localNormal, float thickness) {
 
 		//Offset towards central
 		List<List<Vector3>> offsets = new List<List<Vector3>>();
@@ -209,8 +209,6 @@ public static class MeshCalculator {
 				vertices[boundary[i][j]] += offsets[i][j];
 			}
 		}
-
-		return vertices;
 
 	}
 
@@ -324,26 +322,6 @@ public static class MeshCalculator {
 
 		int[] trianglesNormalized = checkTriangleNormal(vertices, triangles, localNormal);
 
-		for (int i=0;i<trianglesNormalized.Length / 3;i++) {
-			Debug.DrawLine(
-				vertices[trianglesNormalized[i * 3]],
-				vertices[trianglesNormalized[i * 3]] + VectorCalculator.crossProduct(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3]]).normalized,
-				Color.white,
-				5000,
-				false
-			);
-		}
-		for (int i=0;i<boundaries[0].Count;i++) {
-			Debug.DrawLine(
-				vertices[boundaries[0][i]],
-				vertices[boundaries[0][(i + 1) % boundaries[0].Count]],
-				Color.blue,
-
-				5000,
-				false
-			);
-		}
-
 		return checkTriangleNormal(vertices, triangles, localNormal);
 
 	}
@@ -429,7 +407,8 @@ public static class MeshCalculator {
 			}
 		}
 		
-		Vector3[] offsetVertices = offsetBoundary(newVerticesList.ToArray(), new List<List<int>> {boundary}, localNormal, 0.01f);
+		Vector3[] offsetVertices = newVerticesList.ToArray();
+		offsetBoundary(ref offsetVertices, new List<List<int>> {boundary}, localNormal, 0.01f);
 		//Rotate the vertices to x-y plane
 		Vector2[] vertices = VectorCalculator.facePlaneFront(offsetVertices);
 

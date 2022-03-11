@@ -74,7 +74,7 @@ public class ObjectController : MonoBehaviour
 
 		// Categorize triangles into faces
 		int num = triangles.Length / 3;
-		bool[] isCategorized = new bool[triangles.Length];
+		bool[] isCategorized = new bool[triangles.Length / 3];
 		faces = new List<List<int>>();
 		for (int i=0;i<num;i++) {
 			if (!isCategorized[i]) {
@@ -89,7 +89,7 @@ public class ObjectController : MonoBehaviour
 					newFace.Add(cur);
 					isCategorized[cur] = true;
 					for (int j=0;j<num;j++) {
-						if (!isCategorized[j] && isTrianglesSameFace(cur, j)) {
+						if (!isCategorized[j] && cur != j && isTrianglesSameFace(cur, j)) {
 							bfs.Push(j);
 						}
 					}
@@ -158,6 +158,7 @@ public class ObjectController : MonoBehaviour
 			mesh.MarkModified();
 			mesh.RecalculateNormals();
 			faceObj[i].GetComponent<MeshFilter>().mesh = mesh;
+			faceObj[i].name = "Face " + i;
 		}
 
 	}
@@ -337,7 +338,7 @@ public class ObjectController : MonoBehaviour
 					Vector3 v1 = vertices[vertexA] - vertices[edges[edgeShared * 2]];
 					Vector3 v2 = vertices[vertexA] - vertices[edges[edgeShared * 2 + 1]];
 					Vector3 v3 = vertices[vertexA] - vertices[vertexB];
-					if (Mathf.Abs(VectorCalculator.dotProduct(v1, VectorCalculator.crossProduct(v2, v3))) < eps) {
+					if (Mathf.Abs(VectorCalculator.dotProduct(v1.normalized, VectorCalculator.crossProduct(v2.normalized, v3.normalized).normalized)) < eps) {
 						return true;
 					}
 				}
