@@ -35,7 +35,7 @@ public class ServerController : MonoBehaviour {
 	private bool refreshed = false;
 	
 	private float sendTimer = 0;
-	private const float sendInterval = 0.2f;
+	private const float sendInterval = 0.05f;
 
 	
 	void Start () {
@@ -138,7 +138,6 @@ public class ServerController : MonoBehaviour {
 						if (stream.CanWrite) {
 							byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
 							stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
-							Debug.Log("Server sent his message： " + "?" + msg + "!");
 							sendBuffer[i] = "";
 						}
 				}
@@ -161,7 +160,7 @@ public class ServerController : MonoBehaviour {
 	}
 
 	private void getVector() {
-		Debug.Log(receivedMessage);
+		
 		try {
 			switch (receivedMessage[0]) {
 				case 'T': {

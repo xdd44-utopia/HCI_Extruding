@@ -80,6 +80,14 @@ public static class VectorCalculator {
 		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
 	}
 
+	public static Vector3 convertToServer(Vector3 v) {
+		Vector3 origin = new Vector3(- camWidth / 2 - camWidth * Mathf.Cos(angle) / 2, 0, - camWidth * Mathf.Sin(angle) / 2);
+		Vector3 x = new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle));
+		Vector3 z = new Vector3(-Mathf.Cos(Mathf.PI / 2 - angle), 0, Mathf.Sin(Mathf.PI / 2 - angle));
+		v -= origin;
+		return new Vector3(multXZ(v, x), v.y, multXZ(v, z));
+	}
+
 	public static float vectorAngle(Vector3 a, Vector3 b) { //radians
 		return Vector3.Angle(a, b) * Mathf.PI / 180;
 	}

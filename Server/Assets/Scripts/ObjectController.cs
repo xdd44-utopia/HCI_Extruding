@@ -6,9 +6,9 @@ using UnityEngine.UI;
 public class ObjectController : MonoBehaviour
 {
 
-	private GameObject inside;
-	private ServerController sender;
-	private Text debugText;
+	public GameObject inside;
+	public ServerController sender;
+	public Text debugText;
 	private MeshManipulator meshManipulator;
 	[HideInInspector]
 	public bool isRealMeasure;
@@ -49,17 +49,10 @@ public class ObjectController : MonoBehaviour
 
 	void Start()
 	{
-		GameObject findObject;
-		inside = GameObject.Find("Inside");
+
 		meshManipulator = this.gameObject.GetComponent<MeshManipulator>();
-		findObject = GameObject.Find("Server");
-		if (findObject != null) {
-			sender = findObject.GetComponent<ServerController>();
-		}
 
 		isRealMeasure = false;
-
-		debugText = GameObject.Find("Debug").GetComponent<Text>();
 
 		updateMesh(true);
 		updateTransform();
@@ -125,7 +118,7 @@ public class ObjectController : MonoBehaviour
 		// Generate cover gameObjects
 		while (faces.Count > faceObj.Count) {
 			faceObj.Add(Instantiate(facePrefab, new Vector3(0, 0, 0), Quaternion.identity));
-			faceObj[faceObj.Count - 1].transform.parent = this.transform;
+			faceObj[faceObj.Count - 1].transform.parent = transform;
 			faceObj[faceObj.Count - 1].transform.localScale = new Vector3(1f, 1f, 1f);
 			faceObj[faceObj.Count - 1].transform.localPosition = new Vector3(0, 0, 0);
 			faceObj[faceObj.Count - 1].transform.localRotation = Quaternion.identity;
@@ -206,7 +199,8 @@ public class ObjectController : MonoBehaviour
 
 		int selectFace = findFaceIndex(selectTriangle);
 
-		Debug.Log(selectTriangle + " " + selectFace);
+		meshManipulator.selectBoundaries = boundaries[selectFace];
+		meshManipulator.selectTriangles = faces[selectFace];
 		
 		string msg = "Highlight\n" + selectFace + "\n-2\n-2";
 		if (sender != null) {
@@ -224,7 +218,7 @@ public class ObjectController : MonoBehaviour
 		// Generate line gameObjects
 		while (boundaries[selectFace].Count > lineObj.Count) {
 			lineObj.Add(Instantiate(linePrefab, new Vector3(0, 0, 0), Quaternion.identity));
-			lineObj[lineObj.Count - 1].transform.transform.parent = this.transform;
+			lineObj[lineObj.Count - 1].transform.transform.parent = transform;
 			lineObj[lineObj.Count - 1].transform.localPosition = new Vector3(0, 0, 0);
 			lineObj[lineObj.Count - 1].transform.localScale = new Vector3(1, 1, 1);
 			lineObj[lineObj.Count - 1].transform.localRotation = Quaternion.identity;
@@ -304,26 +298,23 @@ public class ObjectController : MonoBehaviour
 
 	public void updateTransform() {
 
-		if (sender == null) {
-			return;
-		}
-
 		debugText.text =
-			this.transform.position.x + ", "+
-			this.transform.position.y + ", " +
-			this.transform.position.z;
+			transform.position.x + ", " +
+			transform.position.y + ", " +
+			transform.position.z;
 
 		string msg =
 			"Transform\n" + 
-			this.transform.position.x + "," +
-			this.transform.position.y + "," +
-			this.transform.position.z + "\n" +
-			this.transform.rotation.eulerAngles.x + "," +
-			this.transform.rotation.eulerAngles.y + "," +
-			this.transform.rotation.eulerAngles.z + "\n" +
-			this.transform.localScale.x + "," +
-			this.transform.localScale.y + "," +
-			this.transform.localScale.z + "\n";
+			transform.position.x + "," +
+			transform.position.y + "," +
+			transform.position.z + "\n" +
+			transform.rotation.eulerAngles.x + "," +
+			transform.rotation.eulerAngles.y + "," +
+			transform.rotation.eulerAngles.z + "\n" +
+			transform.localScale.x + "," +
+			transform.localScale.y + "," +
+			transform.localScale.z + "\n";
+
 		sender.GetComponent<ServerController>().sendMessage(msg);
 
 	}

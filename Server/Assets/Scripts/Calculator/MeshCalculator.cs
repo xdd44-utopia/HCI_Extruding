@@ -3,11 +3,51 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = UnityEngine.Random;
 
 public static class MeshCalculator {
 
 	private static float eps = 0.01f;
 	public static bool debugging = false;
+
+	private static List<int> clockwiseBoundary(Vector3[] vertices, List<int> boundary, Vector3 localNormal) {
+
+		float angleAcc = 0;
+		for (int i=0;i<boundary.Count;i++) {
+			Vector3 va = (vertices[boundary[i]] - vertices[boundary[(i + boundary.Count - 1) % boundary.Count]]).normalized;
+			Vector3 vb = (vertices[boundary[(i + 1) % boundary.Count]] - vertices[boundary[i]]).normalized;
+			bool isConvex = (Mathf.Abs((VectorCalculator.crossProduct(va, vb).normalized - localNormal).magnitude) < eps);
+			angleAcc += VectorCalculator.vectorAngle(va, vb) * (isConvex ? 1 : -1);
+		}
+		if (angleAcc < 0) {
+			List<int> newBoundary = new List<int>();
+			for (int i=boundary.Count-1;i>=0;i--) {
+				newBoundary.Add(boundary[i]);
+			}
+			return newBoundary;
+		}
+		else {
+			return boundary;
+		}
+
+	}
+
+	private static int[] checkTriangleNormal(Vector3[] vertices, int[] triangles, Vector3 localNormal) {
+		int[] newTriangles = new int[triangles.Length];
+		for (int i=0;i<triangles.Length/3;i++) {
+			if ((VectorCalculator.crossProduct(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3]]).normalized - localNormal).magnitude < eps) {
+				for (int j=0;j<3;j++) {
+					newTriangles[i * 3 + j] = triangles[i * 3 + j];
+				}
+			}
+			else {
+				for (int j=0;j<3;j++) {
+					newTriangles[i * 3 + j] = triangles[i * 3 + (2 - j)];
+				}
+			}
+		}
+		return newTriangles;
+	}
 
 	public static void simplifyMesh(ref Vector3[] vertices, ref int[] triangles) {
 
@@ -696,43 +736,175 @@ public static class MeshCalculator {
 		return newBoundaries;
 	}
 
-	private static List<int> clockwiseBoundary(Vector3[] vertices, List<int> boundary, Vector3 localNormal) {
+	public static void cutByPlane(ref Vector3[] vertices, ref int[] triangles, Vector3 planePos, Vector3 planeNormal) {
 
-		float angleAcc = 0;
-		for (int i=0;i<boundary.Count;i++) {
-			Vector3 va = (vertices[boundary[i]] - vertices[boundary[(i + boundary.Count - 1) % boundary.Count]]).normalized;
-			Vector3 vb = (vertices[boundary[(i + 1) % boundary.Count]] - vertices[boundary[i]]).normalized;
-			bool isConvex = (Mathf.Abs((VectorCalculator.crossProduct(va, vb).normalized - localNormal).magnitude) < eps);
-			angleAcc += VectorCalculator.vectorAngle(va, vb) * (isConvex ? 1 : -1);
+		Vector3 avoidZeroVector = new Vector3(Random.Range(0.001f, 0.002f), Random.Range(0.001f, 0.002f), Random.Range(0.001f, 0.002f));
+		if (planeNormal.x != 0) {
+			avoidZeroVector.x = - (avoidZeroVector.y * planeNormal.y + avoidZeroVector.z * planeNormal.z) / planeNormal.x;
 		}
-		if (angleAcc < 0) {
-			List<int> newBoundary = new List<int>();
-			for (int i=boundary.Count-1;i>=0;i--) {
-				newBoundary.Add(boundary[i]);
-			}
-			return newBoundary;
+		else if (planeNormal.y != 0) {
+			avoidZeroVector.y = - (avoidZeroVector.x * planeNormal.x + avoidZeroVector.z * planeNormal.z) / planeNormal.y;
 		}
-		else {
-			return boundary;
+		else if (planeNormal.z != 0) {
+			avoidZeroVector.z = - (avoidZeroVector.x * planeNormal.x + avoidZeroVector.y * planeNormal.y) / planeNormal.z;
 		}
+		planePos += avoidZeroVector;
 
-	}
+		List<Vector3> remainVerticesList = new List<Vector3>();
+		List<Vector3> edgeVerticesList = new List<Vector3>();
 
-	private static int[] checkTriangleNormal(Vector3[] vertices, int[] triangles, Vector3 localNormal) {
-		int[] newTriangles = new int[triangles.Length];
-		for (int i=0;i<triangles.Length/3;i++) {
-			if ((VectorCalculator.crossProduct(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3]]).normalized - localNormal).magnitude < eps) {
+		//Calculate edge of cutting plane & reconstruct faces along the edge
+		int[] triangleSide = new int[triangles.Length / 3]; // -1 left, 0 cross, 1 right
+		float pn = VectorCalculator.dotProduct(planePos, planeNormal);
+		for (int i=0;i<triangles.Length / 3;i++) {
+			float[] verticesPos = new float[3]{
+				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 0]], planeNormal) - pn,
+				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 1]], planeNormal) - pn,
+				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 2]], planeNormal) - pn
+			};
+			if (verticesPos[0] <= 0 && verticesPos[1] <= 0 && verticesPos[2] <= 0) {
+				triangleSide[i] = -1;
 				for (int j=0;j<3;j++) {
-					newTriangles[i * 3 + j] = triangles[i * 3 + j];
+					remainVerticesList.Add(vertices[triangles[i * 3 + j]]);
 				}
 			}
-			else {
+			else if (verticesPos[0] <= 0 || verticesPos[1] <= 0 || verticesPos[2] <= 0) {
+				triangleSide[i] = 0;
 				for (int j=0;j<3;j++) {
-					newTriangles[i * 3 + j] = triangles[i * 3 + (2 - j)];
+					Vector3[] curVec = new Vector3[3]{
+						vertices[triangles[i * 3 + j]],
+						vertices[triangles[i * 3 + ((j + 1) % 3)]],
+						vertices[triangles[i * 3 + ((j + 2) % 3)]]
+					};
+					if (verticesPos[j] <= 0 && verticesPos[(j + 1) % 3] <= 0) {
+						Vector3 newVec1 = VectorCalculator.getLinePlaneIntersection(curVec[0], curVec[2], planePos, planeNormal);
+						Vector3 newVec2 = VectorCalculator.getLinePlaneIntersection(curVec[1], curVec[2], planePos, planeNormal);
+						remainVerticesList.Add(curVec[0]);
+						remainVerticesList.Add(curVec[1]);
+						remainVerticesList.Add(newVec1);
+						remainVerticesList.Add(curVec[1]);
+						remainVerticesList.Add(newVec2);
+						remainVerticesList.Add(newVec1);
+						edgeVerticesList.Add(newVec1);
+						edgeVerticesList.Add(newVec2);
+						break;
+					}
+					else if (verticesPos[j] > 0 && verticesPos[(j+1)%3] > 0) {
+						Vector3 newVec1 = VectorCalculator.getLinePlaneIntersection(curVec[0], curVec[2], planePos, planeNormal);
+						Vector3 newVec2 = VectorCalculator.getLinePlaneIntersection(curVec[1], curVec[2], planePos, planeNormal);
+						remainVerticesList.Add(curVec[2]);
+						remainVerticesList.Add(newVec1);
+						remainVerticesList.Add(newVec2);
+						edgeVerticesList.Add(newVec1);
+						edgeVerticesList.Add(newVec2);
+						break;
+					}
 				}
 			}
 		}
-		return newTriangles;
+
+		if (edgeVerticesList.Count == 0) {
+			return;
+		}
+
+		//Extract edge as successive vertices
+		List<List<Vector3>> sortedEdgeVerticesList = new List<List<Vector3>>();
+		bool[] used = new bool[edgeVerticesList.Count / 2];
+		int boundaryCount = 0;
+
+		while (true) {
+
+			int curEdge = -1;
+			Vector3 curStart = new Vector3(0, 0, 0);
+			Vector3 curVect = new Vector3(0, 0, 0);
+			for (int i=0;i<edgeVerticesList.Count / 2;i++) {
+				if (!used[i]) {
+					curEdge = i;
+					curStart = edgeVerticesList[i * 2];
+					curVect = edgeVerticesList[i * 2 + 1];
+					used[i] = true;
+					break;
+				}
+			}
+			if (curEdge == -1) {
+				break;
+			}
+
+			boundaryCount++;
+			sortedEdgeVerticesList.Add(new List<Vector3>());
+			sortedEdgeVerticesList[boundaryCount - 1].Add(curStart);
+
+			bool done = false;
+			do {
+				for (int j=0;j<edgeVerticesList.Count / 2;j++) {
+					if (curEdge != j) {
+						for (int k=0;k<2;k++) {
+							if (edgeVerticesList[j * 2 + k] == curVect) {
+								sortedEdgeVerticesList[boundaryCount - 1].Add(edgeVerticesList[j * 2 + k]);
+								curVect = edgeVerticesList[j * 2 + (1 - k)];
+								if (curVect == curStart) {
+									done = true;
+								}
+								curEdge = j;
+								used[j] = true;
+								break;
+							}
+						}
+					}
+					if (done) {
+						break;
+					}
+				}
+			} while (!done);
+
+			//Simplify edge
+			while (true) {
+				int prevCount = sortedEdgeVerticesList[boundaryCount - 1].Count;
+				for (int i=0;i<sortedEdgeVerticesList[boundaryCount - 1].Count;i++) {
+					int prev = (i + sortedEdgeVerticesList[boundaryCount - 1].Count - 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
+					int next = (i + 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
+					if (VectorCalculator.crossProduct(sortedEdgeVerticesList[boundaryCount - 1][next] - sortedEdgeVerticesList[boundaryCount - 1][i], sortedEdgeVerticesList[boundaryCount - 1][i] - sortedEdgeVerticesList[boundaryCount - 1][prev]).magnitude < 0.001f) {
+						sortedEdgeVerticesList[boundaryCount - 1].RemoveAt(i);
+						break;
+					}
+				}
+				if (sortedEdgeVerticesList[boundaryCount - 1].Count == prevCount) {
+					break;
+				}
+			}
+
+		}
+
+		List<Vector3> allEdgeVerticesList = new List<Vector3>();
+		List<List<int>> boundaries = new List<List<int>>();
+		int acc = 0;
+		for (int i=0;i<sortedEdgeVerticesList.Count;i++) {
+			allEdgeVerticesList.AddRange(sortedEdgeVerticesList[i]);
+			boundaries.Add(new List<int>());
+			for (int j=0;j<sortedEdgeVerticesList[i].Count;j++) {
+				boundaries[i].Add(acc);
+				acc++;
+			}
+		}
+
+		int[] cuttingPlaneTriangles = MeshCalculator.triangulationUnorderedBoundaries(allEdgeVerticesList.ToArray(), boundaries, planeNormal);
+
+		Vector3[] newVertices = new Vector3[remainVerticesList.Count + allEdgeVerticesList.Count];
+		int[] newTriangles = new int[remainVerticesList.Count + cuttingPlaneTriangles.Length];
+		for (int i=0;i<remainVerticesList.Count;i++) {
+			newVertices[i] = remainVerticesList[i];
+			newTriangles[i] = i;
+		}
+		for (int i=0;i<allEdgeVerticesList.Count;i++) {
+			newVertices[i + remainVerticesList.Count] = allEdgeVerticesList[i];
+		}
+		for (int i=0;i<cuttingPlaneTriangles.Length;i++) {
+			newTriangles[i + remainVerticesList.Count] = cuttingPlaneTriangles[i] + remainVerticesList.Count;
+		}
+
+		vertices = newVertices;
+		triangles = newTriangles;
+
 	}
 
 }
