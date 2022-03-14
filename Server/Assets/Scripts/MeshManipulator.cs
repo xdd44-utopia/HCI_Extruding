@@ -23,8 +23,6 @@ public class MeshManipulator : MonoBehaviour
 	private GameObject extrudeHandle;
 	private GameObject gridController;
 	//interaction
-	[HideInInspector]
-	public Vector3 touchPosition;
 	private Vector3 prevTouchPosition;
 	private float touchDelayTolerance = 0.25f;
 	private Vector3 INF = new Vector3(10000, 10000, 10000);
@@ -63,6 +61,8 @@ public class MeshManipulator : MonoBehaviour
 	private const float focusSpeed = 25;
 
 	//extrude
+	private bool drilling = false;
+	private bool extrudeStarted = false;
 	private Mesh extrudedMesh;
 	private int originalVerticesCount = 0;
 	private int extrudedVerticesCount = 0;
@@ -73,11 +73,9 @@ public class MeshManipulator : MonoBehaviour
 	private Vector3[] extrudedVerticesOriginal;
 	private float extrudeTimer = 0;
 
-	//drill
-	public float drillDist = 0f;
-
 	//taper
 	private Mesh taperedMesh;
+	private Vector3[] taperedVerticesOriginal;
 	private Vector3[] taperedVertices;
 	private int[] taperedTriangles;
 	private Vector3 taperCenter;
@@ -136,8 +134,6 @@ public class MeshManipulator : MonoBehaviour
 
 		obj = gameObject.GetComponent<ObjectController>();
 
-		touchPosition = INF;
-
 		cuttingPlaneRenderer.enabled = false;
 
 	
@@ -185,6 +181,9 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		modeText.text = state + "";
+		if (state == Status.extrude && drilling) {
+			modeText.text = "drilling";
+		}
 
 		switch(state) {
 			case Status.select:
@@ -210,21 +209,17 @@ public class MeshManipulator : MonoBehaviour
 		prevAngle = VectorCalculator.angle;
 
 		if (computerDebugging && Input.GetMouseButtonDown(0)) {
-			castRay();
+			Vector3 mousePos = Input.mousePosition;
+			mousePos -= new Vector3(Screen.width / 2, Screen.height / 2, 0);
+			mousePos *= Camera.main.orthographicSize / Screen.height * 2;
+			castRay(mousePos);
 		}
 
 	}
 	/* #endregion */
 
 	/* #region Construct highlight */
-	public void castRay() {
-
-		Vector3 mousePos = touchPosition;
-		if (computerDebugging) {
-			mousePos = Input.mousePosition;
-			mousePos -= new Vector3(Screen.width / 2, Screen.height / 2, 0);
-			mousePos *= Camera.main.orthographicSize / Screen.height * 2;
-		}
+	public void castRay(Vector3 touchPosition) {
 
 		Vector3 rayStart;
 		Vector3 rayDirection;
@@ -232,11 +227,11 @@ public class MeshManipulator : MonoBehaviour
 
 		if (!Camera.main.orthographic) {
 			rayStart = Camera.main.gameObject.transform.position;
-			rayDirection = mousePos - rayStart;
+			rayDirection = touchPosition - rayStart;
 		}
 		else {
-			rayStart = mousePos;
-			if (Mathf.Abs(mousePos.z) < 0.01f) {
+			rayStart = touchPosition;
+			if (Mathf.Abs(touchPosition.z) < 0.01f) {
 				rayDirection = new Vector3(0, 0, 5);
 			}
 			else {
@@ -253,12 +248,14 @@ public class MeshManipulator : MonoBehaviour
 		);
 
 		if (Physics.Raycast(rayStart, rayDirection, out hit)) {
-
 			obj.updateSelect(hit.triangleIndex);
 			focusTriangleIndex = hit.triangleIndex;
 			focusNormal = hit.normal;
 			smode = SelectMode.selectFace;
-
+		}
+		else {
+			obj.updateSelect(-1);
+			smode = SelectMode.selectObject;
 		}
 		
 	}
@@ -347,14 +344,86 @@ public class MeshManipulator : MonoBehaviour
 	/* #endregion */
 
 	/* #region Extrude */
-	
-	private void prepareExtrude(bool isThisScreen) {
+	public void prepareNegativeExtrude() {
 
-		if (!isEdgeAligned) {
+		if (!isThisScreenFocused || smode != SelectMode.selectFace) {
 			return;
 		}
 
+		Vector3 center = new Vector3(VectorCalculator.camWidth / 2, 0, 0);
+
+		bool isInsideFace(Vector3 p) {
+			Vector2 p2D = new Vector2(p.x, p.y);
+			Vector2[] vertices2D = new Vector2[vertices.Length];
+			for (int i=0;i<vertices.Length;i++) {
+				vertices2D[i] = new Vector2(transform.TransformPoint(vertices[i]).x, transform.TransformPoint(vertices[i]).y);
+			}
+			if (!VectorCalculator.isPointInsidePolygon(vertices2D, selectBoundaries[0], p2D)) {
+				return false;
+			}
+			for (int i=1;i<selectBoundaries.Count;i++) {
+				if (VectorCalculator.isPointInsidePolygon(vertices2D, selectBoundaries[i], p2D)) {
+					return false;
+				}
+			}
+			return true;
+		}
+
+		Vector3[] holeVertices = new Vector3[4];
+		holeVertices[0] = new Vector3(-0.25f, -0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+		holeVertices[1] = new Vector3(0.25f, -0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+		holeVertices[2] = new Vector3(0.25f, 0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+		holeVertices[3] = new Vector3(-0.25f, 0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+		for (int i=0;i<4;i++) {
+			if (!isInsideFace(holeVertices[i])) {
+				return;
+			}
+			holeVertices[i] = transform.InverseTransformPoint(holeVertices[i]);
+		}
+
+		List<Vector3> newVerticesList = vertices.ToList();
+		newVerticesList.AddRange(holeVertices);
+		List<int> newTrianglesList = new List<int>();
+		for (int i=0;i<triangles.Length / 3;i++) {
+			if (!selectTriangles.Contains(i)) {
+				for (int j=0;j<3;j++) {
+					newTrianglesList.Add(triangles[i * 3 + j]);
+				}
+			}
+		}
+
+		List<int> holeBoundary = new List<int>{
+			newVerticesList.Count - 1,
+			newVerticesList.Count - 2,
+			newVerticesList.Count - 3,
+			newVerticesList.Count - 4
+		};
+		selectBoundaries.Add(holeBoundary);
+		int[] newFaceTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, - transform.InverseTransformPoint(transform.position - new Vector3(0, 0, -1)).normalized);
+		newTrianglesList.AddRange(newFaceTriangles);
+		selectBoundaries = new List<List<int>>(){holeBoundary};
+		int[] newHoleTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, - transform.InverseTransformPoint(transform.position - new Vector3(0, 0, -1)).normalized);
+		newTrianglesList.AddRange(newHoleTriangles);
+		selectTriangles = new List<int>(){newTrianglesList.Count / 3 - 1, newTrianglesList.Count / 3 - 2};
+		vertices = newVerticesList.ToArray();
+		triangles = newTrianglesList.ToArray();
+
 		prepareUndo();
+		prepareExtrude(false);
+
+	}
+	
+	private void prepareExtrude(bool isThisScreen) {
+
+		if ((!isThisScreen && !isThisScreenFocused) || (isThisScreen && !isOtherScreenFocused)) {
+			return;
+		}
+
+		drilling = !isEdgeAligned;
+
+		if (!drilling) {
+			prepareUndo();
+		}
 		
 		originalVerticesCount = vertices.Length;
 		extrudedVerticesCount = 0;
@@ -417,6 +486,7 @@ public class MeshManipulator : MonoBehaviour
 		extrudedMesh.MarkModified();
 		extrudedMesh.RecalculateNormals();
 
+		extrudeStarted = false;
 		extrudedVerticesOriginal = extrudedVerticesList.ToArray();
 		state = Status.extrude;
 		extrudeTimer = touchDelayTolerance;
@@ -428,7 +498,7 @@ public class MeshManipulator : MonoBehaviour
 		if (smode != SelectMode.selectFace) {
 			return;
 		}
-		if (!isEdgeAligned) {
+		if (!isEdgeAligned && !drilling) {
 			return;
 		}
 		if (smode == SelectMode.selectFace && isEdgeAligned && state == Status.select) {
@@ -440,11 +510,12 @@ public class MeshManipulator : MonoBehaviour
 			extrudeDist += factor;
 			extrudeDist = extrudeDist > 0 ? extrudeDist : 0;
 			extrudeTimer = touchDelayTolerance;
+			extrudeStarted = true;
 		}
 	}
 	private void extrude() {
 
-		if (smode != SelectMode.selectFace || !isEdgeAligned) {
+		if (smode != SelectMode.selectFace || (!isEdgeAligned && !drilling)) {
 			state = Status.select;
 			return;
 		}
@@ -452,7 +523,7 @@ public class MeshManipulator : MonoBehaviour
 		Vector3[] extrudedVertices = extrudedMesh.vertices;
 		int[] extrudedTrianglesList = extrudedMesh.triangles;
 		for (int i=originalVerticesCount;i<originalVerticesCount + extrudedVerticesCount;i++) {
-			extrudedVertices[i] = extrudedVerticesOriginal[i] + extrudeDirLocal * extrudeDist;
+			extrudedVertices[i] = extrudedVerticesOriginal[i] + extrudeDirLocal * extrudeDist * (drilling ? -1 : 1);
 		}
 
 		extrudedMesh.vertices = extrudedVertices;
@@ -460,7 +531,9 @@ public class MeshManipulator : MonoBehaviour
 		extrudedMesh.MarkModified();
 		extrudedMesh.RecalculateNormals();
 
-		transform.position = extrudeStartPos + extrudeDir * transform.localScale.x * extrudeDist;
+		if (!drilling) {
+			transform.position = extrudeStartPos + extrudeDir * transform.localScale.x * extrudeDist;
+		}
 
 		if (extrudeDist > 0.01f) {
 			gameObject.GetComponent<MeshFilter>().mesh = extrudedMesh;
@@ -469,12 +542,13 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		extrudeTimer -= Time.deltaTime;
-		if (extrudeTimer < 0) {
+		if (extrudeTimer < 0 && extrudeDist > 0.05f) {
+			Debug.Log(extrudeTimer + " " + extrudeStarted);
 			state = Status.select;
-			if (extrudeDist < 0.02f) {
-				loadUndo();
-			}
 			extrudeDist = 0;
+			drilling = false;
+			obj.updateTransform();
+			obj.updateMesh(true);
 		}
 
 	}
@@ -508,6 +582,8 @@ public class MeshManipulator : MonoBehaviour
 		}
 		taperCenter /= selectTriangles.Count * 3;
 
+		taperedVerticesOriginal = vertices.ToArray();
+
 		state = Status.taper;
 
 		taperTimer = touchDelayTolerance;
@@ -534,7 +610,7 @@ public class MeshManipulator : MonoBehaviour
 
 		for (int i=0;i<faceNum;i++) {
 			for (int j=0;j<3;j++) {
-				taperedVertices[triangles[selectTriangles[i] * 3 + j]] = taperScale * (vertices[triangles[selectTriangles[i] * 3 + j]] - taperCenter) + taperCenter;
+				taperedVertices[triangles[selectTriangles[i] * 3 + j]] = taperScale * (taperedVerticesOriginal[triangles[selectTriangles[i] * 3 + j]] - taperCenter) + taperCenter;
 			}
 		}
 
@@ -713,6 +789,10 @@ public class MeshManipulator : MonoBehaviour
 	}
 
 	private void adjustAlign(bool isMainScreen) {
+
+		if ((isMainScreen && isOtherScreenPenetrate) || (!isMainScreen && isOtherScreenPenetrate)) {
+			return;
+		}
 		
 		List<int> sortedVerticesPointer = new List<int>();
 		for (int i=0;i<selectBoundaries[0].Count;i++) {
@@ -893,13 +973,14 @@ public class MeshManipulator : MonoBehaviour
 
 	public void cancel() {
 		state = Status.select;
+		drilling = false;
 		isThisScreenFocused = false;
 		isOtherScreenFocused = false;
 		isEdgeAligned = false;
 		obj.updateHighlight(-1, -1);
+		obj.updateSelect(-1);
 		closestVertex = -1;
 		secondVertex = -1;
-		touchPosition = INF;
 		prevTouchPosition = INF;
 		Camera.main.orthographic = false;
 		gridController.GetComponent<GridController>().isFixed = false;
@@ -908,14 +989,16 @@ public class MeshManipulator : MonoBehaviour
 	public void debug1() {
 
 		// Transform debug
+		isOtherScreenPenetrate = true;
 		startMoving(new Vector3(0.1f, 0, 0), true);
 
 		// Extrude debug
-		prepareExtrude(false);
+		prepareNegativeExtrude();
+		updateExtrudeScale(0.5f, true);
+		extrude();
 	}
 	public void debug2() {
-		updateExtrudeScale(0.1f, true);
-		extrude();
+
 	}
 	/* #endregion */
 }

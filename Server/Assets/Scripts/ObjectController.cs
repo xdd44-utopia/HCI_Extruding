@@ -40,7 +40,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.0001f;
+	private const float eps = 0.001f;
 
 
 	private float timer = 0;
@@ -194,6 +194,13 @@ public class ObjectController : MonoBehaviour
 	public void updateSelect(int selectTriangle) { // -2 Preserve, -1 Cancel, i Update
 
 		if (selectTriangle == -2) {
+			return;
+		}
+		else if (selectTriangle == -1) {
+			for (int i=0;i<lineObj.Count;i++) {
+				LineRenderer lr = lineObj[i].GetComponent<LineRenderer>();
+				lr.positionCount = 0;
+			}
 			return;
 		}
 

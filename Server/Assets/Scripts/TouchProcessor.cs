@@ -161,7 +161,6 @@ public class TouchProcessor : MonoBehaviour
 		turnThisScreen = 0;
 		turnOtherScreen = 0;
 		pinchDelta = 0;
-		meshManipulator.touchPosition = INF;
 
 		if (touchCountThisScreen == 0 && touchCountOtherScreen == 0) {
 			state = Status.none;
@@ -266,8 +265,7 @@ public class TouchProcessor : MonoBehaviour
 						tapTimerThisScreen = tapDurationTolerance;
 					}
 					else if (touchPhaseThisScreen[0] == TouchPhase.Ended && tapTimerThisScreen >= 0) {
-						meshManipulator.touchPosition = touchPosThisScreen[0];
-						meshManipulator.castRay();
+						meshManipulator.castRay(touchPosThisScreen[0]);
 						tapTimerThisScreen = -1;
 					}
 					else if (touchPosThisScreen[0].y > -3.2 && touchPosThisScreen[0].y < 4.2) {
@@ -285,8 +283,7 @@ public class TouchProcessor : MonoBehaviour
 						tapTimerOtherScreen = tapDurationTolerance;
 					}
 					else if (touchPhaseOtherScreen[0] == TouchPhase.Ended && tapTimerOtherScreen >= 0) {
-						meshManipulator.touchPosition = touchPosOtherScreen[0];
-						meshManipulator.castRay();
+						meshManipulator.castRay(touchPosOtherScreen[0]);
 						tapTimerOtherScreen = -1;
 					}
 					else {

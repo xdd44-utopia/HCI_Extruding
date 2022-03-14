@@ -63,7 +63,7 @@ public class SliderController : MonoBehaviour
 		angle = angle > - Mathf.PI / 2 ? angle : - Mathf.PI / 2;
 		angle = angle < 0 ? angle : 0;
 
-		angle = - Mathf.PI / 3;
+		// angle = - Mathf.PI / 3;
 
 		screenSide.SetPosition(2, new Vector3(2.5f + 5 * Mathf.Cos(-angle), -5.361f, 5 * Mathf.Sin(-angle)));
 

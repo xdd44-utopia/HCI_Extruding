@@ -9,7 +9,7 @@ public static class VectorCalculator {
 
 	private static float eps = 0.0001f;
 	private static float inf = 2147483647f;
-	private static bool debugging = false;
+	public static bool debugging = false;
 	public static float camWidth;
 	public static float camHeight;
 	public static float angle;
@@ -20,7 +20,7 @@ public static class VectorCalculator {
 		Camera cam = Camera.main;
 		camHeight = 2f * cam.orthographicSize;
 		camWidth = camHeight * cam.aspect;
-	
+		debugging = false;
 	}
 
 
@@ -144,7 +144,17 @@ public static class VectorCalculator {
 
 	public static Vector2[] facePlaneFront(Vector3[] vertices) {
 
-		Vector3 normal = new Vector3(Random.Range(0, 1), Random.Range(0, 1), Random.Range(0, 1)).normalized;
+		Vector3 v1 = vertices[0];
+		Vector3 v2 = vertices[1];
+		Vector3 v3 = vertices[2];
+		Vector3 normal = new Vector3(Random.Range(0, 1f), Random.Range(0, 1f), Random.Range(0, 1f)).normalized;
+		for (int i=2;i<vertices.Length;i++) {
+			Vector3 d1 = (v2 - v1).normalized;
+			Vector3 d2 = (v3 - v2).normalized;
+			if (Vector3.Angle(d1, d2) > eps && Vector3.Angle(d1, d2) < 180 - eps) {
+				normal = Vector3.Cross(d1, d2).normalized;
+			}
+		}
 		
 		Vector3 axis = VectorCalculator.crossProduct(normal, new Vector3(0, 0, 1));
 		float angle = Vector3.Angle(normal, new Vector3(0, 0, 1));

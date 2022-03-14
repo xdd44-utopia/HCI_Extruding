@@ -564,7 +564,7 @@ public static class MeshCalculator {
 		List<List<int>> newBoundaries = new List<List<int>>();
 
 		if (debugging) {
-			int idx = 2;
+			int idx = 0;
 			for (int i=0;i<offsetBoundaries[idx].Count;i++) {
 				Vector2 a = vertices[offsetBoundaries[idx][i]];
 				Vector2 b = vertices[offsetBoundaries[idx][(i + 1) % offsetBoundaries[idx].Count]];
