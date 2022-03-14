@@ -452,6 +452,13 @@ public static class MeshCalculator {
 		//Rotate the vertices to x-y plane
 		Vector2[] vertices = VectorCalculator.facePlaneFront(offsetVertices);
 
+		//Avoid two vertices locating on same x
+		for (int i=0;i<boundary.Count;i++) {
+			if (vertices[boundary[i]].x == vertices[boundary[(i + 1) % boundary.Count]].x) {
+				vertices[boundary[(i + 1) % boundary.Count]] += new Vector2(0.001f, 0);
+			}
+		}
+
 		//Sort the boundary vertices by x
 		List<int> verticePointers = new List<int>();
 		for (int i=0;i<boundary.Count;i++) {
@@ -555,6 +562,22 @@ public static class MeshCalculator {
 		List<List<int>> boundaries = new List<List<int>>{ boundary };
 		List<List<int>> offsetBoundaries = splitBoundariesByEdges(offsetVertices, boundaries, edges);
 		List<List<int>> newBoundaries = new List<List<int>>();
+
+		if (debugging) {
+			int idx = 2;
+			for (int i=0;i<offsetBoundaries[idx].Count;i++) {
+				Vector2 a = vertices[offsetBoundaries[idx][i]];
+				Vector2 b = vertices[offsetBoundaries[idx][(i + 1) % offsetBoundaries[idx].Count]];
+				Debug.DrawLine(
+					new Vector3(a.x, a.y, 0) + new Vector3(10, 0, 0),
+					new Vector3(b.x, b.y, 0) + new Vector3(10, 0, 0),
+					Color.white,
+					5000
+				);
+			}
+		}
+
+
 		for (int i=0;i<offsetBoundaries.Count;i++) {
 			newBoundaries.Add(new List<int>());
 			for (int j=0;j<offsetBoundaries[i].Count;j++) {

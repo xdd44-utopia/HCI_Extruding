@@ -146,8 +146,6 @@ public class MeshManipulator : MonoBehaviour
 	void Update() {
 
 		measureButton.sprite = (obj.isRealMeasure ? measureRecoveredSprite : measureRecoverSprite);
-
-		debugText.text = extrudeDist + " " + extrudeTimer;
 		
 		vertices = gameObject.GetComponent<MeshFilter>().mesh.vertices;
 		triangles = gameObject.GetComponent<MeshFilter>().mesh.triangles;
