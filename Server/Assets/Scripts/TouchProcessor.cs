@@ -12,7 +12,6 @@ public class TouchProcessor : MonoBehaviour
 	private ServerController sender;
 	public GameObject slicePlane;
 	public GameObject sliceTraceVisualizer;
-	public LineRenderer crossScreenLine;
 	public Text debugText;
 	public Text touchText;
 
@@ -44,7 +43,7 @@ public class TouchProcessor : MonoBehaviour
 
 	private float touchTimer = 0;
 	private float touchTimerOtherScreen = 0;
-	private float touchDelayTolerance = 0.1f;
+	private float touchDelayTolerance = 0.25f;
 
 	private int touchCountThisScreen = 0;
 	private Vector3[] touchPosThisScreen;
@@ -153,14 +152,6 @@ public class TouchProcessor : MonoBehaviour
 		}
 		for (int i=touchCountThisScreen;i<4;i++) {
 			touchMarks[i].transform.position = INF;
-		}
-		if (touchCountThisScreen == 1 && touchCountOtherScreen == 1) {
-			crossScreenLine.SetPosition(0, touchPosThisScreen[0]);
-			crossScreenLine.SetPosition(1, touchPosOtherScreen[0]);
-		}
-		else {
-			crossScreenLine.SetPosition(0, INF);
-			crossScreenLine.SetPosition(1, INF);
 		}
 	}
 	private void calculate () {

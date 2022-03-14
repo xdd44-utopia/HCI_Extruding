@@ -298,11 +298,6 @@ public class ObjectController : MonoBehaviour
 
 	public void updateTransform() {
 
-		debugText.text =
-			transform.position.x + ", " +
-			transform.position.y + ", " +
-			transform.position.z;
-
 		string msg =
 			"Transform\n" + 
 			transform.position.x + "," +

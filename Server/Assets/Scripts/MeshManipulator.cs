@@ -26,7 +26,7 @@ public class MeshManipulator : MonoBehaviour
 	[HideInInspector]
 	public Vector3 touchPosition;
 	private Vector3 prevTouchPosition;
-	private float touchDelayTolerance = 0.1f;
+	private float touchDelayTolerance = 0.25f;
 	private Vector3 INF = new Vector3(10000, 10000, 10000);
 	private float prevAngle = 0;
 
@@ -64,6 +64,7 @@ public class MeshManipulator : MonoBehaviour
 
 	//extrude
 	private Mesh extrudedMesh;
+	private int originalVerticesCount = 0;
 	private int extrudedVerticesCount = 0;
 	private Vector3 extrudeDir = new Vector3(0, 0, 0);
 	private Vector3 extrudeDirLocal = new Vector3(0, 0, 0);
@@ -145,6 +146,8 @@ public class MeshManipulator : MonoBehaviour
 	void Update() {
 
 		measureButton.sprite = (obj.isRealMeasure ? measureRecoveredSprite : measureRecoverSprite);
+
+		debugText.text = extrudeDist + " " + extrudeTimer;
 		
 		vertices = gameObject.GetComponent<MeshFilter>().mesh.vertices;
 		triangles = gameObject.GetComponent<MeshFilter>().mesh.triangles;
@@ -349,8 +352,13 @@ public class MeshManipulator : MonoBehaviour
 	
 	private void prepareExtrude(bool isThisScreen) {
 
+		if (!isEdgeAligned) {
+			return;
+		}
+
 		prepareUndo();
 		
+		originalVerticesCount = vertices.Length;
 		extrudedVerticesCount = 0;
 		for (int i=0;i<selectBoundaries.Count;i++) {
 			extrudedVerticesCount += selectBoundaries[i].Count;
@@ -434,19 +442,18 @@ public class MeshManipulator : MonoBehaviour
 			extrudeDist += factor;
 			extrudeDist = extrudeDist > 0 ? extrudeDist : 0;
 			extrudeTimer = touchDelayTolerance;
-			debugText2.text = factor + "";
 		}
 	}
 	private void extrude() {
 
-		if (smode != SelectMode.selectFace) {
+		if (smode != SelectMode.selectFace || !isEdgeAligned) {
 			state = Status.select;
 			return;
 		}
 
 		Vector3[] extrudedVertices = extrudedMesh.vertices;
 		int[] extrudedTrianglesList = extrudedMesh.triangles;
-		for (int i=vertices.Length;i<extrudedVertices.Length;i++) {
+		for (int i=originalVerticesCount;i<originalVerticesCount + extrudedVerticesCount;i++) {
 			extrudedVertices[i] = extrudedVerticesOriginal[i] + extrudeDirLocal * extrudeDist;
 		}
 
@@ -900,17 +907,17 @@ public class MeshManipulator : MonoBehaviour
 		gridController.GetComponent<GridController>().isFixed = false;
 	}
 
-	public void debug() {
+	public void debug1() {
 
 		// Transform debug
 		startMoving(new Vector3(0.1f, 0, 0), true);
 
 		// Extrude debug
-		// smode = SelectMode.selectFace;
-		// isEdgeAligned = true;
-		// prepareExtrude(true);
-		// updateExtrudeScale(1f, true);
-		// extrude();
+		prepareExtrude(false);
+	}
+	public void debug2() {
+		updateExtrudeScale(0.1f, true);
+		extrude();
 	}
 	/* #endregion */
 }

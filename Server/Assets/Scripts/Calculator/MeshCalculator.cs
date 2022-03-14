@@ -8,7 +8,7 @@ using Random = UnityEngine.Random;
 public static class MeshCalculator {
 
 	private static float eps = 0.01f;
-	public static bool debugging = false;
+	public static bool debugging = true;
 
 	private static List<int> clockwiseBoundary(Vector3[] vertices, List<int> boundary, Vector3 localNormal) {
 
@@ -329,8 +329,8 @@ public static class MeshCalculator {
 			for (int i=0;i<monotonePolygons.Count;i++) {
 				for (int j=0;j<monotonePolygons[i].Count;j++) {
 					Debug.DrawLine(
-						vertices[monotonePolygons[i][j]] + new Vector3(-40, 0, 0),
-						vertices[monotonePolygons[i][(j + 1) % monotonePolygons[i].Count]] + new Vector3(-40, 0, 0),
+						vertices[monotonePolygons[i][j]] + new Vector3(-10, 0, 0),
+						vertices[monotonePolygons[i][(j + 1) % monotonePolygons[i].Count]] + new Vector3(-10, 0, 0),
 						Color.white,
 						5000
 					);
@@ -351,8 +351,8 @@ public static class MeshCalculator {
 			for (int i=0;i<triangles.Length/3;i++) {
 				for (int j=0;j<3;j++) {
 					Debug.DrawLine(
-						vertices[triangles[i * 3 + j]] + new Vector3(-60, 0, 0),
-						vertices[triangles[i * 3 + (j + 1) % 3]] + new Vector3(-60, 0, 0),
+						vertices[triangles[i * 3 + j]] + new Vector3(-15, 0, 0),
+						vertices[triangles[i * 3 + (j + 1) % 3]] + new Vector3(-15, 0, 0),
 						Color.white,
 						5000
 					);
@@ -544,8 +544,8 @@ public static class MeshCalculator {
 		if (debugging) {
 			for (int i=0;i<boundary.Count;i++) {
 				Debug.DrawLine(
-					offsetVertices[boundary[i]] + new Vector3(-20, 0, 0),
-					offsetVertices[boundary[(i + 1) % boundary.Count]] + new Vector3(-20, 0, 0),
+					offsetVertices[boundary[i]] + new Vector3(-5, 0, 0),
+					offsetVertices[boundary[(i + 1) % boundary.Count]] + new Vector3(-5, 0, 0),
 					Color.white,
 					5000
 				);
