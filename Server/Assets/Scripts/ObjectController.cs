@@ -331,7 +331,7 @@ public class ObjectController : MonoBehaviour
 					Vector3 v1 = vertices[vertexA] - vertices[edges[edgeShared * 2]];
 					Vector3 v2 = vertices[vertexA] - vertices[edges[edgeShared * 2 + 1]];
 					Vector3 v3 = vertices[vertexA] - vertices[vertexB];
-					if (Mathf.Abs(VectorCalculator.dotProduct(v1.normalized, VectorCalculator.crossProduct(v2.normalized, v3.normalized).normalized)) < eps) {
+					if (Mathf.Abs(Vector3.Dot(v1.normalized, Vector3.Cross(v2.normalized, v3.normalized).normalized)) < eps) {
 						return true;
 					}
 				}

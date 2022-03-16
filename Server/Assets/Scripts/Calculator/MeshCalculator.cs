@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,8 +8,8 @@ using Random = UnityEngine.Random;
 
 public static class MeshCalculator {
 
-	private static float eps = 0.01f;
 	public static bool debugging = true;
+	public static int debugInt = 0;
 
 	private static List<int> clockwiseBoundary(Vector3[] vertices, List<int> boundary, Vector3 localNormal) {
 
@@ -16,7 +17,7 @@ public static class MeshCalculator {
 		for (int i=0;i<boundary.Count;i++) {
 			Vector3 va = (vertices[boundary[i]] - vertices[boundary[(i + boundary.Count - 1) % boundary.Count]]).normalized;
 			Vector3 vb = (vertices[boundary[(i + 1) % boundary.Count]] - vertices[boundary[i]]).normalized;
-			bool isConvex = (Mathf.Abs((VectorCalculator.crossProduct(va, vb).normalized - localNormal).magnitude) < eps);
+			bool isConvex = Mathf.Approximately(0, Vector3.Angle(Vector3.Cross(va, vb).normalized, localNormal));
 			angleAcc += VectorCalculator.vectorAngle(va, vb) * (isConvex ? 1 : -1);
 		}
 		if (angleAcc < 0) {
@@ -35,7 +36,7 @@ public static class MeshCalculator {
 	private static int[] checkTriangleNormal(Vector3[] vertices, int[] triangles, Vector3 localNormal) {
 		int[] newTriangles = new int[triangles.Length];
 		for (int i=0;i<triangles.Length/3;i++) {
-			if ((VectorCalculator.crossProduct(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3]]).normalized - localNormal).magnitude < eps) {
+			if (Mathf.Approximately(0, Vector3.Angle(Vector3.Cross(vertices[triangles[i * 3 + 1]] - vertices[triangles[i * 3]], vertices[triangles[i * 3 + 2]] - vertices[triangles[i * 3]]).normalized, localNormal))) {
 				for (int j=0;j<3;j++) {
 					newTriangles[i * 3 + j] = triangles[i * 3 + j];
 				}
@@ -63,7 +64,7 @@ public static class MeshCalculator {
 		}
 		for (int i=0;i<vertices.Length;i++) {
 			for (int j=i+1;j<vertices.Length;j++) {
-				if ((vertices[j] - vertices[i]).magnitude < eps) {
+				if (Mathf.Approximately(0, Vector3.Angle(vertices[j], vertices[i]))) {
 					firstAppear[j] = firstAppear[i];
 				}
 			}
@@ -202,7 +203,7 @@ public static class MeshCalculator {
 
 	public static void generateFaceCover(ref Vector3[] vertices, ref int[] triangles, ref List<List<int>> boundary, float thickness) {
 
-		Vector3 localNormal = VectorCalculator.crossProduct(vertices[triangles[1]] - vertices[triangles[0]], vertices[triangles[2]] - vertices[triangles[0]]).normalized;
+		Vector3 localNormal = Vector3.Cross(vertices[triangles[1]] - vertices[triangles[0]], vertices[triangles[2]] - vertices[triangles[0]]).normalized;
 
 		//Offset towards normal direction
 		for (int i=0;i<vertices.Length;i++) {
@@ -234,7 +235,7 @@ public static class MeshCalculator {
 			for (int j=0;j<boundary[i].Count;j++) {
 				Vector3 va = (vertices[boundary[i][j]] - vertices[boundary[i][(j + boundary[i].Count - 1) % boundary[i].Count]]).normalized;
 				Vector3 vb = (vertices[boundary[i][(j + 1) % boundary[i].Count]] - vertices[boundary[i][j]]).normalized;
-				isConvex[j] = (Mathf.Abs((VectorCalculator.crossProduct(va, vb).normalized - localNormal).magnitude) < eps);
+				isConvex[j] = Mathf.Approximately(0, Vector3.Angle(Vector3.Cross(va, vb).normalized, localNormal));
 				angle[j] = VectorCalculator.vectorAngle(va, vb);
 				dir[j] = (vb - va).normalized;
 			}
@@ -305,32 +306,59 @@ public static class MeshCalculator {
 	}
 
 	public static int[] triangulation(Vector3[] vertices, List<List<int>> boundaries, Vector3 localNormal) {
+		debugging = false;
+		List<int> noHolePolygon = boundaries.Count > 1 ? splitHolePolygon(vertices, boundaries) : boundaries[0];
+		debugging = true;
+		if (Mathf.Approximately(0, localNormal.magnitude)) {
+			localNormal = Vector3.Cross(vertices[noHolePolygon[1]] - vertices[noHolePolygon[0]], vertices[noHolePolygon[2]] - vertices[noHolePolygon[1]]).normalized;
+		}
 
 		if (debugging) {
-			for (int i=0;i<boundaries.Count;i++) {
-				for (int j=0;j<boundaries[i].Count;j++) {
-					Debug.DrawLine(
-						vertices[boundaries[i][j]],
-						vertices[boundaries[i][(j + 1) % boundaries[i].Count]],
-						Color.white,
-						5000
-					);
-				}
+			for (int i=0;i<noHolePolygon.Count;i++) {
+				Debug.DrawLine(
+					vertices[noHolePolygon[i]] + new Vector3(-5, 0, 1),
+					vertices[noHolePolygon[(i + 1) % noHolePolygon.Count]] + new Vector3(-5, 0, 1),
+					Color.white,
+					5000
+				);
 			}
 		}
 
-		List<int> noHolePolygon = boundaries.Count > 1 ? splitHolePolygon(vertices, boundaries) : boundaries[0];
-		if (localNormal.magnitude < eps) {
-			localNormal = VectorCalculator.crossProduct(vertices[noHolePolygon[1]] - vertices[noHolePolygon[0]], vertices[noHolePolygon[2]] - vertices[noHolePolygon[1]]).normalized;
+		//Force duplicate reused vertices and offset
+		//Rotate the vertices to x-y plane
+		bool[] used = new bool[vertices.Length];
+		List<Vector3> newVerticesList = new List<Vector3>();
+		List<int> pointerToOriginal = new List<int>();
+		for (int i=0;i<vertices.Length;i++) {
+			newVerticesList.Add(vertices[i]);
+			pointerToOriginal.Add(i);
 		}
-		List<List<int>> monotonePolygons = splitMonotonePolygon(vertices, noHolePolygon);
+		List<int> boundary = new List<int>();
+		for (int i=0;i<noHolePolygon.Count;i++) {
+			if (!used[noHolePolygon[i]]) {
+				boundary.Add(noHolePolygon[i]);
+				used[noHolePolygon[i]] = true;
+			}
+			else {
+				newVerticesList.Add(vertices[noHolePolygon[i]]);
+				pointerToOriginal.Add(noHolePolygon[i]);
+				boundary.Add(newVerticesList.Count - 1);
+			}
+		}
+		Vector3[] newVertices = VectorCalculator.facePlaneFront(newVerticesList.ToArray()).Select(v => new Vector3(v.x, v.y, 0)).ToArray();
+		offsetBoundary(ref newVertices, new List<List<int>> {boundary}, new Vector3(0, 0, 1), 0.01f);
+		Vector2[] vertices2D = newVertices.Select(v => new Vector2(v.x + v.y, v.y)).ToArray();
+		//Avoid two vertices locating on same x
+		List<List<int>> monotonePolygons = splitMonotonePolygon(vertices2D, boundary);
 
 		if (debugging) {
 			for (int i=0;i<monotonePolygons.Count;i++) {
 				for (int j=0;j<monotonePolygons[i].Count;j++) {
+					Vector3 a = new Vector3(vertices2D[monotonePolygons[i][j]].x, vertices2D[monotonePolygons[i][j]].y, 0);
+					Vector3 b = new Vector3(vertices2D[monotonePolygons[i][(j + 1) % monotonePolygons[i].Count]].x, vertices2D[monotonePolygons[i][(j + 1) % monotonePolygons[i].Count]].y, 0);
 					Debug.DrawLine(
-						vertices[monotonePolygons[i][j]] + new Vector3(-10, 0, 0),
-						vertices[monotonePolygons[i][(j + 1) % monotonePolygons[i].Count]] + new Vector3(-10, 0, 0),
+						a + new Vector3(-20, 0, 0.05f * i),
+						b + new Vector3(-20, 0, 0.05f * i),
 						Color.white,
 						5000
 					);
@@ -341,18 +369,17 @@ public static class MeshCalculator {
 		List<int> trianglesList = new List<int>();
 
 		for (int i=0;i<monotonePolygons.Count;i++) {
-			List<int> monotonePolygon = clockwiseBoundary(vertices, monotonePolygons[i], localNormal);
-			trianglesList.AddRange(triangulizeMonotonePolygon(vertices, monotonePolygon));
+			trianglesList.AddRange(triangulizeMonotonePolygon(vertices2D, monotonePolygons[i]));
 		}
 
-		int[] triangles = trianglesList.ToArray();
+		int[] triangles = trianglesList.Select(x => pointerToOriginal[x]).ToArray();
 
 		if (debugging) {
 			for (int i=0;i<triangles.Length/3;i++) {
 				for (int j=0;j<3;j++) {
 					Debug.DrawLine(
-						vertices[triangles[i * 3 + j]] + new Vector3(-15, 0, 0),
-						vertices[triangles[i * 3 + (j + 1) % 3]] + new Vector3(-15, 0, 0),
+						vertices[triangles[i * 3 + j]] + new Vector3(-25, 0, 0),
+						vertices[triangles[i * 3 + (j + 1) % 3]] + new Vector3(-25, 0, 0),
 						Color.white,
 						5000
 					);
@@ -367,6 +394,19 @@ public static class MeshCalculator {
 	}
 
 	private static List<int> splitHolePolygon(Vector3[] vertices, List<List<int>> boundaries) {
+
+		if (debugging) {
+			for (int i=0;i<boundaries.Count;i++) {
+				for (int j=0;j<boundaries[i].Count;j++) {
+					Debug.DrawLine(
+						vertices[boundaries[i][j]],
+						vertices[boundaries[i][(j + 1) % boundaries[i].Count]],
+						Color.white,
+						5000
+					);
+				}
+			}
+		}
 
 		int bn = boundaries.Count;
 
@@ -423,41 +463,7 @@ public static class MeshCalculator {
 		return splitBoundariesByEdges(vertices, boundaries, edges)[0];
 
 	}
-	private static List<List<int>> splitMonotonePolygon(Vector3[] originalVertices, List<int> originalBoundary) {
-
-		//Force duplicate reused vertices and offset
-		Vector3 localNormal = VectorCalculator.crossProduct(originalVertices[originalBoundary[1]] - originalVertices[originalBoundary[0]], originalVertices[originalBoundary[2]] - originalVertices[originalBoundary[1]]).normalized;
-		bool[] used = new bool[originalVertices.Length];
-		List<Vector3> newVerticesList = new List<Vector3>();
-		List<int> pointerToOriginal = new List<int>();
-		for (int i=0;i<originalVertices.Length;i++) {
-			newVerticesList.Add(originalVertices[i]);
-			pointerToOriginal.Add(i);
-		}
-		List<int> boundary = new List<int>();
-		for (int i=0;i<originalBoundary.Count;i++) {
-			if (!used[originalBoundary[i]]) {
-				boundary.Add(originalBoundary[i]);
-				used[originalBoundary[i]] = true;
-			}
-			else {
-				newVerticesList.Add(originalVertices[originalBoundary[i]]);
-				pointerToOriginal.Add(originalBoundary[i]);
-				boundary.Add(newVerticesList.Count - 1);
-			}
-		}
-		
-		Vector3[] offsetVertices = newVerticesList.ToArray();
-		offsetBoundary(ref offsetVertices, new List<List<int>> {boundary}, localNormal, 0.01f);
-		//Rotate the vertices to x-y plane
-		Vector2[] vertices = VectorCalculator.facePlaneFront(offsetVertices);
-
-		//Avoid two vertices locating on same x
-		for (int i=0;i<boundary.Count;i++) {
-			if (vertices[boundary[i]].x == vertices[boundary[(i + 1) % boundary.Count]].x) {
-				vertices[boundary[(i + 1) % boundary.Count]] += new Vector2(0.001f, 0);
-			}
-		}
+	private static List<List<int>> splitMonotonePolygon(Vector2[] vertices, List<int> boundary) {
 
 		//Sort the boundary vertices by x
 		List<int> verticePointers = new List<int>();
@@ -479,53 +485,12 @@ public static class MeshCalculator {
 
 		//Add splitting edges
 		List<int> edges = new List<int>();
-		//Edge pointers sorted by y
-		List<int> intersectingEdges = new List<int>();
 		for (int i=0;i<verticePointers.Count;i++) {
 			int cur = verticePointers[i];
-			List<float> intersectingY = new List<float>();
-			for (int j=0;j<intersectingEdges.Count;j++) {
-				intersectingY.Add(VectorCalculator.getLineIntersection(
-					vertices[boundary[intersectingEdges[j]]],
-					vertices[boundary[(intersectingEdges[j] + 1) % boundary.Count]],
-					vertices[boundary[cur]],
-					vertices[boundary[cur]] + new Vector2(0, 1)
-				).y);
-			}
 			int pre = (cur + boundary.Count - 1) % boundary.Count;
 			int nex = (cur + 1) % boundary.Count;
 			if ((vertices[boundary[pre]] - vertices[boundary[cur]]).normalized.y > (vertices[boundary[nex]] - vertices[boundary[cur]]).normalized.y) {
 				int t = pre; pre = nex; nex = t;
-			}
-			if (vertices[boundary[pre]].x >= vertices[boundary[cur]].x) {
-				int pointer = 0;
-				while (pointer < intersectingEdges.Count && vertices[boundary[cur]].y >= intersectingY[pointer]) {
-					pointer++;
-				}
-				int edge = pre == 0 || cur == 0 ? boundary.Count - 1 : Math.Min(pre, cur);
-				intersectingEdges.Insert(pointer, edge);
-				intersectingY.Insert(pointer, vertices[boundary[cur]].y);
-			}
-			else {
-				int edge = pre == 0 || cur == 0 ? boundary.Count - 1 : Math.Min(pre, cur);
-				int j = intersectingEdges.FindIndex(a => a == edge);
-				intersectingEdges.RemoveAt(j);
-				intersectingY.RemoveAt(j);
-			}
-			if (vertices[boundary[nex]].x >= vertices[boundary[cur]].x) {
-				int pointer = 0;
-				while (pointer < intersectingEdges.Count && vertices[boundary[cur]].y >= intersectingY[pointer]) {
-					pointer++;
-				}
-				int edge = nex == 0 || cur == 0 ? boundary.Count - 1 : Math.Min(nex, cur);
-				intersectingEdges.Insert(pointer, edge);
-				intersectingY.Insert(pointer, vertices[boundary[cur]].y);
-			}
-			else {
-				int edge = nex == 0 || cur == 0 ? boundary.Count - 1 : Math.Min(nex, cur);
-				int j = intersectingEdges.FindIndex(a => a == edge);
-				intersectingEdges.RemoveAt(j);
-				intersectingY.RemoveAt(j);
 			}
 			//If both edges are on same side, add an edge towards the other side of the trapezoid
 			if (vertices[boundary[pre]].x > vertices[boundary[cur]].x && vertices[boundary[nex]].x > vertices[boundary[cur]].x) {
@@ -548,49 +513,19 @@ public static class MeshCalculator {
 			}
 		}
 
-		if (debugging) {
-			for (int i=0;i<boundary.Count;i++) {
-				Debug.DrawLine(
-					offsetVertices[boundary[i]] + new Vector3(-5, 0, 0),
-					offsetVertices[boundary[(i + 1) % boundary.Count]] + new Vector3(-5, 0, 0),
-					Color.white,
-					5000
-				);
-			}
-		}
+		VectorCalculator.debugInt++;
 
-		List<List<int>> boundaries = new List<List<int>>{ boundary };
-		List<List<int>> offsetBoundaries = splitBoundariesByEdges(offsetVertices, boundaries, edges);
-		List<List<int>> newBoundaries = new List<List<int>>();
+		List<List<int>> result = splitBoundariesByEdges(vertices.Select(v => new Vector3(v.x, v.y, 0)).ToArray(), new List<List<int>>{ boundary }, edges);
+		Debug.Log((edges.Count / 2) + " " + result.Count);
 
-		if (debugging) {
-			int idx = 0;
-			for (int i=0;i<offsetBoundaries[idx].Count;i++) {
-				Vector2 a = vertices[offsetBoundaries[idx][i]];
-				Vector2 b = vertices[offsetBoundaries[idx][(i + 1) % offsetBoundaries[idx].Count]];
-				Debug.DrawLine(
-					new Vector3(a.x, a.y, 0) + new Vector3(10, 0, 0),
-					new Vector3(b.x, b.y, 0) + new Vector3(10, 0, 0),
-					Color.white,
-					5000
-				);
-			}
-		}
-
-
-		for (int i=0;i<offsetBoundaries.Count;i++) {
-			newBoundaries.Add(new List<int>());
-			for (int j=0;j<offsetBoundaries[i].Count;j++) {
-				newBoundaries[i].Add(pointerToOriginal[offsetBoundaries[i][j]]);
-			}
-		}
-		return newBoundaries;
+		return result;
 
 	}
-	private static List<int> triangulizeMonotonePolygon(Vector3[] originalVertices, List<int> boundary) {
+	private static List<int> triangulizeMonotonePolygon(Vector2[] vertices, List<int> boundary) {
 
-		Vector3 localNormal = VectorCalculator.crossProduct(originalVertices[boundary[1]] - originalVertices[boundary[0]], originalVertices[boundary[2]] - originalVertices[boundary[1]]).normalized;
-		Vector2[] vertices = VectorCalculator.facePlaneFront(originalVertices);
+		if (boundary.Count == 3) {
+			return boundary;
+		}
 
 		//Algorithm:
 		//Sort vertices by x
@@ -662,7 +597,36 @@ public static class MeshCalculator {
 
 	private static List<List<int>> splitBoundariesByEdges(Vector3[] vertices, List<List<int>> boundaries, List<int> edges) {
 
-		Vector3 localNormal = VectorCalculator.crossProduct(vertices[boundaries[0][1]] - vertices[boundaries[0][0]], vertices[boundaries[0][2]] - vertices[boundaries[0][1]]).normalized;
+		debugInt++;
+
+		if (debugging) {
+			for (int i=0;i<edges.Count / 2;i++) {
+				Vector3 a = vertices[edges[i * 2]];
+				Vector3 b = vertices[edges[i * 2 + 1]];
+				Debug.DrawLine(
+					a + new Vector3(-10, 0, debugInt),
+					b + new Vector3(-10, 0, debugInt),
+					Color.yellow,
+					5000,
+					false
+				);
+			}
+			for (int i=0;i<boundaries.Count;i++) {
+				for (int j=0;j<boundaries[i].Count;j++) {
+					Vector3 a = vertices[boundaries[i][j]];
+					Vector3 b = vertices[boundaries[i][(j + 1) % boundaries[i].Count]];
+					Debug.DrawLine(
+						a + new Vector3(-10, 0, debugInt),
+						b + new Vector3(-10, 0, debugInt),
+						Color.white,
+						5000,
+						false
+					);
+				}
+			}
+		}
+
+		Vector3 localNormal = Vector3.Cross(vertices[boundaries[0][1]] - vertices[boundaries[0][0]], vertices[boundaries[0][2]] - vertices[boundaries[0][1]]).normalized;
 
 		//Create an adjacency list
 		//clockwise = 1: clockwise, = 0: edge, = -1: counterclockwise in result boundaries
@@ -744,10 +708,12 @@ public static class MeshCalculator {
 				Vector3 v1 = vertices[cur.v] - vertices[cur.u];
 				for (int i=0;i<adjList[cur.v].Count;i++) {
 					int nex = adjList[cur.v][i].edge;
-					Vector3 v2 = vertices[nex] - vertices[cur.v];
-					float angle = VectorCalculator.vectorAngle(v1, v2) * (Mathf.Abs((VectorCalculator.crossProduct(v1, v2).normalized - localNormal).magnitude) < eps ? 1 : -1);
-					if (angle > maxEdge.maxAngle) {
-						maxEdge = (angle, nex);
+					if (nex != cur.u) {
+						Vector3 v2 = vertices[nex] - vertices[cur.v];
+						float angle = VectorCalculator.vectorAngle(v1, v2) * (Vector3.Angle(Vector3.Cross(v1, v2).normalized, localNormal) < 45f ? 1 : -1);
+						if (angle > maxEdge.maxAngle) {
+							maxEdge = (angle, nex);
+						}
 					}
 				}
 				cur.u = cur.v;
@@ -761,29 +727,17 @@ public static class MeshCalculator {
 
 	public static void cutByPlane(ref Vector3[] vertices, ref int[] triangles, Vector3 planePos, Vector3 planeNormal) {
 
-		Vector3 avoidZeroVector = new Vector3(Random.Range(0.001f, 0.002f), Random.Range(0.001f, 0.002f), Random.Range(0.001f, 0.002f));
-		if (planeNormal.x != 0) {
-			avoidZeroVector.x = - (avoidZeroVector.y * planeNormal.y + avoidZeroVector.z * planeNormal.z) / planeNormal.x;
-		}
-		else if (planeNormal.y != 0) {
-			avoidZeroVector.y = - (avoidZeroVector.x * planeNormal.x + avoidZeroVector.z * planeNormal.z) / planeNormal.y;
-		}
-		else if (planeNormal.z != 0) {
-			avoidZeroVector.z = - (avoidZeroVector.x * planeNormal.x + avoidZeroVector.y * planeNormal.y) / planeNormal.z;
-		}
-		planePos += avoidZeroVector;
-
 		List<Vector3> remainVerticesList = new List<Vector3>();
 		List<Vector3> edgeVerticesList = new List<Vector3>();
 
 		//Calculate edge of cutting plane & reconstruct faces along the edge
 		int[] triangleSide = new int[triangles.Length / 3]; // -1 left, 0 cross, 1 right
-		float pn = VectorCalculator.dotProduct(planePos, planeNormal);
+		float pn = Vector3.Dot(planePos, planeNormal);
 		for (int i=0;i<triangles.Length / 3;i++) {
 			float[] verticesPos = new float[3]{
-				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 0]], planeNormal) - pn,
-				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 1]], planeNormal) - pn,
-				VectorCalculator.dotProduct(vertices[triangles[i * 3 + 2]], planeNormal) - pn
+				Vector3.Dot(vertices[triangles[i * 3 + 0]], planeNormal) - pn,
+				Vector3.Dot(vertices[triangles[i * 3 + 1]], planeNormal) - pn,
+				Vector3.Dot(vertices[triangles[i * 3 + 2]], planeNormal) - pn
 			};
 			if (verticesPos[0] <= 0 && verticesPos[1] <= 0 && verticesPos[2] <= 0) {
 				triangleSide[i] = -1;
@@ -799,9 +753,9 @@ public static class MeshCalculator {
 						vertices[triangles[i * 3 + ((j + 1) % 3)]],
 						vertices[triangles[i * 3 + ((j + 2) % 3)]]
 					};
+					Vector3 newVec1 = VectorCalculator.getLinePlaneIntersection(curVec[0], curVec[2], planePos, planeNormal);
+					Vector3 newVec2 = VectorCalculator.getLinePlaneIntersection(curVec[1], curVec[2], planePos, planeNormal);
 					if (verticesPos[j] <= 0 && verticesPos[(j + 1) % 3] <= 0) {
-						Vector3 newVec1 = VectorCalculator.getLinePlaneIntersection(curVec[0], curVec[2], planePos, planeNormal);
-						Vector3 newVec2 = VectorCalculator.getLinePlaneIntersection(curVec[1], curVec[2], planePos, planeNormal);
 						remainVerticesList.Add(curVec[0]);
 						remainVerticesList.Add(curVec[1]);
 						remainVerticesList.Add(newVec1);
@@ -813,8 +767,6 @@ public static class MeshCalculator {
 						break;
 					}
 					else if (verticesPos[j] > 0 && verticesPos[(j+1)%3] > 0) {
-						Vector3 newVec1 = VectorCalculator.getLinePlaneIntersection(curVec[0], curVec[2], planePos, planeNormal);
-						Vector3 newVec2 = VectorCalculator.getLinePlaneIntersection(curVec[1], curVec[2], planePos, planeNormal);
 						remainVerticesList.Add(curVec[2]);
 						remainVerticesList.Add(newVec1);
 						remainVerticesList.Add(newVec2);
@@ -886,7 +838,7 @@ public static class MeshCalculator {
 				for (int i=0;i<sortedEdgeVerticesList[boundaryCount - 1].Count;i++) {
 					int prev = (i + sortedEdgeVerticesList[boundaryCount - 1].Count - 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
 					int next = (i + 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
-					if (VectorCalculator.crossProduct(sortedEdgeVerticesList[boundaryCount - 1][next] - sortedEdgeVerticesList[boundaryCount - 1][i], sortedEdgeVerticesList[boundaryCount - 1][i] - sortedEdgeVerticesList[boundaryCount - 1][prev]).magnitude < 0.001f) {
+					if (Vector3.Cross(sortedEdgeVerticesList[boundaryCount - 1][next] - sortedEdgeVerticesList[boundaryCount - 1][i], sortedEdgeVerticesList[boundaryCount - 1][i] - sortedEdgeVerticesList[boundaryCount - 1][prev]).magnitude < 0.001f) {
 						sortedEdgeVerticesList[boundaryCount - 1].RemoveAt(i);
 						break;
 					}

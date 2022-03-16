@@ -670,7 +670,7 @@ public class MeshManipulator : MonoBehaviour
 
 		prepareUndo();
 
-		// x ⋅ planePos - VectorCalculator.dotProduct(planePos, planeNormal) = 0
+		// x ⋅ planePos - Vector3.Dot(planePos, planeNormal) = 0
 		// <= 0 left, > 0 right
 		planePos = transform.InverseTransformPoint(planePos);
 		planeNormal = transform.InverseTransformPoint(planeNormal + transform.position).normalized;
@@ -844,7 +844,7 @@ public class MeshManipulator : MonoBehaviour
 				Vector3 targetVector = new Vector3(VectorCalculator.camWidth / 2, Mathf.Sqrt(dist * dist - (VectorCalculator.camWidth / 2 - transform.position.x) * (VectorCalculator.camWidth / 2 - transform.position.x)) * (closestVector.y > transform.position.y ? 1 : -1), 0);
 				Vector3 a = targetVector - new Vector3(transform.position.x, transform.position.y, 0);
 				Vector3 b = closestVector - new Vector3(transform.position.x, transform.position.y, 0);
-				float deltaAngle = Mathf.Acos(VectorCalculator.dotProduct(a, b) / a.magnitude / b.magnitude) * (closestVector.y > transform.position.y ? 1 : -1);
+				float deltaAngle = Mathf.Acos(Vector3.Dot(a, b) / a.magnitude / b.magnitude) * (closestVector.y > transform.position.y ? 1 : -1);
 				Quaternion rot = Quaternion.AngleAxis(deltaAngle / Mathf.PI * 180, axis);
 				transform.rotation = rot * transform.rotation;
 			}
@@ -890,13 +890,13 @@ public class MeshManipulator : MonoBehaviour
 		}
 
 		if (state == Status.select && (smode == SelectMode.selectFace || !isNewFocus)) {
-			axisToFocus = VectorCalculator.crossProduct(focusNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-VectorCalculator.angle), 0, -Mathf.Cos(-VectorCalculator.angle))));
+			axisToFocus = Vector3.Cross(focusNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-VectorCalculator.angle), 0, -Mathf.Cos(-VectorCalculator.angle))));
 			angleToFocus = Vector3.Angle(focusNormal, (isThisScreen ? new Vector3(0, 0, -1) : new Vector3(Mathf.Sin(-VectorCalculator.angle), 0, -Mathf.Cos(-VectorCalculator.angle))));
 			centerToHitFace =
 				transform.InverseTransformPoint(
 						focusNormal + transform.position
 					).normalized *
-				VectorCalculator.dotProduct(
+				Vector3.Dot(
 					transform.InverseTransformPoint(
 						focusNormal + transform.position
 					).normalized,

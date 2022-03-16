@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -46,6 +47,7 @@ public class Debugger : MonoBehaviour
         vertices[20] = new Vector3(2.243f, 3.682f, -3.309f);
         vertices[21] = new Vector3(-1.770f, 3.326f, -0.873f);
         vertices[22] = new Vector3(-1.959f, 6.680f, -2.643f);
+        vertices = vertices.Select(v => v / 8).ToArray();
         List<List<int>> boundaries = new List<List<int>>();
         boundaries.Add(new List<int>{0, 1, 2, 3, 4, 5});
         boundaries.Add(new List<int>{6, 7, 8, 9, 10, 11, 12, 13});
@@ -80,7 +82,7 @@ public class Debugger : MonoBehaviour
     }
 
     private void displayBoundaries(ref Vector3[] vertices, ref List<List<int>> boundaries, Vector3 offset) {
-        Vector3 localNormal = VectorCalculator.crossProduct(vertices[boundaries[0][1]] - vertices[boundaries[0][0]], vertices[boundaries[0][2]] - vertices[boundaries[0][1]]).normalized;
+        Vector3 localNormal = Vector3.Cross(vertices[boundaries[0][1]] - vertices[boundaries[0][0]], vertices[boundaries[0][2]] - vertices[boundaries[0][1]]).normalized;
         while (boundaries.Count > lineObj.Count) {
 			lineObj.Add(Instantiate(linePrefab, new Vector3(0, 0, 0), Quaternion.identity));
 			lineObj[lineObj.Count - 1].transform.parent = this.transform;

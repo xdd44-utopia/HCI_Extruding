@@ -7,12 +7,12 @@ using Random = UnityEngine.Random;
 
 public static class VectorCalculator {
 
-	private static float eps = 0.0001f;
 	private static float inf = 2147483647f;
 	public static bool debugging = false;
 	public static float camWidth;
 	public static float camHeight;
 	public static float angle;
+	public static int debugInt = 0;
 
 	static void Start()
 	{
@@ -22,23 +22,30 @@ public static class VectorCalculator {
 		camWidth = camHeight * cam.aspect;
 		debugging = false;
 	}
-
-
-	public static bool areLineSegmentIntersect(Vector3 a1, Vector3 a2, Vector3 b1, Vector3 b2) {
-		bool result = true;
-		if (crossProduct(a2 - a1, b2 - a2).magnitude > 0 &&
-			crossProduct(a2 - a1, b1 - a2).magnitude > 0 &&
-			Vector3.Angle(crossProduct(a2 - a1, b2 - a2), crossProduct(a2 - a1, b1 - a2)) < 0.05f
-		) {
-			result = false;
+	
+	public static bool areLineSegmentIntersect(Vector2 a1, Vector2 a2, Vector2 b1, Vector2 b2) {
+		bool onSegment(Vector2 p, Vector2 q, Vector2 r) {
+			if (q.x <= Mathf.Max(p.x, r.x) && q.x >= Mathf.Min(p.x, r.x) &&
+				q.y <= Mathf.Max(p.y, r.y) && q.y >= Mathf.Min(p.y, r.y))
+			return true;
+		
+			return false;
 		}
-		if (crossProduct(b2 - b1, a1 - b2).magnitude > 0 &&
-			crossProduct(b2 - b1, a2 - b2).magnitude > 0 &&
-			Vector3.Angle(crossProduct(b2 - b1, a1 - b2), crossProduct(b2 - b1, a2 - b2)) < 0.05f
-		) {
-			result = false;
+		int orientation(Vector2 p1, Vector2 p2, Vector2 p3) {
+			float ori = (p2.y - p1.y) * (p3.x - p2.x) - (p2.x - p1.x) * (p3.y - p2.y);
+			if (Mathf.Approximately(0, ori)) return 0;
+			return (ori > 0)? 1: 2;
 		}
-		return result;
+		int o1 = orientation(a1, a2, b1);
+		int o2 = orientation(a1, a2, b2);
+		int o3 = orientation(b1, b2, a1);
+		int o4 = orientation(b1, b2, a2);
+		if (o1 != o2 && o3 != o4) return true;
+		if (o1 == 0 && onSegment(a1, b1, a2)) return true;
+		if (o2 == 0 && onSegment(a1, b2, a2)) return true;
+		if (o3 == 0 && onSegment(b1, a1, b2)) return true;
+		if (o4 == 0 && onSegment(b1, a2, b2)) return true;
+		return false;
 	}
 
 	public static Vector2 getLineIntersection(Vector2 a1, Vector2 a2, Vector2 b1, Vector2 b2) {
@@ -50,7 +57,7 @@ public static class VectorCalculator {
 	}
 
 	public static Vector2 getLineSegmentIntersection(Vector2 a1, Vector2 a2, Vector2 b1, Vector2 b2) {
-		if (!areLineSegmentIntersect(new Vector3(a1.x, a1.y, 0), new Vector3(a2.x, a2.y, 0), new Vector3(b1.x, b1.y, 0), new Vector3(b2.x, b2.y, 0))) {
+		if (!areLineSegmentIntersect(a1, a2, b1, b2)) {
 			return new Vector2(inf, inf);
 		}
 		else {
@@ -58,16 +65,8 @@ public static class VectorCalculator {
 		}
 	}
 	public static Vector3 getLinePlaneIntersection(Vector3 a, Vector3 b, Vector3 p, Vector3 n) { //line passes a and b, plane passes p with normal n
-		float t = (dotProduct(p, n) - dotProduct(a, n)) / dotProduct(n, a - b);
+		float t = (Vector3.Dot(p, n) - Vector3.Dot(a, n)) / Vector3.Dot(n, a - b);
 		return a + t * (a - b);
-	}
-
-	public static Vector3 crossProduct(Vector3 a, Vector3 b) {
-		return new Vector3(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
-	}
-
-	public static float dotProduct(Vector3 a, Vector3 b) {
-		return a.x * b.x + a.y * b.y + a.z * b.z;
 	}
 	public static float multXZ(Vector3 from, Vector3 to) {
 		return from.x * to.x + from.z * to.z;
@@ -151,12 +150,12 @@ public static class VectorCalculator {
 		for (int i=2;i<vertices.Length;i++) {
 			Vector3 d1 = (v2 - v1).normalized;
 			Vector3 d2 = (v3 - v2).normalized;
-			if (Vector3.Angle(d1, d2) > eps && Vector3.Angle(d1, d2) < 180 - eps) {
+			if (!Mathf.Approximately(0, Vector3.Angle(d1, d2)) && !Mathf.Approximately(180f, Vector3.Angle(d1, d2))) {
 				normal = Vector3.Cross(d1, d2).normalized;
 			}
 		}
 		
-		Vector3 axis = VectorCalculator.crossProduct(normal, new Vector3(0, 0, 1));
+		Vector3 axis = Vector3.Cross(normal, new Vector3(0, 0, 1));
 		float angle = Vector3.Angle(normal, new Vector3(0, 0, 1));
 		Quaternion rotation = axis.magnitude != 0 ? Quaternion.AngleAxis(angle, axis) : Quaternion.identity;
 
@@ -178,36 +177,60 @@ public static class VectorCalculator {
 		for (int i=0;i<boundary.Count;i++) {
 			Vector2 a1 = vertices[boundary[i]];
 			Vector2 a2 = vertices[boundary[(i + 1) % boundary.Count]];
-			if (getLineSegmentIntersection(a1, a2, p, new Vector2(p.x, inf)).x != inf) {
-				upperCount++;
-			}
-			if (getLineSegmentIntersection(a1, a2, p, new Vector2(p.x, -inf)).x != inf) {
-				lowerCount++;
+			if ((a1.x < p.x && a2.x > p.x) || (a1.x > p.x && a2.x < p.x)) {
+				if (a1.y + (a2.y - a1.y) / (a2.x - a1.x) * (p.x - a1.x) < p.y) {
+					upperCount++;
+				}
+				if (a1.y + (a2.y - a1.y) / (a2.x - a1.x) * (p.x - a1.x) > p.y) {
+					lowerCount++;
+				}
 			}
 		}
-		return upperCount % 2 == 1 || lowerCount % 2 == 1;
+		return upperCount % 2 == 1 && lowerCount % 2 == 1;
 
 	}
 
 	public static bool isLineSegmentInsidePolygon(Vector2[] vertices, List<int> boundary, Vector2 p1, Vector2 p2) {
+
+		for (int i=0;i<boundary.Count;i++) {
+				Debug.DrawLine(
+					new Vector3(vertices[boundary[i]].x, vertices[boundary[i]].y, 0) + new Vector3(5, 0, debugInt),
+					new Vector3(vertices[boundary[(i + 1) % boundary.Count]].x, vertices[boundary[(i + 1) % boundary.Count]].y, 0) + new Vector3(5, 0, debugInt),
+					Color.white,
+					5000
+				);
+		}
 		
 		Vector2 d = p2 - p1;
-		p1 += 0.001f * d;
-		p2 -= 0.001f * d;
+		p1 += 0.01f * d;
+		p2 -= 0.01f * d;
 		if (!isPointInsidePolygon(vertices, boundary, p1) || !isPointInsidePolygon(vertices, boundary, p2)) {
+				Debug.DrawLine(
+					new Vector3(p1.x, p1.y, 0) + new Vector3(5, 0, debugInt),
+					new Vector3(p2.x, p2.y, 0) + new Vector3(5, 0, debugInt),
+					Color.blue,
+					5000
+				);
 			return false;
 		}
 
 		for (int i=0;i<boundary.Count;i++) {
-			if (areLineSegmentIntersect(
-				new Vector3(vertices[boundary[i]].x, vertices[boundary[i]].y, 0),
-				new Vector3(vertices[boundary[(i + 1) % boundary.Count]].x, vertices[boundary[(i + 1) % boundary.Count]].y, 0),
-				new Vector3(p1.x, p1.y, 0),
-				new Vector3(p2.x, p2.y, 0)
-			)) {
+			if (areLineSegmentIntersect(vertices[boundary[i]], vertices[boundary[(i + 1) % boundary.Count]], p1, p2)) {
+				Debug.DrawLine(
+					new Vector3(p1.x, p1.y, 0) + new Vector3(5, 0, debugInt),
+					new Vector3(p2.x, p2.y, 0) + new Vector3(5, 0, debugInt),
+					Color.red,
+					5000
+				);
 				return false;
 			}
 		}
+		Debug.DrawLine(
+			new Vector3(p1.x, p1.y, 0) + new Vector3(5, 0, debugInt),
+			new Vector3(p2.x, p2.y, 0) + new Vector3(5, 0, debugInt),
+			Color.yellow,
+			5000
+		);
 
 		return true;
 
