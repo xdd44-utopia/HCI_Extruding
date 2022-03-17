@@ -35,6 +35,10 @@ Current setting is for two Samsung Note 20 Ultra with Android
   
   `git clone https://github.com/xdd44-utopia/HCI_Extruding.git`
 
+### (For Android) Pre-built APKs
+
+- [Server](Releases/Server.apk) and [Client](Releases/Client.apk) can be directly downloaded and installed on supported Android machines.
+
 ### Unity Projects Setup
 
 - This repository contains TWO Unity projects (two project root folders in repo root folder): *Server* for the application running on the LEFT phone, *Client* for RIGHT phone

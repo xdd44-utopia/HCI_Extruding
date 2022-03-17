@@ -298,6 +298,7 @@ public static class MeshCalculator {
 		List<int> trianglesList = new List<int>();
 		for (int i=0;i<categorizedBoundaries.Count;i++) {
 			boundaries = categorizedBoundaries[i];
+			debugging = (i == 0);
 			int[] triangles = triangulation(vertices, boundaries, localNormal);
 			trianglesList.AddRange(triangles);
 		}
@@ -306,9 +307,7 @@ public static class MeshCalculator {
 	}
 
 	public static int[] triangulation(Vector3[] vertices, List<List<int>> boundaries, Vector3 localNormal) {
-		debugging = false;
 		List<int> noHolePolygon = boundaries.Count > 1 ? splitHolePolygon(vertices, boundaries) : boundaries[0];
-		debugging = true;
 		if (Mathf.Approximately(0, localNormal.magnitude)) {
 			localNormal = Vector3.Cross(vertices[noHolePolygon[1]] - vertices[noHolePolygon[0]], vertices[noHolePolygon[2]] - vertices[noHolePolygon[1]]).normalized;
 		}
@@ -347,8 +346,8 @@ public static class MeshCalculator {
 		}
 		Vector3[] newVertices = VectorCalculator.facePlaneFront(newVerticesList.ToArray()).Select(v => new Vector3(v.x, v.y, 0)).ToArray();
 		offsetBoundary(ref newVertices, new List<List<int>> {boundary}, new Vector3(0, 0, 1), 0.01f);
-		Vector2[] vertices2D = newVertices.Select(v => new Vector2(v.x + v.y, v.y)).ToArray();
 		//Avoid two vertices locating on same x
+		Vector2[] vertices2D = newVertices.Select(v => new Vector2(v.x + v.y * v.y * 0.1f, v.y + v.x * v.x * 0.1f)).ToArray();
 		List<List<int>> monotonePolygons = splitMonotonePolygon(vertices2D, boundary);
 
 		if (debugging) {
@@ -359,7 +358,7 @@ public static class MeshCalculator {
 					Debug.DrawLine(
 						a + new Vector3(-20, 0, 0.05f * i),
 						b + new Vector3(-20, 0, 0.05f * i),
-						Color.white,
+						new Color(50 * i, 50 * i, 50 * i),
 						5000
 					);
 				}
@@ -516,7 +515,6 @@ public static class MeshCalculator {
 		VectorCalculator.debugInt++;
 
 		List<List<int>> result = splitBoundariesByEdges(vertices.Select(v => new Vector3(v.x, v.y, 0)).ToArray(), new List<List<int>>{ boundary }, edges);
-		Debug.Log((edges.Count / 2) + " " + result.Count);
 
 		return result;
 
@@ -533,11 +531,12 @@ public static class MeshCalculator {
 
 		//Use prev to keep track of its left adjacent vertex
 		//Note that the first vertex has both adjacent vertices on its right, and the last vertex has both on its left
-		List<(int index, int prev, bool removed)> verticesPointers = new List<(int index, int prev, bool removed)>();
+		List<(int index, int prev, int next, bool removed)> verticesPointers = new List<(int index, int prev, int next, bool removed)>();
 		List<bool> removed = new List<bool>();
 		for (int i=0;i<boundary.Count;i++) {
 			int prev = vertices[boundary[(i + boundary.Count - 1) % boundary.Count]].x < vertices[boundary[(i + 1) % boundary.Count]].x ? boundary[(i + boundary.Count - 1) % boundary.Count] : boundary[(i + 1) % boundary.Count];
-			verticesPointers.Add((boundary[i], prev, false));
+			int next = vertices[boundary[(i + boundary.Count - 1) % boundary.Count]].x > vertices[boundary[(i + 1) % boundary.Count]].x ? boundary[(i + boundary.Count - 1) % boundary.Count] : boundary[(i + 1) % boundary.Count];
+			verticesPointers.Add((boundary[i], prev, next, false));
 		}
 		verticesPointers.Sort((a, b) => {
 			if (vertices[a.index].x - vertices[b.index].x == 0) {
@@ -550,6 +549,16 @@ public static class MeshCalculator {
 				return -1;
 			}
 		});
+
+		for (int i=0;i<verticesPointers.Count;i++) {
+			Debug.DrawLine(
+				new Vector3(vertices[verticesPointers[i].index].x - 20, vertices[verticesPointers[i].index].y, 0),
+				new Vector3(vertices[verticesPointers[i].index].x - 20, vertices[verticesPointers[i].index].y, 0.05f * i),
+				Color.yellow,
+				5000,
+				false
+			);
+		}
 		
 		List<int> triangles = new List<int>();
 
@@ -565,7 +574,11 @@ public static class MeshCalculator {
 					break;
 				}
 			}
+			bool found = false;
 			for (int i=leftMost[2];i<verticesPointers.Count;i++) {
+				if (leftMost[2] == 8) {
+					Debug.Log(i);
+				}
 				if (!verticesPointers[i].removed) {
 					int prev = verticesPointers.FindIndex(a => a.index == verticesPointers[i].prev);
 					int prevprev = prev == leftMost[0] ? leftMost[1] : verticesPointers.FindIndex(a => a.index == verticesPointers[prev].prev);
@@ -573,11 +586,28 @@ public static class MeshCalculator {
 						triangles.Add(verticesPointers[prev].index);
 						triangles.Add(verticesPointers[prevprev].index);
 						triangles.Add(verticesPointers[i].index);
-						verticesPointers[prev] = (0, 0, true);
-						verticesPointers[i] = (verticesPointers[i].index, verticesPointers[prevprev].index, false);
+						verticesPointers[prev] = (0, 0, 0, true);
+						verticesPointers[i] = (verticesPointers[i].index, verticesPointers[prevprev].index, verticesPointers[i].next, false);
+						found = true;
 						break;
 					}
+					if (i == verticesPointers.Count - 1) {
+						prev = verticesPointers.FindIndex(a => a.index == verticesPointers[i].next);
+						prevprev = prev == leftMost[0] ? leftMost[1] : verticesPointers.FindIndex(a => a.index == verticesPointers[prev].prev);
+						if (VectorCalculator.isLineSegmentInsidePolygon(vertices, boundary, vertices[verticesPointers[i].index], vertices[verticesPointers[prevprev].index])) {
+							triangles.Add(verticesPointers[prev].index);
+							triangles.Add(verticesPointers[prevprev].index);
+							triangles.Add(verticesPointers[i].index);
+							verticesPointers[prev] = (0, 0, 0, true);
+							verticesPointers[i] = (verticesPointers[i].index, verticesPointers[i].prev, verticesPointers[prevprev].index, false);
+							found = true;
+							break;
+						}
+					}
 				}
+			}
+			if (!found) {
+				Debug.Log("Failed on " + string.Join(" ", leftMost) + " " + verticesPointers.Count);
 			}
 		}
 		//The remaining vertices form the last triangle

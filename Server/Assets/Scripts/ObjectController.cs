@@ -40,7 +40,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.001f;
+	private const float eps = 0.01f;
 
 
 	private float timer = 0;

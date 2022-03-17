@@ -40,7 +40,7 @@ public class ClientController : MonoBehaviour {
 	private bool isConnected = false;
 
 	private float sendTimer = 0;
-	private const float sendInterval = 0.05f;
+	private const float sendInterval = 0.16f;
 	private Vector3 accPrev = Vector3.zero;
 	
 	void Start () {
