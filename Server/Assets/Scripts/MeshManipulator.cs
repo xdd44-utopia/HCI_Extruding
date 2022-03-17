@@ -22,6 +22,12 @@ public class MeshManipulator : MonoBehaviour
 	private ServerController sender;
 	private GameObject extrudeHandle;
 	private GameObject gridController;
+
+	//Initial status
+	private Vector3 defaultPosition;
+	private Vector3 defaultScale;
+	private Quaternion defaultRotation;
+
 	//interaction
 	private Vector3 prevTouchPosition;
 	private float touchDelayTolerance = 0.25f;
@@ -136,6 +142,9 @@ public class MeshManipulator : MonoBehaviour
 
 		cuttingPlaneRenderer.enabled = false;
 
+		defaultPosition = transform.position;
+		defaultRotation = transform.rotation;
+		defaultScale = transform.localScale;
 	
 	}
 
@@ -758,7 +767,7 @@ public class MeshManipulator : MonoBehaviour
 		obj.updateTransform();
 	}
 
-	public void startScaling(float pinchDelta, bool isMainScreen) {
+	public void startScaling(float pinchDelta) {
 		if (state != Status.select) {
 			return;
 		}
@@ -961,9 +970,9 @@ public class MeshManipulator : MonoBehaviour
 	public void restart() {
 		cancel();
 
-		transform.position = new Vector3(0, 0, 2f);
-		transform.localScale = new Vector3(2, 2, 2);
-		transform.rotation = Quaternion.Euler(30, 60, 45);
+		transform.position = defaultPosition;
+		transform.localScale = defaultScale;
+		transform.rotation = defaultRotation;
 
 		gameObject.GetComponent<MeshFilter>().mesh = defaultMesh;
 		gameObject.GetComponent<MeshCollider>().sharedMesh = defaultMesh;

@@ -316,8 +316,8 @@ public class ObjectController : MonoBehaviour
 					Vector3 vectorA = vertices[vertexA] - vertices[edges[edgeShared * 2]];
 					Vector3 vectorB = vertices[vertexB] - vertices[edges[edgeShared * 2]];
 					Vector3 vectorShared = vertices[edges[edgeShared * 2]] - vertices[edges[edgeShared * 2 + 1]];
-					Vector3 normalA = VectorCalculator.crossProduct(vectorA, vectorShared).normalized;
-					Vector3 normalB = VectorCalculator.crossProduct(vectorB, vectorShared).normalized;
+					Vector3 normalA = Vector3.Cross(vectorA, vectorShared).normalized;
+					Vector3 normalB = Vector3.Cross(vectorB, vectorShared).normalized;
 					if ((normalA - normalB).magnitude < eps || (normalA + normalB).magnitude < eps) {
 						return true;
 					}

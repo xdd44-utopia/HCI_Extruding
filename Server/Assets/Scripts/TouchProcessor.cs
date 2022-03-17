@@ -39,7 +39,7 @@ public class TouchProcessor : MonoBehaviour
 	private float pinchDelta;
 	private float turnThisScreen;
 	private float turnOtherScreen;
-	private float pinchThreshold = 0.05f;
+	private float pinchThreshold = 0.01f;
 
 	private float touchTimer = 0;
 	private float touchTimerOtherScreen = 0;
@@ -124,13 +124,14 @@ public class TouchProcessor : MonoBehaviour
 					break;
 				case Status.singleScreen2This:
 					meshManipulator.startRotating(turnThisScreen, true);
-					meshManipulator.startScaling(pinchDelta, true);
 					meshManipulator.updateTaperScale(pinchDelta);
 					break;
 				case Status.singleScreen2Other:
 					meshManipulator.startRotating(turnOtherScreen, false);
-					meshManipulator.startScaling(pinchDelta, false);
 					meshManipulator.updateTaperScale(pinchDelta);
+					break;
+				case Status.crossScreen2:
+					meshManipulator.startScaling(pinchDelta);
 					break;
 			}
 		}
@@ -256,6 +257,16 @@ public class TouchProcessor : MonoBehaviour
 				break;
 			}
 			case Status.crossScreen2: {
+				
+				float pinchStart = (touchPrevPosThisScreen[0] - touchPrevPosOtherScreen[0]).magnitude;
+				float pinchEnd = (touchPosThisScreen[0] - touchPosOtherScreen[0]).magnitude;
+
+				pinchDelta = (pinchEnd - pinchStart);
+				if (Mathf.Abs(pinchDelta) < pinchThreshold) {
+					pinchDelta = 0;
+				}
+
+				endGestureLock = 0.25f;
 				
 				break;
 			}
