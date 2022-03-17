@@ -35,6 +35,8 @@ Current setting is for two Samsung Note 20 Ultra with Android
   
   `git clone https://github.com/xdd44-utopia/HCI_Extruding.git`
 
+- NOTE: [This folder](Client/Assets/Scripts/Calculator) is a symbolic link to [This folder](Server/Assets/Scripts/Calculator), which should contains `VectorCalculator.cs` and `MeshCalculator.cs`. Please manually copy them if they are missing.
+
 ### (For Android) Pre-built APKs
 
 - [Server](Releases/Server.apk) and [Client](Releases/Client.apk) can be directly downloaded and installed on supported Android machines.
