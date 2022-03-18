@@ -11,7 +11,6 @@ public class TouchProcessor : MonoBehaviour
 	public GameObject sliderController;
 	private ServerController sender;
 	public GameObject slicePlane;
-	public GameObject sliceTraceVisualizer;
 	public Text debugText;
 	public Text touchText;
 
@@ -178,10 +177,9 @@ public class TouchProcessor : MonoBehaviour
 		else if (touchCountThisScreen == 0 && touchCountOtherScreen == 2) {
 			state = Status.singleScreen2Other;
 		}
-		// Two screen cut disabled
-		// else if (touchCountThisScreen == 1 && touchCountOtherScreen == 1) {
-		// 	state = Status.crossScreen2;
-		// }
+		else if (touchCountThisScreen == 1 && touchCountOtherScreen == 1) {
+			state = Status.crossScreen2;
+		}
 		else if (touchCountThisScreen == 1 && touchCountOtherScreen == 2) {
 			state = Status.crossScreen1This2Other;
 		}

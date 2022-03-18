@@ -7,14 +7,11 @@ public class TouchProcessor : MonoBehaviour
 {
 
 	public GameObject sender;
-	public GameObject sliderController;
 	public GameObject[] touchMarks;
 	
 	//standard
 
 	private float angle = - Mathf.PI / 2;
-	private float camWidth;
-	private float camHeight;
 	private int touchCountThisScreen = 0;
 	private Vector3[] touchPosThisScreen;
 	private Vector3[] touchPrevPosThisScreen;
@@ -22,9 +19,7 @@ public class TouchProcessor : MonoBehaviour
 
 	void Start()
 	{
-		Camera cam = Camera.main;
-		camHeight = 10;
-		camWidth = camHeight * cam.aspect;
+		
 	}
 
 	void Update()

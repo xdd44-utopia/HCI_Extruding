@@ -17,7 +17,7 @@ public class MeshManipulator : MonoBehaviour
 	public Image measureButton;
 	public Sprite measureRecoverSprite;
 	public Sprite measureRecoveredSprite;
-	private GameObject sliceTraceVisualizer;
+	public LineRenderer holeLine;
 	private GameObject sliderController;
 	private ServerController sender;
 	private GameObject extrudeHandle;
@@ -65,6 +65,7 @@ public class MeshManipulator : MonoBehaviour
 	private float angleToFocus;
 	private Vector3 posToFocus;
 	private const float focusSpeed = 25;
+	private int newSelectTriangle = -2;
 
 	//extrude
 	private bool drilling = false;
@@ -86,8 +87,6 @@ public class MeshManipulator : MonoBehaviour
 	private int[] taperedTriangles;
 	private Vector3 taperCenter;
 	private float taperScale;
-	private float taperTimer = 0;
-	private bool taperStarted = false;
 
 	public MeshRenderer cuttingPlaneRenderer;
 
@@ -133,7 +132,6 @@ public class MeshManipulator : MonoBehaviour
 			sender = findObject.GetComponent<ServerController>();
 		}
 
-		sliceTraceVisualizer = GameObject.Find("Slice Trace");
 		sliderController = GameObject.Find("SliderController");
 		extrudeHandle = GameObject.Find("Extrude");
 		gridController = GameObject.Find("RulerGrid");
@@ -192,6 +190,10 @@ public class MeshManipulator : MonoBehaviour
 		modeText.text = state + "";
 		if (state == Status.extrude && drilling) {
 			modeText.text = "drilling";
+			holeLine.enabled = true;
+		}
+		else {
+			holeLine.enabled = false;
 		}
 
 		switch(state) {
@@ -338,8 +340,6 @@ public class MeshManipulator : MonoBehaviour
 		mesh.vertices = undoVertices;
 		mesh.triangles = undoTriangles;
 		mesh.uv = new Vector2[undoVertices.Length];
-		mesh.MarkModified();
-		mesh.RecalculateNormals();
 		gameObject.GetComponent<MeshFilter>().mesh = mesh;
 
 		transform.position = undoPos;
@@ -359,7 +359,7 @@ public class MeshManipulator : MonoBehaviour
 			return;
 		}
 
-		Vector3 center = new Vector3(VectorCalculator.camWidth / 2, 0, 0);
+		Vector3 center = new Vector3(0, 0, 0);
 
 		bool isInsideFace(Vector3 p) {
 			Vector2 p2D = new Vector2(p.x, p.y);
@@ -390,6 +390,16 @@ public class MeshManipulator : MonoBehaviour
 			holeVertices[i] = transform.InverseTransformPoint(holeVertices[i]);
 		}
 
+		string msg = "";
+		for (int i=0;i<selectBoundaries[0].Count;i++) {
+			msg += vertices[selectBoundaries[0][i]] + "";
+		}
+		msg += "\n";
+		for (int i=0;i<4;i++) {
+			msg += holeVertices[i] + "";
+		}
+		Debug.Log(msg);
+
 		List<Vector3> newVerticesList = vertices.ToList();
 		newVerticesList.AddRange(holeVertices);
 		List<int> newTrianglesList = new List<int>();
@@ -410,6 +420,7 @@ public class MeshManipulator : MonoBehaviour
 		selectBoundaries.Add(holeBoundary);
 		int[] newFaceTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, - transform.InverseTransformPoint(transform.position - new Vector3(0, 0, -1)).normalized);
 		newTrianglesList.AddRange(newFaceTriangles);
+		newSelectTriangle = newTrianglesList.Count / 3;
 		selectBoundaries = new List<List<int>>(){holeBoundary};
 		int[] newHoleTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, - transform.InverseTransformPoint(transform.position - new Vector3(0, 0, -1)).normalized);
 		newTrianglesList.AddRange(newHoleTriangles);
@@ -432,6 +443,7 @@ public class MeshManipulator : MonoBehaviour
 
 		if (!drilling) {
 			prepareUndo();
+			newSelectTriangle = triangles.Length / 3;
 		}
 		
 		originalVerticesCount = vertices.Length;
@@ -492,9 +504,6 @@ public class MeshManipulator : MonoBehaviour
 		extrudedMesh.uv = new Vector2[extrudedVerticesList.Count];
 		extrudedMesh.triangles = extrudedTrianglesList.ToArray();
 
-		extrudedMesh.MarkModified();
-		extrudedMesh.RecalculateNormals();
-
 		extrudeStarted = false;
 		extrudedVerticesOriginal = extrudedVerticesList.ToArray();
 		state = Status.extrude;
@@ -537,8 +546,6 @@ public class MeshManipulator : MonoBehaviour
 
 		extrudedMesh.vertices = extrudedVertices;
 		extrudedMesh.triangles = extrudedTrianglesList;
-		extrudedMesh.MarkModified();
-		extrudedMesh.RecalculateNormals();
 
 		if (!drilling) {
 			transform.position = extrudeStartPos + extrudeDir * transform.localScale.x * extrudeDist;
@@ -552,12 +559,12 @@ public class MeshManipulator : MonoBehaviour
 
 		extrudeTimer -= Time.deltaTime;
 		if (extrudeTimer < 0 && extrudeDist > 0.05f) {
-			Debug.Log(extrudeTimer + " " + extrudeStarted);
 			state = Status.select;
 			extrudeDist = 0;
 			drilling = false;
 			obj.updateTransform();
 			obj.updateMesh(true);
+			obj.updateHighlight(newSelectTriangle, -2);
 		}
 
 	}
@@ -565,17 +572,22 @@ public class MeshManipulator : MonoBehaviour
 
 	/* #region Taper */
 
-	public void prepareTaper() {
+	public void switchTaperStatus() {
+		if (state != Status.taper) {
+			prepareTaper();
+		}
+		else {
+			state = Status.select;
+		}
+	}
 
-		if (smode != SelectMode.selectFace) {
+	private void prepareTaper() {
+
+		if (smode != SelectMode.selectFace || !isThisScreenFocused) {
 			return;
 		}
 
 		isEdgeAligned = false;
-		closestVertex = -1;
-		secondVertex = -1;
-
-		taperStarted = false;
 
 		prepareUndo();
 
@@ -594,20 +606,14 @@ public class MeshManipulator : MonoBehaviour
 		taperedVerticesOriginal = vertices.ToArray();
 
 		state = Status.taper;
-
-		taperTimer = touchDelayTolerance;
 		
 	}
 	public void updateTaperScale(float factor) {
-
 		if (state != Status.taper) {
 			return;
 		}
-		
 		taperScale += factor / 2.5f;
 		taperScale = taperScale > 0 ? taperScale : 0;
-		taperTimer = touchDelayTolerance;
-		taperStarted = true;
 	}
 	private void taper() {
 
@@ -625,19 +631,10 @@ public class MeshManipulator : MonoBehaviour
 
 		taperedMesh.vertices = taperedVertices;
 		taperedMesh.triangles = taperedTriangles;
-		taperedMesh.MarkModified();
-		taperedMesh.RecalculateNormals();
 
 		gameObject.GetComponent<MeshFilter>().mesh = taperedMesh;
 		gameObject.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
 		obj.updateMesh(false);
-
-		// taperScale = 1;
-
-		taperTimer -= Time.deltaTime;
-		if ((taperTimer < 0 && taperStarted) || taperScale == 0) {
-			state = Status.select;
-		}
 
 	}
 	/* #endregion */
@@ -670,6 +667,9 @@ public class MeshManipulator : MonoBehaviour
 		}
 	}
 	public void cut(bool isMainScreen) {
+
+		obj.updateSelect(-1);
+
 		if (state != Status.select) {
 			return;
 		}
@@ -686,36 +686,12 @@ public class MeshManipulator : MonoBehaviour
 
 		MeshCalculator.cutByPlane(ref vertices, ref triangles, planePos, planeNormal);
 
-		//relocate mesh center
-		float minx = 2147483647;
-		float miny = 2147483647;
-		float minz = 2147483647;
-		float maxx = -2147483647;
-		float maxy = -2147483647;
-		float maxz = -2147483647;
-		for (int i=0;i<vertices.Length;i++) {
-			minx = Math.Min(minx, vertices[i].x);
-			miny = Math.Min(miny, vertices[i].y);
-			minz = Math.Min(minz, vertices[i].z);
-			maxx = Math.Max(maxx, vertices[i].x);
-			maxy = Math.Max(maxy, vertices[i].y);
-			maxz = Math.Max(maxz, vertices[i].z);
-		}
-		Vector3 meshCenter = new Vector3((maxx + minx) / 2, (maxy + miny) / 2, (maxz + minz) / 2);
-		for (int i=0;i<vertices.Length;i++) {
-			vertices[i] -= meshCenter;
-		}
-		meshCenter = transform.TransformPoint(meshCenter);
-		transform.position = meshCenter;
 
 		//update mesh
-
 		Mesh mesh = gameObject.GetComponent<MeshFilter>().mesh;
 		mesh.Clear();
 		mesh.vertices = vertices;
 		mesh.triangles = triangles;
-		mesh.MarkModified();
-		mesh.RecalculateNormals();
 		gameObject.GetComponent<MeshFilter>().mesh = mesh;
 
 		obj.updateMesh(true);
@@ -764,6 +740,11 @@ public class MeshManipulator : MonoBehaviour
 				}
 			}
 		}
+		transform.position = new Vector3(
+			Mathf.Clamp(transform.position.x, - VectorCalculator.camWidth / 2, 3 * VectorCalculator.camWidth / 2),
+			Mathf.Clamp(transform.position.y, - VectorCalculator.camHeight / 2, VectorCalculator.camHeight / 2),
+			Mathf.Clamp(transform.position.z, 0, VectorCalculator.camWidth)
+		);
 		obj.updateTransform();
 	}
 
@@ -776,6 +757,9 @@ public class MeshManipulator : MonoBehaviour
 			isEdgeAligned = false;
 			closestVertex = -1;
 			secondVertex = -1;
+			if (transform.localScale != obj.realMeasure) {
+				obj.isRealMeasure = false;
+			}
 		}
 		if (isThisScreenFocused) {
 			startFocus(true, false);
@@ -859,7 +843,7 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 		updateTwoVertices(ref closestVector, ref secondVector);
-		if (Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) < 0.01f && Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2) < 0.01f) {
+		if (Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) < 0.05f && Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2) < 0.05f) {
 			isEdgeAligned = true;
 		}
 		
@@ -998,12 +982,14 @@ public class MeshManipulator : MonoBehaviour
 	public void debug1() {
 
 		// Transform debug
-		isOtherScreenPenetrate = true;
 		startMoving(new Vector3(0.1f, 0, 0), true);
 
 		// Extrude debug
+		isOtherScreenPenetrate = false;
+		isThisScreenFocused = true;
+		smode = SelectMode.selectFace;
 		prepareNegativeExtrude();
-		updateExtrudeScale(0.5f, true);
+		updateExtrudeScale(0.5f, false);
 		extrude();
 	}
 	public void debug2() {

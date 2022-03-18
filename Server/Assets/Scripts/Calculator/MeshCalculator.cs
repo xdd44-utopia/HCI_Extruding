@@ -259,7 +259,7 @@ public static class MeshCalculator {
 			boundaries[i] = clockwiseBoundary(vertices, boundaries[i], localNormal);
 		}
 
-		Vector2[] vertices2D = VectorCalculator.facePlaneFront(vertices);
+		Vector2[] vertices2D = VectorCalculator.facePlaneFront(vertices, localNormal);
 
 		//Categorize boundaries into faces
 		//If a boundary is contained by even number of larger boundaries, it can be seen as an outline of a face
@@ -344,8 +344,8 @@ public static class MeshCalculator {
 				boundary.Add(newVerticesList.Count - 1);
 			}
 		}
-		Vector3[] newVertices = VectorCalculator.facePlaneFront(newVerticesList.ToArray()).Select(v => new Vector3(v.x, v.y, 0)).ToArray();
-		offsetBoundary(ref newVertices, new List<List<int>> {boundary}, new Vector3(0, 0, 1), 0.01f);
+		Vector3[] newVertices = VectorCalculator.facePlaneFront(newVerticesList.ToArray(), localNormal).Select(v => new Vector3(v.x, v.y, 0)).ToArray();
+		offsetBoundary(ref newVertices, new List<List<int>> {boundary}, new Vector3(0, 0, 1), 0.001f);
 		//Avoid two vertices locating on same x
 		Vector2[] vertices2D = newVertices.Select(v => new Vector2(v.x + v.y * v.y * 0.1f, v.y + v.x * v.x * 0.1f)).ToArray();
 		List<List<int>> monotonePolygons = splitMonotonePolygon(vertices2D, boundary);

@@ -14,6 +14,7 @@ public class ServerController : MonoBehaviour {
 	public Text rcvText;
 	public Text errorText;
 	public Text ipText;
+	public Text pingText;
 	private MeshManipulator meshManipulator;
 	private ObjectController objectController;
 	public GameObject sliderController;
@@ -30,15 +31,19 @@ public class ServerController : MonoBehaviour {
 	private TcpClient connectedTcpClient;
 	private string receivedMessage;
 	private string rcvBuffer = "";
-	private const int msgTypes = 10;
+	private const int msgTypes = 9;
 	private string[] sendBuffer = new string[msgTypes];
-	private bool refreshed = false;
 	
 	private float sendTimer = 0;
 	private const float sendInterval = 0.16f;
 
 	
 	void Start () {
+
+		Camera cam = Camera.main;
+		VectorCalculator.camHeight = 2f * cam.orthographicSize;
+		VectorCalculator.camWidth = VectorCalculator.camHeight * cam.aspect;
+
 		GameObject findObject;
 		findObject = GameObject.Find("OBJECT");
 		if (findObject != null) {
@@ -58,24 +63,19 @@ public class ServerController : MonoBehaviour {
 		ipText.text = getIPAddress();
 		renderCamera.backgroundColor = (connectedTcpClient == null ? disconnectColor : connectColor);
 		
-		while (rcvBuffer.Length > 0 && !refreshed) {
+		while (rcvBuffer.Length > 0) {
 			switch(rcvBuffer[0]) {
 				case '?':
 					receivedMessage = "";
 					break;
 				case '!':
-					refreshed = true;
+					getVector();
 					break;
 				default:
 					receivedMessage += rcvBuffer[0];
 					break;
 			}
 			rcvBuffer = rcvBuffer.Substring(1);
-		}
-
-		if (refreshed) {
-			refreshed = false;
-			getVector();
 		}
 
 		sendTimer += Time.deltaTime;
@@ -113,38 +113,57 @@ public class ServerController : MonoBehaviour {
 	public void sendMessage(string msg) {
 		int pointer = -1;
 		switch (msg[0]) {
-			case 'M': pointer = 0; break;
-			case 'A': pointer = 1; break;
-			case 'H': pointer = 2; break;
-			case 'F': pointer = 3; break;
-			case 'S': pointer = 4; break;
+			//case 'L': pointer = 0; break;
+			case 'M': pointer = 1; break;
+			case 'A': pointer = 2; break;
+			case 'H': pointer = 3; break;
+			case 'S': pointer = 3; break;
+			case 'F': pointer = 4; break;
 			case 'T': pointer = 5; break;
-			case 'C': pointer = 6; break;
-			case 'G': pointer = 7; break;
-			case 'E': pointer = 8; break;
-			case 'D': pointer = 9; errorText.text = msg; break;
+			case 'G': pointer = 6; break;
+			case 'E': pointer = 7; break;
 		}
 		sendBuffer[pointer] = msg;
+		sendBuffer[0] = "Latency\n" + ((DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) % 600000);
 	}
 	public void sendMsgInBuffer() {
 		if (connectedTcpClient == null) {
 			return;
 		}
+		// for (int i=0;i<msgTypes;i++) {
+		// 	if (sendBuffer[i].Length > 0) {
+		// 		string msg = sendBuffer[i];
+		// 		try {			
+		// 			NetworkStream stream = connectedTcpClient.GetStream();
+		// 				if (stream.CanWrite) {
+		// 					byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
+		// 					stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
+		// 					sendBuffer[i] = "";
+		// 				}
+		// 		}
+		// 		catch (SocketException socketException) {
+		// 			Debug.Log("Socket exception: " + socketException);
+		// 		}
+		// 	}
+		// }
+		string msg = "";
 		for (int i=0;i<msgTypes;i++) {
 			if (sendBuffer[i].Length > 0) {
-				string msg = sendBuffer[i];
-				try {			
-					NetworkStream stream = connectedTcpClient.GetStream();
-						if (stream.CanWrite) {
-							byte[] serverMessageAsByteArray = Encoding.ASCII.GetBytes("?" + msg + "!");
-							stream.Write(serverMessageAsByteArray, 0, serverMessageAsByteArray.Length);
-							sendBuffer[i] = "";
-						}
-				}
-				catch (SocketException socketException) {
-					Debug.Log("Socket exception: " + socketException);
-				}
+				msg += "?" + sendBuffer[i] + "!\n";
 			}
+		}
+		try {		
+			NetworkStream stream = connectedTcpClient.GetStream();
+				if (stream.CanWrite) {
+					byte[] clientMessageAsByteArray = Encoding.ASCII.GetBytes(msg);
+					stream.Write(clientMessageAsByteArray, 0, clientMessageAsByteArray.Length);
+					for (int i=0;i<msgTypes;i++) {
+						sendBuffer[i] = "";
+					}
+				}
+		}
+		catch (SocketException socketException) {
+			Debug.Log("Socket exception: " + socketException);
 		}
 	}
 	
@@ -163,6 +182,11 @@ public class ServerController : MonoBehaviour {
 		
 		try {
 			switch (receivedMessage[0]) {
+				case 'H': {
+					objectController.updateMesh(false);
+					objectController.updateTransform();
+					break;
+				}
 				case 'T': {
 					string[] temp1 = receivedMessage.Split('\n');
 					int touchCount = System.Convert.ToInt32(temp1[1]);
@@ -204,11 +228,6 @@ public class ServerController : MonoBehaviour {
 					touchProcessor.GetComponent<TouchProcessor>().updateTouchPoint(touchCount, touchPos, touchPrevPos, phases);
 					break;
 				}
-				case 'H': {
-					objectController.updateMesh(false);
-					objectController.updateTransform();
-					break;
-				}
 				case 'A': {
 					string[] temp1 = receivedMessage.Split('\n');
 					string[] temp2 = temp1[1].Split(',');
@@ -239,6 +258,13 @@ public class ServerController : MonoBehaviour {
 				}
 				case 'S': {
 					meshManipulator.startNewFocusOtherScreen();
+					break;
+				}
+				case 'L': {
+					string[] temp1 = receivedMessage.Split('\n');
+					int cur = (int)((DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) % 600000);
+					int sen = System.Convert.ToInt32(temp1[1]);
+					pingText.text = (cur - sen) + " ms";
 					break;
 				}
 				case 'E': {

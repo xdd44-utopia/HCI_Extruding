@@ -11,14 +11,9 @@ public class CameraController : MonoBehaviour
 
 	private float fov;
 	private float eyeHeight;
-	private float camWidth;
-	private float camHeight;
 	// Start is called before the first frame update
 	void Start() {
 		thisCam = GetComponent<Camera>();
-		Camera cam = Camera.main;
-		camHeight = 10f;
-		camWidth = camHeight * cam.aspect;
 	}
 
 	// Update is called once per frame
@@ -29,7 +24,7 @@ public class CameraController : MonoBehaviour
 			thisCam.orthographicSize = 5.4f;
 		}
 		else {
-			thisCam.orthographicSize = - camHeight / (eyeHeight * Mathf.Tan(fov) / (renderWidth / 2)) / 2f;
+			thisCam.orthographicSize = - VectorCalculator.camHeight / (eyeHeight * Mathf.Tan(fov) / (renderWidth / 2)) / 2f;
 		}
 		transform.position = new Vector3(-renderCam.transform.position.x * (renderWidth / 2) / Mathf.Tan(fov) / eyeHeight, renderCam.transform.position.y * (renderWidth / 2) / Mathf.Tan(fov) / eyeHeight, transform.position.z);
 		renderCam.GetComponent<Camera>().nearClipPlane = - renderCam.transform.position.z - 0.01f;

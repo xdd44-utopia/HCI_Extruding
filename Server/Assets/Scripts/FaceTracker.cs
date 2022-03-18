@@ -6,7 +6,7 @@ using UnityEngine.UI;
 public class FaceTracker : MonoBehaviour
 {
 	public GameObject sender;
-	public GameObject renderCam;
+	public Camera renderCam;
 	public Text facePosText;
 	public Text debugText;
 	public Image observeButton;
@@ -16,10 +16,6 @@ public class FaceTracker : MonoBehaviour
 	public Sprite orthographicSprite;
 	public Sprite perspectiveSprite;
 	private bool useFaceTrack = false;
-
-	private Camera cam;
-	private float camWidth;
-	private float camHeight;
 
 	[HideInInspector]
 	public Vector3 faceOther;
@@ -52,14 +48,11 @@ public class FaceTracker : MonoBehaviour
 	void Start()
 	{
 		faceOther = Vector3.zero;
-		cam = renderCam.GetComponent<Camera>();
-		camHeight = 2f * Camera.main.orthographicSize;
-		camWidth = camHeight * Camera.main.aspect;
 	}
 
 	void Update() {
 		observeButton.sprite = (useFaceTrack ? observeFaceTrackingSprite : observeFixedCameraSprite);
-		perspectiveButton.sprite = (cam.orthographic ? orthographicSprite : perspectiveSprite);
+		perspectiveButton.sprite = (renderCam.orthographic ? orthographicSprite : perspectiveSprite);
 		updateObservation();
 		updateFov();
 	}
@@ -68,7 +61,7 @@ public class FaceTracker : MonoBehaviour
 	void updateObservation()
 	{
 
-		if (cam.orthographic) {
+		if (renderCam.orthographic) {
 			renderCam.transform.position = new Vector3(0, 0, -5);
 			if (!previousOrtho) {
 				string msg = "Face\nO\n";
@@ -89,8 +82,8 @@ public class FaceTracker : MonoBehaviour
 							facePosText.text = "Face pos: " + faceOther + " Other";
 						}
 						else {
-							float xt = (faceOther.x - camWidth / 2) * Mathf.Sqrt((previousObserve.x - camWidth / 2) * (previousObserve.x - camWidth / 2) + previousObserve.z * previousObserve.z) / Mathf.Sqrt((faceOther.x - camWidth / 2) * (faceOther.x - camWidth / 2) + faceOther.z * faceOther.z) + camWidth / 2;
-							float zt = faceOther.z * Mathf.Sqrt((previousObserve.x - camWidth / 2) * (previousObserve.x - camWidth / 2) + previousObserve.z * previousObserve.z) / Mathf.Sqrt((faceOther.x - camWidth / 2) * (faceOther.x - camWidth / 2) + faceOther.z * faceOther.z);
+							float xt = (faceOther.x - VectorCalculator.camWidth / 2) * Mathf.Sqrt((previousObserve.x - VectorCalculator.camWidth / 2) * (previousObserve.x - VectorCalculator.camWidth / 2) + previousObserve.z * previousObserve.z) / Mathf.Sqrt((faceOther.x - VectorCalculator.camWidth / 2) * (faceOther.x - VectorCalculator.camWidth / 2) + faceOther.z * faceOther.z) + VectorCalculator.camWidth / 2;
+							float zt = faceOther.z * Mathf.Sqrt((previousObserve.x - VectorCalculator.camWidth / 2) * (previousObserve.x - VectorCalculator.camWidth / 2) + previousObserve.z * previousObserve.z) / Mathf.Sqrt((faceOther.x - VectorCalculator.camWidth / 2) * (faceOther.x - VectorCalculator.camWidth / 2) + faceOther.z * faceOther.z);
 							observe = new Vector3(xt, previousObserve.y, zt);
 							facePosText.text = "Face pos: " + observe + " Middle";
 						}
@@ -152,13 +145,13 @@ public class FaceTracker : MonoBehaviour
 	}
 
 	void updateFov() {
-		cam.orthographicSize = camHeight / 2;
-		float fovHorizontal = Mathf.Atan(-(Mathf.Abs(currentObserve.x) + camWidth / 2) / currentObserve.z) * 2;
+		renderCam.orthographicSize = VectorCalculator.camHeight / 2;
+		float fovHorizontal = Mathf.Atan(-(Mathf.Abs(currentObserve.x) + VectorCalculator.camWidth / 2) / currentObserve.z) * 2;
 		fovHorizontal = fovHorizontal * 180 / Mathf.PI;
-		fovHorizontal = Camera.HorizontalToVerticalFieldOfView(fovHorizontal, cam.aspect);
-		float fovVertical = Mathf.Atan(-(Mathf.Abs(currentObserve.y) + camHeight / 2) / currentObserve.z) * 2;
+		fovHorizontal = Camera.HorizontalToVerticalFieldOfView(fovHorizontal, renderCam.aspect);
+		float fovVertical = Mathf.Atan(-(Mathf.Abs(currentObserve.y) + VectorCalculator.camHeight / 2) / currentObserve.z) * 2;
 		fovVertical = fovVertical * 180 / Mathf.PI;
-		cam.fieldOfView = (fovVertical > fovHorizontal ? fovVertical : fovHorizontal);
+		renderCam.fieldOfView = (fovVertical > fovHorizontal ? fovVertical : fovHorizontal);
 	}
 
 	public void switchObservationMode() {
@@ -170,10 +163,10 @@ public class FaceTracker : MonoBehaviour
 		}
 	}
 	public void switchPerspectiveMode() {
-		if (cam.orthographic) {
-			cam.orthographic = false;
+		if (renderCam.orthographic) {
+			renderCam.orthographic = false;
 		} else {
-			cam.orthographic = true;
+			renderCam.orthographic = true;
 		}
 	}
 

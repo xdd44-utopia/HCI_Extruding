@@ -7,12 +7,7 @@ public class FaceTracker : MonoBehaviour
 {
 	public GameObject renderCam;
 	public GameObject sender;
-	public GameObject sliderController;
 	public Text debugText;
-
-	private Camera cam;
-	private float camWidth;
-	private float camHeight;
 	private float angle = - Mathf.PI / 2;
 
 	[HideInInspector]
@@ -30,13 +25,11 @@ public class FaceTracker : MonoBehaviour
 	// Start is called before the first frame update
 	void Start()
 	{
-		cam = renderCam.GetComponent<Camera>();
-		camHeight = 2f * Camera.main.orthographicSize;
-		camWidth = camHeight * Camera.main.aspect;
+		
 	}
 
 	void Update() {
-		angle = sliderController.GetComponent<SliderController>().angle;
+		angle = VectorCalculator.angle;
 		currentObserve = VectorCalculator.convertFromServer(observeOther);
 		updateObservation();
 		updateFov();
@@ -92,23 +85,23 @@ public class FaceTracker : MonoBehaviour
 		}
 
 		if (useOrtho) {
-			cam.orthographic = true;
+			Camera.main.orthographic = true;
 			renderCam.transform.position = new Vector3(0, 0, -5);
 		}
 		else {
-			cam.orthographic = false;
+			Camera.main.orthographic = false;
 			renderCam.transform.position = currentObserve;
 		}
 	}
 
 	void updateFov() {
-		cam.orthographicSize = camHeight / 2;
-		float fovHorizontal = Mathf.Atan(-(Mathf.Abs(currentObserve.x) + camWidth / 2) / currentObserve.z) * 2;
+		Camera.main.orthographicSize = VectorCalculator.camHeight / 2;
+		float fovHorizontal = Mathf.Atan(-(Mathf.Abs(currentObserve.x) + VectorCalculator.camWidth / 2) / currentObserve.z) * 2;
 		fovHorizontal = fovHorizontal * 180 / Mathf.PI;
-		fovHorizontal = Camera.HorizontalToVerticalFieldOfView(fovHorizontal, cam.aspect);
-		float fovVertical = Mathf.Atan(-(Mathf.Abs(currentObserve.y) + camHeight / 2) / currentObserve.z) * 2;
+		fovHorizontal = Camera.HorizontalToVerticalFieldOfView(fovHorizontal, Camera.main.aspect);
+		float fovVertical = Mathf.Atan(-(Mathf.Abs(currentObserve.y) + VectorCalculator.camHeight / 2) / currentObserve.z) * 2;
 		fovVertical = fovVertical * 180 / Mathf.PI;
-		cam.fieldOfView = (fovVertical > fovHorizontal ? fovVertical : fovHorizontal);
+		Camera.main.fieldOfView = (fovVertical > fovHorizontal ? fovVertical : fovHorizontal);
 	}
 	
 }

@@ -17,17 +17,10 @@ public class SliderController : MonoBehaviour
 	private float prevAngle = -1;
 
 	private float defaultAngle = - Mathf.PI / 3;
-	private const float minAngle = - 2 * Mathf.PI / 3;
-	private const float maxAngle = Mathf.PI / 6;
 
-	private bool isActivated = true;
 	// Start is called before the first frame update
 	void Start()
 	{
-
-		Camera cam = Camera.main;
-		VectorCalculator.camHeight = 2f * cam.orthographicSize;
-		VectorCalculator.camWidth = VectorCalculator.camHeight * cam.aspect;
 
 		sender = GameObject.Find("Server");
 		debugText = GameObject.Find("Debug").GetComponent<Text>();
@@ -43,29 +36,13 @@ public class SliderController : MonoBehaviour
 		Vector3 acceThis = Input.acceleration;
 		acceOther.y = 0;
 		acceThis.y = 0;
-		float angleTemp = Vector3.Angle(acceThis, acceOther);
-
+		float angleTemp = (acceOther.x > acceThis.x ? Vector3.Angle(acceThis, acceOther) : 0);
 		angleTemp = - angleTemp * Mathf.PI / 180;
-
-		if (isActivated) {
-			angle = Mathf.Lerp(angle, angleTemp, Time.deltaTime * 3);
-		}
-		else {
-			angle = - Mathf.PI / 2;
-		}
-		angle = angle > minAngle ? angle : minAngle;
-		angle = angle < maxAngle ? angle : maxAngle;
-
-		angle *= 125;
-		angle = Mathf.Round(angle);
-		angle /= 125;
-
-		angle = angle > - Mathf.PI / 2 ? angle : - Mathf.PI / 2;
-		angle = angle < 0 ? angle : 0;
+		angle = Mathf.Clamp(Mathf.Round(Mathf.Lerp(angle, angleTemp, Time.deltaTime * 3) * 1000) / 1000, - Mathf.PI / 2, 0);
 
 		// angle = - Mathf.PI / 3;
 
-		screenSide.SetPosition(2, new Vector3(2.5f + 5 * Mathf.Cos(-angle), -5.361f, 5 * Mathf.Sin(-angle)));
+		screenSide.SetPosition(2, new Vector3(VectorCalculator.camWidth / 2 + VectorCalculator.camWidth * Mathf.Cos(-angle), - VectorCalculator.camHeight / 2, VectorCalculator.camWidth * Mathf.Sin(-angle)));
 
 		if (Mathf.Abs(angle - prevAngle) > 0f) {
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle + "\n");

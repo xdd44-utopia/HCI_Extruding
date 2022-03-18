@@ -13,6 +13,10 @@ Note that since `void getVector()` has limited speed of mesasge parsing, `sendIn
 
 ### From server to client:
 
+Time:
+- First line "Latency"
+- Second line time in millis module 60000
+
 Mesh:
 - First line "Mesh"
 - Third line $nv$ for $nv$ vertices
@@ -20,12 +24,9 @@ Mesh:
 - Fourth line $nt$ for $nt$ triangle indices
 - Followed by one line of indices separated by comma
 
-Transform:
-- First line "Transform"
-- Second Line $n$ for $n$th objects
-- Third line position
-- Fourth line rotation quaternion
-- Fifth line scale
+Angle
+- First line "Angle"
+- Second line angle in radius
 
 Highlight:
 - First line "Highlight"
@@ -36,9 +37,12 @@ Face Track:
 - First line "Face"
 - Second Line Vector3 or '0' for ortho
 
-Angle
-- First line "Angle"
-- Second line angle in radius
+Transform:
+- First line "Transform"
+- Second Line $n$ for $n$th objects
+- Third line position
+- Fourth line rotation quaternion
+- Fifth line scale
 
 Grid scale
 - First line "Grid"
@@ -49,6 +53,7 @@ Extrude handle
 - Second line extrude distance
 
 ## From client to server:
+
 
 "Hello": confirm connection
 
@@ -62,15 +67,15 @@ Acceleration:
 - First line "Acc"
 - Second line acceleration
 
-Cutting:
-- First line "Cutting"
-- Second line touch point in server's space
-
 Face tracking:
 - First line "Face"
 - Second line face position or 'X'
 
 "Snap"
+  
+Time:
+- First line "Latency"
+- Second line time in millis module 60000
 
 "Enable cutting plane"
 

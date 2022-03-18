@@ -5,7 +5,6 @@ using UnityEngine;
 public class GridController : MonoBehaviour
 {
 	public GameObject sender;
-	public GameObject hitObj;
 	public GameObject depthFrame;
 	[HideInInspector]
 	public bool isFixed;

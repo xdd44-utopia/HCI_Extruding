@@ -8,7 +8,7 @@ public class ExtrudeHandle : MonoBehaviour
 	public GameObject handle;
 	public Text debugText;
 	private float timer;
-	private float timeOut = 0.25f;
+	private float timeOut = 0.2f;
 	void Start()
 	{
 		
@@ -21,7 +21,7 @@ public class ExtrudeHandle : MonoBehaviour
 	}
 	
 	public void updateDist(float d) {
-		handle.GetComponent<RectTransform>().anchoredPosition = new Vector2(d / 5 * 772 - 360, 0);
+		handle.GetComponent<RectTransform>().anchoredPosition = new Vector2(d / Camera.main.orthographicSize * (Screen.height / 2) - (Screen.width / 2), 0);
 		timer = timeOut;
 	}
 }

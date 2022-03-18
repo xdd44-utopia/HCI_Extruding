@@ -141,19 +141,7 @@ public static class VectorCalculator {
 		return result;
 	}
 
-	public static Vector2[] facePlaneFront(Vector3[] vertices) {
-
-		Vector3 v1 = vertices[0];
-		Vector3 v2 = vertices[1];
-		Vector3 v3 = vertices[2];
-		Vector3 normal = new Vector3(Random.Range(0, 1f), Random.Range(0, 1f), Random.Range(0, 1f)).normalized;
-		for (int i=2;i<vertices.Length;i++) {
-			Vector3 d1 = (v2 - v1).normalized;
-			Vector3 d2 = (v3 - v2).normalized;
-			if (!Mathf.Approximately(0, Vector3.Angle(d1, d2)) && !Mathf.Approximately(180f, Vector3.Angle(d1, d2))) {
-				normal = Vector3.Cross(d1, d2).normalized;
-			}
-		}
+	public static Vector2[] facePlaneFront(Vector3[] vertices, Vector3 normal) {
 		
 		Vector3 axis = Vector3.Cross(normal, new Vector3(0, 0, 1));
 		float angle = Vector3.Angle(normal, new Vector3(0, 0, 1));
@@ -191,46 +179,19 @@ public static class VectorCalculator {
 	}
 
 	public static bool isLineSegmentInsidePolygon(Vector2[] vertices, List<int> boundary, Vector2 p1, Vector2 p2) {
-
-		for (int i=0;i<boundary.Count;i++) {
-				Debug.DrawLine(
-					new Vector3(vertices[boundary[i]].x, vertices[boundary[i]].y, 0) + new Vector3(5, 0, debugInt),
-					new Vector3(vertices[boundary[(i + 1) % boundary.Count]].x, vertices[boundary[(i + 1) % boundary.Count]].y, 0) + new Vector3(5, 0, debugInt),
-					Color.white,
-					5000
-				);
-		}
 		
 		Vector2 d = p2 - p1;
 		p1 += 0.01f * d;
 		p2 -= 0.01f * d;
 		if (!isPointInsidePolygon(vertices, boundary, p1) || !isPointInsidePolygon(vertices, boundary, p2)) {
-				Debug.DrawLine(
-					new Vector3(p1.x, p1.y, 0) + new Vector3(5, 0, debugInt),
-					new Vector3(p2.x, p2.y, 0) + new Vector3(5, 0, debugInt),
-					Color.blue,
-					5000
-				);
 			return false;
 		}
 
 		for (int i=0;i<boundary.Count;i++) {
 			if (areLineSegmentIntersect(vertices[boundary[i]], vertices[boundary[(i + 1) % boundary.Count]], p1, p2)) {
-				Debug.DrawLine(
-					new Vector3(p1.x, p1.y, 0) + new Vector3(5, 0, debugInt),
-					new Vector3(p2.x, p2.y, 0) + new Vector3(5, 0, debugInt),
-					Color.red,
-					5000
-				);
 				return false;
 			}
 		}
-		Debug.DrawLine(
-			new Vector3(p1.x, p1.y, 0) + new Vector3(5, 0, debugInt),
-			new Vector3(p2.x, p2.y, 0) + new Vector3(5, 0, debugInt),
-			Color.yellow,
-			5000
-		);
 
 		return true;
 

@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,7 +41,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.01f;
+	private const float eps = 0.05f;
 
 
 	private float timer = 0;
@@ -143,20 +144,42 @@ public class ObjectController : MonoBehaviour
 			}
 			List<List<int>> boundary = boundaries[i];
 			MeshCalculator.generateFaceCover(ref faceVertices, ref faceTriangles, ref boundary, 0.005f);
-			Mesh mesh = faceObj[i].GetComponent<MeshFilter>().mesh;
-			mesh.Clear();
-			mesh.vertices = faceVertices;
-			mesh.triangles = faceTriangles;
-			mesh.uv = new Vector2[faceVertices.Length];
-			mesh.MarkModified();
-			mesh.RecalculateNormals();
-			faceObj[i].GetComponent<MeshFilter>().mesh = mesh;
+			Mesh faceMesh = faceObj[i].GetComponent<MeshFilter>().mesh;
+			faceMesh.Clear();
+			faceMesh.vertices = faceVertices;
+			faceMesh.triangles = faceTriangles;
+			faceMesh.uv = new Vector2[faceVertices.Length];
+			faceMesh.MarkModified();
+			faceMesh.RecalculateNormals();
 			faceObj[i].name = "Face " + i;
+			faceObj[i].GetComponent<MeshFilter>().mesh = faceMesh;
 		}
 
 	}
 
 	private void synchronize() {
+		
+		//relocate mesh center
+		float minx = 2147483647;
+		float miny = 2147483647;
+		float minz = 2147483647;
+		float maxx = -2147483647;
+		float maxy = -2147483647;
+		float maxz = -2147483647;
+		for (int i=0;i<vertices.Length;i++) {
+			minx = Math.Min(minx, vertices[i].x);
+			miny = Math.Min(miny, vertices[i].y);
+			minz = Math.Min(minz, vertices[i].z);
+			maxx = Math.Max(maxx, vertices[i].x);
+			maxy = Math.Max(maxy, vertices[i].y);
+			maxz = Math.Max(maxz, vertices[i].z);
+		}
+		Vector3 meshCenter = new Vector3((maxx + minx) / 2, (maxy + miny) / 2, (maxz + minz) / 2);
+		for (int i=0;i<vertices.Length;i++) {
+			vertices[i] -= meshCenter;
+		}
+		meshCenter = transform.TransformPoint(meshCenter);
+		transform.position = meshCenter;
 
 		mesh.Clear();
 		mesh.vertices = vertices;
@@ -205,11 +228,8 @@ public class ObjectController : MonoBehaviour
 		}
 
 		int selectFace = findFaceIndex(selectTriangle);
-
-		meshManipulator.selectBoundaries = boundaries[selectFace];
-		meshManipulator.selectTriangles = faces[selectFace];
 		
-		string msg = "Highlight\n" + selectFace + "\n-2\n-2";
+		string msg = "Highlight\n" + selectFace;
 		if (sender != null) {
 			sender.GetComponent<ServerController>().sendMessage(msg);
 		}
@@ -250,38 +270,41 @@ public class ObjectController : MonoBehaviour
 
 	public void updateHighlight(int snapTriangle, int alignTriangle) { // -2 Preserve, -1 Cancel, i Update
 
-		int snapFace = findFaceIndex(snapTriangle);
-		int alignFace = findFaceIndex(alignTriangle);
-
-		string msg = "Highlight\n-2\n" + snapFace + "\n" + alignFace;
-		if (sender != null) {
-			sender.GetComponent<ServerController>().sendMessage(msg);
-		}
-
 		for (int i=0;i<faceObj.Count;i++) {
 			faceObj[i].GetComponent<Renderer>().material.SetColor("_Color", generalColor);
 		}
 
-		if (snapFace >= 0 && snapFace < faceObj.Count) {
-			faceObj[snapFace].GetComponent<Renderer>().material.SetColor("_Color", snapColor);
-			prevSnap = snapFace;
+		if (snapTriangle == -2) {
+			snapTriangle = prevSnap;
 		}
-		else if (snapFace == -2 && prevSnap >= 0) {
-			faceObj[prevSnap].GetComponent<Renderer>().material.SetColor("_Color", snapColor);
-		}
-		else {
-			prevSnap = -1;
-		}
-		
-		if (alignFace >= 0 && alignFace < faceObj.Count) {
-			faceObj[alignFace].GetComponent<Renderer>().material.SetColor("_Color", alignColor);
-			prevAlign = alignFace;
-		}
-		else if (alignFace == -2 && prevAlign >= 0) {
-			faceObj[prevAlign].GetComponent<Renderer>().material.SetColor("_Color", alignColor);
+		prevSnap = snapTriangle;
+		int snapFace = findFaceIndex(snapTriangle);
+		if (snapTriangle != -1) {
+			meshManipulator.selectBoundaries = boundaries[snapFace];
+			meshManipulator.selectTriangles = faces[snapFace];
+			if (snapFace >= 0 && snapFace < faceObj.Count) {
+				faceObj[snapFace].GetComponent<Renderer>().material.SetColor("_Color", snapColor);
+			}
 		}
 		else {
-			prevAlign = -1;
+			meshManipulator.selectBoundaries = null;
+			meshManipulator.selectTriangles = null;
+		}
+
+		if (alignTriangle == -2) {
+			alignTriangle = prevSnap;
+		}
+		prevAlign = alignTriangle;
+		int alignFace = findFaceIndex(alignTriangle);
+		if (alignTriangle != -1) {
+			if (alignFace >= 0 && alignFace < faceObj.Count) {
+				faceObj[alignFace].GetComponent<Renderer>().material.SetColor("_Color", alignColor);
+			}
+		}
+
+		string msg = "Snap\n" + snapFace + "\n" + alignFace;
+		if (sender != null) {
+			sender.GetComponent<ServerController>().sendMessage(msg);
 		}
 
 	}
@@ -297,8 +320,8 @@ public class ObjectController : MonoBehaviour
 			categorizeFaces();
 			extractBoundaries();
 		}
-		generateCover();
 		synchronize();
+		generateCover();
 		sendMesh();
 
 	}
@@ -350,7 +373,7 @@ public class ObjectController : MonoBehaviour
 			}
 		}
 
-		return triangleIndex;
+		return -1;
 	}
 
 }

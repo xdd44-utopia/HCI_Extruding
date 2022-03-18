@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -6,8 +7,8 @@ using UnityEngine.UI;
 public class ObjectController : MonoBehaviour
 {
 
-	private GameObject inside;
-	private Text debugText;
+	public GameObject inside;
+	public Text debugText;
 
 	//Mesh
 	private Mesh mesh;
@@ -34,7 +35,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.0001f;
+	private const float eps = 0.05f;
 
 
 	private float timer = 0;
@@ -50,6 +51,8 @@ public class ObjectController : MonoBehaviour
 	}
 
 	void Update() {
+
+		debugText.text = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond + "";
 
 	}
 
@@ -140,6 +143,7 @@ public class ObjectController : MonoBehaviour
 			mesh.uv = new Vector2[faceVertices.Length];
 			mesh.MarkModified();
 			mesh.RecalculateNormals();
+			faceObj[i].name = "Face " + i;
 			faceObj[i].GetComponent<MeshFilter>().mesh = mesh;
 		}
 
@@ -199,45 +203,39 @@ public class ObjectController : MonoBehaviour
 
 	}
 
-	public void updateHighlight(string msg) {
-	
-		string[] temp1 = msg.Split('\n');
-
-		int selectFace = System.Convert.ToInt32(temp1[1]);
-		int snapFace = System.Convert.ToInt32(temp1[2]);
-		int alignFace = System.Convert.ToInt32(temp1[3]);
-		
-		updateSelect(selectFace);
+	public void updateHighlight(int snapFace, int alignFace) {
 
 		for (int i=0;i<faceObj.Count;i++) {
 			faceObj[i].GetComponent<Renderer>().material.SetColor("_Color", generalColor);
 		}
 
-		if (snapFace >= 0 && snapFace < faceObj.Count) {
-			faceObj[snapFace].GetComponent<Renderer>().material.SetColor("_Color", snapColor);
-			prevSnap = snapFace;
+		if (snapFace == -2) {
+			snapFace = prevSnap;
 		}
-		else if (snapFace == -2 && prevSnap >= 0) {
-			faceObj[prevSnap].GetComponent<Renderer>().material.SetColor("_Color", snapColor);
+		prevSnap = snapFace;
+		if (snapFace != -1) {
+			if (snapFace >= 0 && snapFace < faceObj.Count) {
+				faceObj[snapFace].GetComponent<Renderer>().material.SetColor("_Color", snapColor);
+			}
 		}
-		else {
-			prevSnap = -1;
+
+		if (alignFace == -2) {
+			alignFace = prevSnap;
 		}
-		
-		if (alignFace >= 0 && alignFace < faceObj.Count) {
-			faceObj[alignFace].GetComponent<Renderer>().material.SetColor("_Color", alignColor);
-			prevAlign = alignFace;
-		}
-		else if (alignFace == -2 && prevAlign >= 0) {
-			faceObj[prevAlign].GetComponent<Renderer>().material.SetColor("_Color", alignColor);
-		}
-		else {
-			prevAlign = -1;
+		prevAlign = alignFace;
+		if (alignFace != -1) {
+			if (alignFace >= 0 && alignFace < faceObj.Count) {
+				faceObj[alignFace].GetComponent<Renderer>().material.SetColor("_Color", alignColor);
+			}
 		}
 
 	}
 
 	public void updateMesh(string msg) {
+		
+		mesh = gameObject.GetComponent<MeshFilter>().mesh;
+		vertices = mesh.vertices;
+		triangles = mesh.triangles;
 
 		string[] temp1 = msg.Split('\n');
 
@@ -281,13 +279,6 @@ public class ObjectController : MonoBehaviour
 			System.Convert.ToSingle(positionStr[1]),
 			System.Convert.ToSingle(positionStr[2])
 		);
-		debugText.text =
-			this.transform.position.x + ", "+
-			this.transform.position.y + ", " +
-			this.transform.position.z + ", " +
-			VectorCalculator.convertFromServer(this.transform.position).x + ", " +
-			VectorCalculator.convertFromServer(this.transform.position).y + ", " +
-			VectorCalculator.convertFromServer(this.transform.position).z;
 
 		this.transform.position = VectorCalculator.convertFromServer(this.transform.position);
 		Quaternion currentRot = this.transform.rotation;
@@ -313,12 +304,10 @@ public class ObjectController : MonoBehaviour
 					int edgeShared = triangleEdges[a * 3 + i];
 					int vertexA = triangles[a * 3 + (i + 2) % 3];
 					int vertexB = triangles[b * 3 + (j + 2) % 3];
-					Vector3 vectorA = vertices[vertexA] - vertices[edges[edgeShared * 2]];
-					Vector3 vectorB = vertices[vertexB] - vertices[edges[edgeShared * 2]];
-					Vector3 vectorShared = vertices[edges[edgeShared * 2]] - vertices[edges[edgeShared * 2 + 1]];
-					Vector3 normalA = Vector3.Cross(vectorA, vectorShared).normalized;
-					Vector3 normalB = Vector3.Cross(vectorB, vectorShared).normalized;
-					if ((normalA - normalB).magnitude < eps || (normalA + normalB).magnitude < eps) {
+					Vector3 v1 = vertices[vertexA] - vertices[edges[edgeShared * 2]];
+					Vector3 v2 = vertices[vertexA] - vertices[edges[edgeShared * 2 + 1]];
+					Vector3 v3 = vertices[vertexA] - vertices[vertexB];
+					if (Mathf.Abs(Vector3.Dot(v1.normalized, Vector3.Cross(v2.normalized, v3.normalized).normalized)) < eps) {
 						return true;
 					}
 				}
