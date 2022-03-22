@@ -974,7 +974,13 @@ public class MeshManipulator : MonoBehaviour
 		extrude();
 	}
 	public void debug2() {
-
+		// Extrude debug
+		isThisScreenFocused = true;
+		smode = SelectMode.selectFace;
+		isEdgeAligned = true;
+		prepareExtrude(false);
+		updateExtrudeScale(0.5f, false);
+		extrude();
 	}
 	/* #endregion */
 }

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEditor;
 
 public class ObjectController : MonoBehaviour
 {
@@ -15,6 +16,7 @@ public class ObjectController : MonoBehaviour
 	public bool isRealMeasure;
 	[HideInInspector]
 	public Vector3 realMeasure = new Vector3(1, 1, 1);
+	public bool debug;
 
 	//Mesh
 	private Mesh mesh;
@@ -41,7 +43,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.05f;
+	private const float eps = 0.02f;
 
 
 	private float timer = 0;
@@ -61,6 +63,8 @@ public class ObjectController : MonoBehaviour
 	}
 
 	void Update() {
+
+		MeshCalculator.debugging = debug;
 
 	}
 
@@ -381,5 +385,6 @@ public class ObjectController : MonoBehaviour
 
 		return -1;
 	}
+
 
 }

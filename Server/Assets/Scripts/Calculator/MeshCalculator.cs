@@ -10,6 +10,7 @@ public static class MeshCalculator {
 
 	public static bool debugging = true;
 	public static int debugInt = 0;
+	private static int loopCount;
 
 	private static List<int> clockwiseBoundary(Vector3[] vertices, List<int> boundary, Vector3 localNormal) {
 
@@ -207,7 +208,7 @@ public static class MeshCalculator {
 
 		//Offset towards normal direction
 		for (int i=0;i<vertices.Length;i++) {
-			vertices[i] += localNormal * 0.001f;
+			vertices[i] += localNormal * 0.002f;
 		}
 		
 		offsetBoundary(ref vertices, boundary, localNormal, thickness);
@@ -840,6 +841,7 @@ public static class MeshCalculator {
 			sortedEdgeVerticesList[boundaryCount - 1].Add(curStart);
 
 			bool done = false;
+			loopCount = 0;
 			do {
 				for (int j=0;j<edgeVerticesList.Count / 2;j++) {
 					if (curEdge != j) {
@@ -859,6 +861,11 @@ public static class MeshCalculator {
 					if (done) {
 						break;
 					}
+				}
+				loopCount++;
+				if (loopCount > 1000) {
+					Debug.Log("Infinite Loop");
+					break;
 				}
 			} while (!done);
 

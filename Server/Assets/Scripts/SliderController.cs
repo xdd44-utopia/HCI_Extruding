@@ -40,7 +40,7 @@ public class SliderController : MonoBehaviour
 		angleTemp = - angleTemp * Mathf.PI / 180;
 		angle = Mathf.Clamp(Mathf.Round(Mathf.Lerp(angle, angleTemp, Time.deltaTime * 3) * 1000) / 1000, - Mathf.PI / 2, 0);
 
-		// angle = - Mathf.PI / 3;
+		// angle = - Mathf.PI / 2 + 0.05f;
 
 		screenSide.SetPosition(2, new Vector3(VectorCalculator.camWidth / 2 + VectorCalculator.camWidth * Mathf.Cos(-angle), - VectorCalculator.camHeight / 2, VectorCalculator.camWidth * Mathf.Sin(-angle)));
 
