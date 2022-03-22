@@ -6699,43 +6699,48 @@ PrefabInstance:
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2.07
+      value: 1.15
       objectReference: {fileID: 0}
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.92387956
+      value: 0.99240386
       objectReference: {fileID: 0}
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalRotation.x
-      value: 0
+      value: 0.08682413
       objectReference: {fileID: 0}
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.38268343
+      value: 0.08682413
       objectReference: {fileID: 0}
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0
+      value: -0.0075961305
       objectReference: {fileID: 0}
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 45
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 3779590653547826736, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3779590653547826738, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: 2100000, guid: c4d4d4fc23d4c41e88724befddfdc7f5, type: 2}
     - target: {fileID: 3779590653547826739, guid: 0dd93d9f5d59b4d1483cf644b45140e5,
         type: 3}
       propertyPath: m_Mesh

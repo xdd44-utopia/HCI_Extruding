@@ -160,7 +160,7 @@ public class MeshManipulator : MonoBehaviour
 			}
 			else {
 				extrudeHandle.SetActive(isOtherScreenFocused);
-				extrudeHandle.GetComponent<RectTransform>().anchoredPosition = new Vector2(360 - extrudeDist / VectorCalculator.camWidth * 772, 0);
+				extrudeHandle.GetComponent<RectTransform>().anchoredPosition = new Vector2(Screen.width / 2 - extrudeDist / VectorCalculator.camWidth * (Screen.height / 2), 0);
 			}
 		}
 		else {
@@ -346,8 +346,8 @@ public class MeshManipulator : MonoBehaviour
 		transform.localScale = undoScale;
 		transform.rotation = undoRot;
 
-		obj.updateTransform();
 		obj.updateMesh(true);
+		obj.updateTransform();
 	}
 
 	/* #endregion */
@@ -454,7 +454,8 @@ public class MeshManipulator : MonoBehaviour
 		
 		extrudeDist = 0;
 		extrudeStartPos = transform.position;
-		extrudeDir = isThisScreen ? new Vector3(-1, 0, 0) : new Vector3(Mathf.Cos(-VectorCalculator.angle), 0, Mathf.Sin(-VectorCalculator.angle)).normalized;
+		float angle = Math.Max(- VectorCalculator.angle, Mathf.PI / 20f);
+		extrudeDir = isThisScreen ? new Vector3(-1, 0, 0) : new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)).normalized;
 		extrudeDirLocal = transform.InverseTransformPoint(transform.position - extrudeDir).normalized;
 		
 		List<Vector3> extrudedVerticesList = new List<Vector3>();
@@ -553,8 +554,10 @@ public class MeshManipulator : MonoBehaviour
 
 		if (extrudeDist > 0.01f) {
 			gameObject.GetComponent<MeshFilter>().mesh = extrudedMesh;
-			obj.updateTransform();
 			obj.updateMesh(true);
+			obj.updateTransform();
+			obj.updateHighlight(newSelectTriangle, -2);
+			obj.updateSelect(newSelectTriangle);
 		}
 
 		extrudeTimer -= Time.deltaTime;
@@ -562,9 +565,9 @@ public class MeshManipulator : MonoBehaviour
 			state = Status.select;
 			extrudeDist = 0;
 			drilling = false;
-			obj.updateTransform();
 			obj.updateMesh(true);
-			obj.updateHighlight(newSelectTriangle, -2);
+			obj.updateTransform();
+			cancel();
 		}
 
 	}
@@ -696,6 +699,7 @@ public class MeshManipulator : MonoBehaviour
 
 		obj.updateMesh(true);
 		obj.updateTransform();
+		cancel();
 
 	}
 	/* #endregion */
@@ -706,39 +710,12 @@ public class MeshManipulator : MonoBehaviour
 		if (state != Status.select) {
 			return;
 		}
-		if (!isThisScreenFocused && !isOtherScreenFocused) {
-			transform.position += panDelta;
+		transform.position += panDelta;
+		if (isThisScreenFocused) {
+			adjustAlign(true);
 		}
-		else {
-			transform.position += new Vector3(0, panDelta.y, 0);
-			if (isThisScreenFocused && isMainScreen) {
-				if (isEdgeAligned) {
-					if (panDelta.x < 0) {
-						transform.position += new Vector3(panDelta.x, 0, 0);
-						isEdgeAligned = false;
-						closestVertex = -1;
-						secondVertex = -1;
-					}
-				}
-				else {
-					transform.position += new Vector3(panDelta.x, 0, 0);
-					adjustAlign(true);
-				}
-			}
-			if (isOtherScreenFocused && !isMainScreen) {
-				if (isEdgeAligned) {
-					if (panDelta.x > 0) {
-						transform.position += new Vector3(panDelta.x, 0, panDelta.z);
-						isEdgeAligned = false;
-						closestVertex = -1;
-						secondVertex = -1;
-					}
-				}
-				else {
-					transform.position += new Vector3(panDelta.x, 0, panDelta.z);
-					adjustAlign(false);
-				}
-			}
+		if (isOtherScreenFocused) {
+			adjustAlign(false);
 		}
 		transform.position = new Vector3(
 			Mathf.Clamp(transform.position.x, - VectorCalculator.camWidth / 2, 3 * VectorCalculator.camWidth / 2),
@@ -843,8 +820,12 @@ public class MeshManipulator : MonoBehaviour
 			}
 		}
 		updateTwoVertices(ref closestVector, ref secondVector);
-		if (Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) < 0.05f && Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2) < 0.05f) {
+		if (Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) < 0.125f && Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2) < 0.125f) {
+			debugText.text = "Success\n" + closestVector.x + " " + secondVector.x + "\n" + VectorCalculator.camWidth / 2 + "\n" + Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) + " " + Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2);
 			isEdgeAligned = true;
+		}
+		else {
+			debugText.text = "Fail\n" + closestVector.x + " " + secondVector.x + "\n" + VectorCalculator.camWidth / 2 + "\n" + Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) + " " + Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2);
 		}
 		
 	}
@@ -960,8 +941,8 @@ public class MeshManipulator : MonoBehaviour
 
 		gameObject.GetComponent<MeshFilter>().mesh = defaultMesh;
 		gameObject.GetComponent<MeshCollider>().sharedMesh = defaultMesh;
-		obj.updateTransform();
 		obj.updateMesh(true);
+		obj.updateTransform();
 	}
 
 	public void cancel() {

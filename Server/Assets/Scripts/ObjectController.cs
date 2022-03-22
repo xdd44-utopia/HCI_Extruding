@@ -353,8 +353,14 @@ public class ObjectController : MonoBehaviour
 					int vertexB = triangles[b * 3 + (j + 2) % 3];
 					Vector3 v1 = vertices[vertexA] - vertices[edges[edgeShared * 2]];
 					Vector3 v2 = vertices[vertexA] - vertices[edges[edgeShared * 2 + 1]];
-					Vector3 v3 = vertices[vertexA] - vertices[vertexB];
-					if (Mathf.Abs(Vector3.Dot(v1.normalized, Vector3.Cross(v2.normalized, v3.normalized).normalized)) < eps) {
+					Vector3 v3 = vertices[vertexB] - vertices[edges[edgeShared * 2]];
+					Vector3 v4 = vertices[vertexB] - vertices[edges[edgeShared * 2 + 1]];
+					if (
+						Mathf.Abs(Vector3.Dot(v3.normalized, Vector3.Cross(v1.normalized, v2.normalized).normalized)) < eps &&
+						Mathf.Abs(Vector3.Dot(v4.normalized, Vector3.Cross(v1.normalized, v2.normalized).normalized)) < eps &&
+						Mathf.Abs(Vector3.Dot(v1.normalized, Vector3.Cross(v3.normalized, v4.normalized).normalized)) < eps &&
+						Mathf.Abs(Vector3.Dot(v2.normalized, Vector3.Cross(v3.normalized, v4.normalized).normalized)) < eps
+					) {
 						return true;
 					}
 				}
