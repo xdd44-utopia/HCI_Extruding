@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -195,6 +196,27 @@ public static class VectorCalculator {
 
 		return true;
 
+	}
+
+	public static List<int> simplifyBoundary(Vector3[] vertices, List<int> orignalBoundary) {
+		List<int> boundary = new List<int>();
+		boundary.AddRange(orignalBoundary);
+		while (true) {
+			int prevCount = boundary.Count;
+			for (int i=0;i < boundary.Count;i++) {
+				int prev = (i + boundary.Count - 1) % boundary.Count;
+				int next = (i + 1) % boundary.Count;
+				if (Vector3.Cross(vertices[boundary[next]] - vertices[boundary[i]], vertices[boundary[i]] - vertices[boundary[prev]]).magnitude < 0.001f) {
+				// if (Vector3.Angle(vertices[boundary[next]] - vertices[boundary[i]], vertices[boundary[i]] - vertices[boundary[prev]]) < 1f) {
+					boundary.RemoveAt(i);
+					break;
+				}
+			}
+			if (boundary.Count == prevCount) {
+				break;
+			}
+		}
+		return boundary;
 	}
 
 	public static string VectorToString(Vector3[] vertices) {

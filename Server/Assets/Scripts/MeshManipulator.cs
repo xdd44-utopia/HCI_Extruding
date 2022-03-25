@@ -649,7 +649,7 @@ public class MeshManipulator : MonoBehaviour
 
 		gameObject.GetComponent<MeshFilter>().mesh = taperedMesh;
 		gameObject.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
-		obj.updateMesh(false);
+		obj.updateMesh(true);
 
 	}
 	/* #endregion */

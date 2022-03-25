@@ -8,7 +8,7 @@ using Random = UnityEngine.Random;
 
 public static class MeshCalculator {
 
-	public static bool debugging = true;
+	public static bool debugging = false;
 	public static int debugInt = 0;
 	private static int loopCount;
 
@@ -105,36 +105,6 @@ public static class MeshCalculator {
 			}
 		}
 		triangles = trianglesList.ToArray();
-
-	}
-
-	public static void extractEdges(ref int[] triangles, out int[] edges, out int[] triangleEdges) {
-
-		//Calculate edges
-		List<int> edgesList = new List<int>();
-		triangleEdges = new int[triangles.Length];
-		for (int i=0;i<triangles.Length / 3;i++) {
-			for (int j=0;j<3;j++) {
-				int u = triangles[i * 3 + j];
-				int v = triangles[i * 3 + (j + 1) % 3];
-				if (u > v) {
-					int t = u; u = v; v = t;
-				}
-				triangleEdges[i * 3 + j] = -1;
-				for (int k=0;k<edgesList.Count / 2;k++) {
-					if (edgesList[k * 2] == u && edgesList[k * 2 + 1] == v) {
-						triangleEdges[i * 3 + j] = k;
-						break;
-					}
-				}
-				if (triangleEdges[i * 3 + j] == -1) {
-					triangleEdges[i * 3 + j] = edgesList.Count / 2;
-					edgesList.Add(u);
-					edgesList.Add(v);
-				}
-			}
-		}
-		edges = edgesList.ToArray();
 
 	}
 
@@ -311,6 +281,7 @@ public static class MeshCalculator {
 
 		for (int i=0;i<boundaries.Count;i++) {
 			boundaries[i] = clockwiseBoundary(vertices, boundaries[i], localNormal);
+			boundaries[i] = VectorCalculator.simplifyBoundary(vertices, boundaries[i]);
 		}
 
 		List<int> noHolePolygon = boundaries.Count > 1 ? splitHolePolygon(vertices, boundaries, localNormal) : boundaries[0];
@@ -882,22 +853,6 @@ public static class MeshCalculator {
 					break;
 				}
 			} while (!done);
-
-			//Simplify edge
-			while (true) {
-				int prevCount = sortedEdgeVerticesList[boundaryCount - 1].Count;
-				for (int i=0;i<sortedEdgeVerticesList[boundaryCount - 1].Count;i++) {
-					int prev = (i + sortedEdgeVerticesList[boundaryCount - 1].Count - 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
-					int next = (i + 1) % sortedEdgeVerticesList[boundaryCount - 1].Count;
-					if (Vector3.Cross(sortedEdgeVerticesList[boundaryCount - 1][next] - sortedEdgeVerticesList[boundaryCount - 1][i], sortedEdgeVerticesList[boundaryCount - 1][i] - sortedEdgeVerticesList[boundaryCount - 1][prev]).magnitude < 0.001f) {
-						sortedEdgeVerticesList[boundaryCount - 1].RemoveAt(i);
-						break;
-					}
-				}
-				if (sortedEdgeVerticesList[boundaryCount - 1].Count == prevCount) {
-					break;
-				}
-			}
 
 		}
 

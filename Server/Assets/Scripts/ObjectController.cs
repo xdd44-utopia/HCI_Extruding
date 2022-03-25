@@ -67,6 +67,72 @@ public class ObjectController : MonoBehaviour
 		
 	}
 
+	private void simplifyFaces() {
+
+		MeshCalculator.simplifyMesh(ref vertices, ref triangles);
+		extractEdges();
+		categorizeFaces();
+		extractBoundaries();
+
+		bool[] isRemoved = new bool[triangles.Length / 3];
+		List<int> newTrianglesList = new List<int>();
+
+		for (int i=0;i<boundaries.Count;i++) {
+			Vector3 localNormal = Vector3.Cross(vertices[triangles[faces[i][0] * 3 + 1]] - vertices[triangles[faces[i][0] * 3]], vertices[triangles[faces[i][0] * 3 + 2]] - vertices[triangles[faces[i][0] * 3]]).normalized;
+			int[] newTriangles = MeshCalculator.triangulation(vertices, boundaries[i], localNormal);
+			if (newTriangles.Length / 3 < faces[i].Count) {
+				newTrianglesList.AddRange(newTriangles);
+				for (int j=0;j<faces[i].Count;j++) {
+					isRemoved[faces[i][j]] = true;
+				}
+			}
+		}
+
+		if (newTrianglesList.Count > 0) {
+			for (int i=0;i<triangles.Length / 3;i++) {
+				if (!isRemoved[i]) {
+					for (int j=0;j<3;j++) {
+						newTrianglesList.Add(triangles[i * 3 + j]);
+					}
+				}
+			}
+			triangles = newTrianglesList.ToArray();
+		}
+
+		MeshCalculator.simplifyMesh(ref vertices, ref triangles);
+
+	}
+
+	private void extractEdges() {
+
+		//Calculate edges
+		List<int> edgesList = new List<int>();
+		triangleEdges = new int[triangles.Length];
+		for (int i=0;i<triangles.Length / 3;i++) {
+			for (int j=0;j<3;j++) {
+				int u = triangles[i * 3 + j];
+				int v = triangles[i * 3 + (j + 1) % 3];
+				if (u > v) {
+					int t = u; u = v; v = t;
+				}
+				triangleEdges[i * 3 + j] = -1;
+				for (int k=0;k<edgesList.Count / 2;k++) {
+					if (edgesList[k * 2] == u && edgesList[k * 2 + 1] == v) {
+						triangleEdges[i * 3 + j] = k;
+						break;
+					}
+				}
+				if (triangleEdges[i * 3 + j] == -1) {
+					triangleEdges[i * 3 + j] = edgesList.Count / 2;
+					edgesList.Add(u);
+					edgesList.Add(v);
+				}
+			}
+		}
+		edges = edgesList.ToArray();
+
+	}
+
 	private void categorizeFaces() {
 
 		// Categorize triangles into faces
@@ -313,8 +379,8 @@ public class ObjectController : MonoBehaviour
 		vertices = mesh.vertices;
 		triangles = mesh.triangles;
 		if (isGeometryUpdated) {
-			MeshCalculator.simplifyMesh(ref vertices, ref triangles);
-			MeshCalculator.extractEdges(ref triangles, out edges, out triangleEdges);
+			simplifyFaces();
+			extractEdges();
 			categorizeFaces();
 			extractBoundaries();
 		}
