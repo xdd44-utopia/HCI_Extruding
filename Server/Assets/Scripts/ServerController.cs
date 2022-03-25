@@ -117,11 +117,11 @@ public class ServerController : MonoBehaviour {
 			case 'M': pointer = 1; break;
 			case 'A': pointer = 2; break;
 			case 'H': pointer = 3; break;
-			case 'S': pointer = 3; break;
-			case 'F': pointer = 4; break;
-			case 'T': pointer = 5; break;
-			case 'G': pointer = 6; break;
-			case 'E': pointer = 7; break;
+			case 'S': pointer = 4; break;
+			case 'F': pointer = 5; break;
+			case 'T': pointer = 6; break;
+			case 'G': pointer = 7; break;
+			case 'E': pointer = 8; break;
 		}
 		sendBuffer[pointer] = msg;
 		sendBuffer[0] = "Latency\n" + ((DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) % 600000);

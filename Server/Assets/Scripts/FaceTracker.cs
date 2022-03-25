@@ -157,7 +157,7 @@ public class FaceTracker : MonoBehaviour
 	public void switchObservationMode() {
 		if (useFaceTrack) {
 			useFaceTrack = false;
-			observe = defaultObserve;
+			// observe = defaultObserve;
 		} else {
 			useFaceTrack = true;
 		}

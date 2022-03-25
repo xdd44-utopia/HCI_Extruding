@@ -42,7 +42,7 @@ public class TouchProcessor : MonoBehaviour
 
 	private float touchTimer = 0;
 	private float touchTimerOtherScreen = 0;
-	private float touchDelayTolerance = 0.25f;
+	private float touchDelayTolerance = 0.1125f;
 
 	private int touchCountThisScreen = 0;
 	private Vector3[] touchPosThisScreen;
@@ -324,7 +324,7 @@ public class TouchProcessor : MonoBehaviour
 	}
 	
 	public void updateTouchPoint(int touchCount, Vector3[] touchPos, Vector3[] touchPrevPos, TouchPhase[] phases) {
-		touchTimerOtherScreen = touchDelayTolerance;
+		touchTimerOtherScreen = 0.1f;
 		touchCountOtherScreen = touchCount;
 		touchPosOtherScreen = new Vector3[touchCount];
 		touchPrevPosOtherScreen = new Vector3[touchCount];

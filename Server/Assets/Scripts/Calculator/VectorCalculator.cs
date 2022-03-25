@@ -181,8 +181,8 @@ public static class VectorCalculator {
 	public static bool isLineSegmentInsidePolygon(Vector2[] vertices, List<int> boundary, Vector2 p1, Vector2 p2) {
 		
 		Vector2 d = p2 - p1;
-		p1 += 0.01f * d;
-		p2 -= 0.01f * d;
+		p1 += 0.0075f * d;
+		p2 -= 0.0075f * d;
 		if (!isPointInsidePolygon(vertices, boundary, p1) || !isPointInsidePolygon(vertices, boundary, p2)) {
 			return false;
 		}

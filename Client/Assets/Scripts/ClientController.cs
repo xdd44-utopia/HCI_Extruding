@@ -187,7 +187,6 @@ public class ClientController : MonoBehaviour {
 	}
 
 	private void getVector() {
-		// Debug.Log(receivedMessage);
 
 		connectButton.SetActive(false);
 		IPInput.SetActive(false);
@@ -249,7 +248,7 @@ public class ClientController : MonoBehaviour {
 				}
 				case 'E': {
 					string[] temp1 = receivedMessage.Split('\n');
-					extrudeHandle.updateDist(System.Convert.ToSingle(temp1[1]));
+					extrudeHandle.updateDist(System.Convert.ToSingle(temp1[1]), (temp1[0].Length > 7));
 					break;
 				}
 			}
@@ -261,7 +260,7 @@ public class ClientController : MonoBehaviour {
 			if (receivedMessage[0] == 'T') {
 				sendMessage("RT\n");
 			}
-			errorText.text = receivedMessage + "\n" + Time.deltaTime + "\n" + e.Message;
+			Debug.Log(receivedMessage + "\n" + Time.deltaTime + "\n" + e.Message);
 		}
 	}
 

@@ -34,6 +34,7 @@ public class ObjectController : MonoBehaviour
 	public GameObject linePrefab;
 
 	//Record
+	private int prevSelect = -1;
 	private int prevSnap = -1;
 	private int prevAlign = -1;
 
@@ -63,9 +64,7 @@ public class ObjectController : MonoBehaviour
 	}
 
 	void Update() {
-
-		MeshCalculator.debugging = debug;
-
+		
 	}
 
 	private void categorizeFaces() {
@@ -195,6 +194,8 @@ public class ObjectController : MonoBehaviour
 		GetComponent<MeshCollider>().sharedMesh = mesh;
 		inside.GetComponent<MeshFilter>().mesh = mesh;
 
+		updateSelect(-2);
+
 	}
 
 	private void sendMesh() {
@@ -221,16 +222,9 @@ public class ObjectController : MonoBehaviour
 	public void updateSelect(int selectTriangle) { // -2 Preserve, -1 Cancel, i Update
 
 		if (selectTriangle == -2) {
-			return;
+			selectTriangle = prevSelect;
 		}
-		else if (selectTriangle == -1) {
-			for (int i=0;i<lineObj.Count;i++) {
-				LineRenderer lr = lineObj[i].GetComponent<LineRenderer>();
-				lr.positionCount = 0;
-			}
-			return;
-		}
-
+		prevSelect = selectTriangle;
 		int selectFace = findFaceIndex(selectTriangle);
 		
 		string msg = "Highlight\n" + selectFace;
@@ -296,7 +290,7 @@ public class ObjectController : MonoBehaviour
 		}
 
 		if (alignTriangle == -2) {
-			alignTriangle = prevSnap;
+			alignTriangle = prevAlign;
 		}
 		prevAlign = alignTriangle;
 		int alignFace = findFaceIndex(alignTriangle);

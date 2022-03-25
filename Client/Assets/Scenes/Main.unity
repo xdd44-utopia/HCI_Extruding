@@ -1892,6 +1892,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   handle: {fileID: 226676551}
   debugText: {fileID: 112596419}
+  extrudeSprite: {fileID: 21300000, guid: 5b95d8ea4d9c948cdb5dcb92e33fc278, type: 3}
+  drillSprite: {fileID: 21300000, guid: 8ea7f136398274ac6a378e52af5041fd, type: 3}
 --- !u!1001 &1156712336
 PrefabInstance:
   m_ObjectHideFlags: 0

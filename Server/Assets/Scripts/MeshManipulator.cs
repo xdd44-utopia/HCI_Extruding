@@ -191,6 +191,8 @@ public class MeshManipulator : MonoBehaviour
 		if (state == Status.extrude && drilling) {
 			modeText.text = "drilling";
 			holeLine.enabled = true;
+			string msg = "ExtrudeNegative\n" + extrudeDist;
+			sender.GetComponent<ServerController>().sendMessage(msg);
 		}
 		else {
 			holeLine.enabled = false;
@@ -221,9 +223,11 @@ public class MeshManipulator : MonoBehaviour
 
 		if (computerDebugging && Input.GetMouseButtonDown(0)) {
 			Vector3 mousePos = Input.mousePosition;
-			mousePos -= new Vector3(Screen.width / 2, Screen.height / 2, 0);
-			mousePos *= Camera.main.orthographicSize / Screen.height * 2;
-			castRay(mousePos);
+			if (mousePos.y > 475) {
+				mousePos -= new Vector3(Screen.width / 2, Screen.height / 2, 0);
+				mousePos *= Camera.main.orthographicSize / Screen.height * 2;
+				castRay(mousePos);
+			}
 		}
 
 	}
@@ -259,14 +263,14 @@ public class MeshManipulator : MonoBehaviour
 		);
 
 		if (Physics.Raycast(rayStart, rayDirection, out hit)) {
-			obj.updateSelect(hit.triangleIndex);
 			focusTriangleIndex = hit.triangleIndex;
 			focusNormal = hit.normal;
 			smode = SelectMode.selectFace;
+			obj.updateSelect(hit.triangleIndex);
 		}
 		else {
-			obj.updateSelect(-1);
 			smode = SelectMode.selectObject;
+			obj.updateSelect(-1);
 		}
 		
 	}
@@ -355,87 +359,94 @@ public class MeshManipulator : MonoBehaviour
 	/* #region Extrude */
 	public void prepareNegativeExtrude() {
 
-		if (!isThisScreenFocused || smode != SelectMode.selectFace) {
+		prepareUndo();
+
+		if (!isThisScreenFocused) {
+			Debug.Log("Refused");
 			return;
 		}
 
-		Vector3 center = new Vector3(0, 0, 0);
+		try {
 
-		bool isInsideFace(Vector3 p) {
-			Vector2 p2D = new Vector2(p.x, p.y);
-			Vector2[] vertices2D = new Vector2[vertices.Length];
-			for (int i=0;i<vertices.Length;i++) {
-				vertices2D[i] = new Vector2(transform.TransformPoint(vertices[i]).x, transform.TransformPoint(vertices[i]).y);
-			}
-			if (!VectorCalculator.isPointInsidePolygon(vertices2D, selectBoundaries[0], p2D)) {
-				return false;
-			}
-			for (int i=1;i<selectBoundaries.Count;i++) {
-				if (VectorCalculator.isPointInsidePolygon(vertices2D, selectBoundaries[i], p2D)) {
+			Vector3 center = new Vector3(0, 0, 0);
+
+			bool isInsideFace(Vector3 p) {
+				Vector2 p2D = new Vector2(p.x, p.y);
+				Vector2[] vertices2D = new Vector2[vertices.Length];
+				for (int i=0;i<vertices.Length;i++) {
+					vertices2D[i] = new Vector2(transform.TransformPoint(vertices[i]).x, transform.TransformPoint(vertices[i]).y);
+				}
+				if (!VectorCalculator.isPointInsidePolygon(vertices2D, selectBoundaries[0], p2D)) {
+					Debug.Log("Refused");
 					return false;
 				}
+				for (int i=1;i<selectBoundaries.Count;i++) {
+					if (VectorCalculator.isPointInsidePolygon(vertices2D, selectBoundaries[i], p2D)) {
+						Debug.Log("Refused");
+						return false;
+					}
+				}
+				return true;
 			}
-			return true;
-		}
 
-		Vector3[] holeVertices = new Vector3[4];
-		holeVertices[0] = new Vector3(-0.25f, -0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
-		holeVertices[1] = new Vector3(0.25f, -0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
-		holeVertices[2] = new Vector3(0.25f, 0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
-		holeVertices[3] = new Vector3(-0.25f, 0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
-		for (int i=0;i<4;i++) {
-			if (!isInsideFace(holeVertices[i])) {
-				return;
+			Vector3[] holeVertices = new Vector3[4];
+			holeVertices[0] = new Vector3(-0.25f, -0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+			holeVertices[1] = new Vector3(0.25f, -0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+			holeVertices[2] = new Vector3(0.25f, 0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+			holeVertices[3] = new Vector3(-0.25f, 0.25f, transform.TransformPoint(vertices[selectBoundaries[0][0]]).z) + center;
+			for (int i=0;i<4;i++) {
+				if (!isInsideFace(holeVertices[i])) {
+					return;
+				}
+				holeVertices[i] = transform.InverseTransformPoint(holeVertices[i]);
 			}
-			holeVertices[i] = transform.InverseTransformPoint(holeVertices[i]);
-		}
 
-		string msg = "";
-		for (int i=0;i<selectBoundaries[0].Count;i++) {
-			msg += vertices[selectBoundaries[0][i]] + "";
-		}
-		msg += "\n";
-		for (int i=0;i<4;i++) {
-			msg += holeVertices[i] + "";
-		}
-		Debug.Log(msg);
-
-		List<Vector3> newVerticesList = vertices.ToList();
-		newVerticesList.AddRange(holeVertices);
-		List<int> newTrianglesList = new List<int>();
-		for (int i=0;i<triangles.Length / 3;i++) {
-			if (!selectTriangles.Contains(i)) {
-				for (int j=0;j<3;j++) {
-					newTrianglesList.Add(triangles[i * 3 + j]);
+			List<Vector3> newVerticesList = vertices.ToList();
+			newVerticesList.AddRange(holeVertices);
+			List<int> newTrianglesList = new List<int>();
+			for (int i=0;i<triangles.Length / 3;i++) {
+				if (!selectTriangles.Contains(i)) {
+					for (int j=0;j<3;j++) {
+						newTrianglesList.Add(triangles[i * 3 + j]);
+					}
 				}
 			}
+
+			List<int> holeBoundary = new List<int>{
+				newVerticesList.Count - 4,
+				newVerticesList.Count - 3,
+				newVerticesList.Count - 2,
+				newVerticesList.Count - 1
+			};
+			selectBoundaries.Add(holeBoundary);
+			Vector3 localNormal = - transform.InverseTransformPoint(transform.position - new Vector3(0, 0, -1)).normalized;
+			for (int i=0;i<selectBoundaries.Count;i++) {
+				selectBoundaries[i] = MeshCalculator.clockwiseBoundary(newVerticesList.ToArray(), selectBoundaries[i], localNormal);
+			}
+			int[] newFaceTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, localNormal);
+			newTrianglesList.AddRange(newFaceTriangles);
+			newSelectTriangle = newTrianglesList.Count / 3;
+			selectBoundaries = new List<List<int>>(){holeBoundary};
+			int[] newHoleTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, localNormal);
+			newTrianglesList.AddRange(newHoleTriangles);
+			selectTriangles = new List<int>(){newTrianglesList.Count / 3 - 1, newTrianglesList.Count / 3 - 2};
+			vertices = newVerticesList.ToArray();
+			triangles = newTrianglesList.ToArray();
+
+			prepareExtrude(false);
+
 		}
-
-		List<int> holeBoundary = new List<int>{
-			newVerticesList.Count - 1,
-			newVerticesList.Count - 2,
-			newVerticesList.Count - 3,
-			newVerticesList.Count - 4
-		};
-		selectBoundaries.Add(holeBoundary);
-		int[] newFaceTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, - transform.InverseTransformPoint(transform.position - new Vector3(0, 0, -1)).normalized);
-		newTrianglesList.AddRange(newFaceTriangles);
-		newSelectTriangle = newTrianglesList.Count / 3;
-		selectBoundaries = new List<List<int>>(){holeBoundary};
-		int[] newHoleTriangles = MeshCalculator.triangulation(newVerticesList.ToArray(), selectBoundaries, - transform.InverseTransformPoint(transform.position - new Vector3(0, 0, -1)).normalized);
-		newTrianglesList.AddRange(newHoleTriangles);
-		selectTriangles = new List<int>(){newTrianglesList.Count / 3 - 1, newTrianglesList.Count / 3 - 2};
-		vertices = newVerticesList.ToArray();
-		triangles = newTrianglesList.ToArray();
-
-		prepareUndo();
-		prepareExtrude(false);
+		catch (Exception e) {
+			loadUndo();
+			cancel();
+		}
 
 	}
 	
 	private void prepareExtrude(bool isThisScreen) {
 
 		if ((!isThisScreen && !isThisScreenFocused) || (isThisScreen && !isOtherScreenFocused)) {
+			Debug.Log("Refused");
 			return;
 		}
 
@@ -514,13 +525,10 @@ public class MeshManipulator : MonoBehaviour
 
 	public void updateExtrudeScale(float factor, bool isThisScreen) {
 		factor /= transform.localScale.x;
-		if (smode != SelectMode.selectFace) {
-			return;
-		}
 		if (!isEdgeAligned && !drilling) {
 			return;
 		}
-		if (smode == SelectMode.selectFace && isEdgeAligned && state == Status.select) {
+		if (isEdgeAligned && state == Status.select) {
 			if ((isThisScreenFocused && !isThisScreen) || (isOtherScreenFocused && isThisScreen)) {
 				prepareExtrude(isThisScreen);
 			}
@@ -528,13 +536,14 @@ public class MeshManipulator : MonoBehaviour
 		if (state == Status.extrude) {
 			extrudeDist += factor;
 			extrudeDist = extrudeDist > 0 ? extrudeDist : 0;
+			extrudeDist = (extrudeDist > 3 && drilling) ? 3 : extrudeDist;
 			extrudeTimer = touchDelayTolerance;
 			extrudeStarted = true;
 		}
 	}
 	private void extrude() {
 
-		if (smode != SelectMode.selectFace || (!isEdgeAligned && !drilling)) {
+		if (!isEdgeAligned && !drilling) {
 			state = Status.select;
 			return;
 		}
@@ -542,14 +551,17 @@ public class MeshManipulator : MonoBehaviour
 		Vector3[] extrudedVertices = extrudedMesh.vertices;
 		int[] extrudedTrianglesList = extrudedMesh.triangles;
 		for (int i=originalVerticesCount;i<originalVerticesCount + extrudedVerticesCount;i++) {
-			extrudedVertices[i] = extrudedVerticesOriginal[i] + extrudeDirLocal * extrudeDist * (drilling ? -1 : 1);
+			extrudedVertices[i] = extrudedVerticesOriginal[i] + extrudeDirLocal * extrudeDist * Mathf.Sin(- VectorCalculator.angle) * (drilling ? -1 : 1);
 		}
 
 		extrudedMesh.vertices = extrudedVertices;
 		extrudedMesh.triangles = extrudedTrianglesList;
 
 		if (!drilling) {
-			transform.position = extrudeStartPos + extrudeDir * transform.localScale.x * extrudeDist;
+			transform.position = extrudeStartPos + extrudeDir * transform.localScale.x * Mathf.Sin(- VectorCalculator.angle) * extrudeDist;
+		}
+		else {
+			transform.position = extrudeStartPos;
 		}
 
 		if (extrudeDist > 0.01f) {
@@ -586,7 +598,7 @@ public class MeshManipulator : MonoBehaviour
 
 	private void prepareTaper() {
 
-		if (smode != SelectMode.selectFace || !isThisScreenFocused) {
+		if (!isThisScreenFocused) {
 			return;
 		}
 
@@ -709,6 +721,9 @@ public class MeshManipulator : MonoBehaviour
 	public void startMoving(Vector3 panDelta, bool isMainScreen) {
 		if (state != Status.select) {
 			return;
+		}
+		if ((isThisScreenFocused && !isMainScreen) || (isOtherScreenFocused && isMainScreen)) {
+			panDelta = new Vector3(0, panDelta.y, 0);
 		}
 		transform.position += panDelta;
 		if (isThisScreenFocused) {

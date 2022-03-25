@@ -14,7 +14,7 @@ public class SliderController : MonoBehaviour
 
 	[HideInInspector]
 	public float angle;
-	private float prevAngle = -1;
+	private float prevAngle = - Mathf.PI / 3;
 
 	private float defaultAngle = - Mathf.PI / 3;
 
@@ -39,15 +39,16 @@ public class SliderController : MonoBehaviour
 		float angleTemp = (acceOther.x > acceThis.x ? Vector3.Angle(acceThis, acceOther) : 0);
 		angleTemp = - angleTemp * Mathf.PI / 180;
 		angle = Mathf.Clamp(Mathf.Round(Mathf.Lerp(angle, angleTemp, Time.deltaTime * 3) * 1000) / 1000, - Mathf.PI / 2, 0);
+		angle = Mathf.Lerp(prevAngle, angle, 0.4f);
 
 		// angle = - Mathf.PI / 2 + 0.05f;
 
 		screenSide.SetPosition(2, new Vector3(VectorCalculator.camWidth / 2 + VectorCalculator.camWidth * Mathf.Cos(-angle), - VectorCalculator.camHeight / 2, VectorCalculator.camWidth * Mathf.Sin(-angle)));
 
-		if (Mathf.Abs(angle - prevAngle) > 0f) {
+		if (Mathf.Abs(angle - prevAngle) > 0.0025f) {
 			sender.GetComponent<ServerController>().sendMessage("Angle\n" + angle + "\n");
+			prevAngle = angle;
 		}
-		prevAngle = angle;
 		VectorCalculator.angle = angle;
 		
 	}
