@@ -779,25 +779,22 @@ public class MeshManipulator : MonoBehaviour
 			return;
 		}
 		
-		List<int> sortedVerticesPointer = new List<int>();
+		float closestX = 2147483647;
+		int closestI = -1;
 		for (int i=0;i<selectBoundaries[0].Count;i++) {
-			sortedVerticesPointer.Add(i);
+			if (Mathf.Abs(transform.TransformPoint(vertices[selectBoundaries[0][i]]).x - VectorCalculator.camWidth / 2) < closestX) {
+				closestX = Mathf.Abs(transform.TransformPoint(vertices[selectBoundaries[0][i]]).x - VectorCalculator.camWidth / 2);
+				closestI = i;
+			}
 		}
-		sortedVerticesPointer.Sort((a, b) => {
-			float ax = transform.TransformPoint(vertices[selectBoundaries[0][a]]).x;
-			float bx = transform.TransformPoint(vertices[selectBoundaries[0][b]]).x;
-			if (ax - bx == 0) {
-				return 0;
-			}
-			else if (ax - bx > 0) {
-				return isMainScreen ? -1 : 1;
-			}
-			else {
-				return isMainScreen ? 1 : -1;
-			}
-		});
-		closestVertex = selectBoundaries[0][sortedVerticesPointer[0]];
-		secondVertex = selectBoundaries[0][sortedVerticesPointer[1]];
+		closestVertex = selectBoundaries[0][closestI];
+		int leftVertex = selectBoundaries[0][(closestI + 1) % selectBoundaries[0].Count];
+		int rightVertex = selectBoundaries[0][(closestI + selectBoundaries[0].Count - 1) % selectBoundaries[0].Count];
+		secondVertex =
+			Mathf.Abs((transform.TransformPoint(vertices[closestVertex]) + (transform.TransformPoint(vertices[leftVertex]) - transform.TransformPoint(vertices[closestVertex])).normalized).x - VectorCalculator.camWidth / 2) <
+			Mathf.Abs((transform.TransformPoint(vertices[closestVertex]) + (transform.TransformPoint(vertices[rightVertex]) - transform.TransformPoint(vertices[closestVertex])).normalized).x - VectorCalculator.camWidth / 2) ?
+			leftVertex : rightVertex;
+
 		void updateTwoVertices(ref Vector3 v1, ref Vector3 v2) {
 			v1 = transform.TransformPoint(vertices[closestVertex]);
 			v2 = transform.TransformPoint(vertices[secondVertex]);
@@ -836,11 +833,7 @@ public class MeshManipulator : MonoBehaviour
 		}
 		updateTwoVertices(ref closestVector, ref secondVector);
 		if (Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) < 0.125f && Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2) < 0.125f) {
-			debugText.text = "Success\n" + closestVector.x + " " + secondVector.x + "\n" + VectorCalculator.camWidth / 2 + "\n" + Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) + " " + Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2);
 			isEdgeAligned = true;
-		}
-		else {
-			debugText.text = "Fail\n" + closestVector.x + " " + secondVector.x + "\n" + VectorCalculator.camWidth / 2 + "\n" + Mathf.Abs(closestVector.x - VectorCalculator.camWidth / 2) + " " + Mathf.Abs(secondVector.x - VectorCalculator.camWidth / 2);
 		}
 		
 	}
