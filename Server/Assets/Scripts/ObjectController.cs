@@ -44,7 +44,7 @@ public class ObjectController : MonoBehaviour
 	private Color snapColor = new Color(1f, 1f, 0f, 1f);
 	private Color alignColor = new Color(0f, 1f, 0f, 1f);
 
-	private const float eps = 0.02f;
+	private const float eps = 0.025f;
 
 
 	private float timer = 0;
@@ -58,7 +58,7 @@ public class ObjectController : MonoBehaviour
 
 		isRealMeasure = false;
 
-		updateMesh(true);
+		updateMesh(true, true);
 		updateTransform();
 
 	}
@@ -343,7 +343,7 @@ public class ObjectController : MonoBehaviour
 		}
 		prevSnap = snapTriangle;
 		int snapFace = findFaceIndex(snapTriangle);
-		if (snapTriangle != -1) {
+		if (snapFace != -1) {
 			meshManipulator.selectBoundaries = boundaries[snapFace];
 			meshManipulator.selectTriangles = faces[snapFace];
 			if (snapFace >= 0 && snapFace < faceObj.Count) {
@@ -360,7 +360,7 @@ public class ObjectController : MonoBehaviour
 		}
 		prevAlign = alignTriangle;
 		int alignFace = findFaceIndex(alignTriangle);
-		if (alignTriangle != -1) {
+		if (alignFace != -1) {
 			if (alignFace >= 0 && alignFace < faceObj.Count) {
 				faceObj[alignFace].GetComponent<Renderer>().material.SetColor("_Color", alignColor);
 			}
@@ -373,13 +373,15 @@ public class ObjectController : MonoBehaviour
 
 	}
 
-	public void updateMesh(bool isGeometryUpdated) {
+	public void updateMesh(bool isGeometryUpdated, bool isSimplifyNeeded) {
 
 		mesh = gameObject.GetComponent<MeshFilter>().mesh;
 		vertices = mesh.vertices;
 		triangles = mesh.triangles;
 		if (isGeometryUpdated) {
-			simplifyFaces();
+			if (isSimplifyNeeded) {
+				simplifyFaces();
+			}
 			extractEdges();
 			categorizeFaces();
 			extractBoundaries();

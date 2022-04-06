@@ -350,7 +350,7 @@ public class MeshManipulator : MonoBehaviour
 		transform.localScale = undoScale;
 		transform.rotation = undoRot;
 
-		obj.updateMesh(true);
+		obj.updateMesh(true, true);
 		obj.updateTransform();
 	}
 
@@ -566,7 +566,7 @@ public class MeshManipulator : MonoBehaviour
 
 		if (extrudeDist > 0.01f) {
 			gameObject.GetComponent<MeshFilter>().mesh = extrudedMesh;
-			obj.updateMesh(true);
+			obj.updateMesh(true, false);
 			obj.updateTransform();
 			obj.updateHighlight(newSelectTriangle, -2);
 			obj.updateSelect(newSelectTriangle);
@@ -577,7 +577,7 @@ public class MeshManipulator : MonoBehaviour
 			state = Status.select;
 			extrudeDist = 0;
 			drilling = false;
-			obj.updateMesh(true);
+			obj.updateMesh(true, true);
 			obj.updateTransform();
 			cancel();
 		}
@@ -649,7 +649,7 @@ public class MeshManipulator : MonoBehaviour
 
 		gameObject.GetComponent<MeshFilter>().mesh = taperedMesh;
 		gameObject.GetComponent<MeshCollider>().sharedMesh = taperedMesh;
-		obj.updateMesh(true);
+		obj.updateMesh(true, false);
 
 	}
 	/* #endregion */
@@ -709,7 +709,7 @@ public class MeshManipulator : MonoBehaviour
 		mesh.triangles = triangles;
 		gameObject.GetComponent<MeshFilter>().mesh = mesh;
 
-		obj.updateMesh(true);
+		obj.updateMesh(true, true);
 		obj.updateTransform();
 		cancel();
 
@@ -949,7 +949,7 @@ public class MeshManipulator : MonoBehaviour
 
 		gameObject.GetComponent<MeshFilter>().mesh = defaultMesh;
 		gameObject.GetComponent<MeshCollider>().sharedMesh = defaultMesh;
-		obj.updateMesh(true);
+		obj.updateMesh(true, true);
 		obj.updateTransform();
 	}
 

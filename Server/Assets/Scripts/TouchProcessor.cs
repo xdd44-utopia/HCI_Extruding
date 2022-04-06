@@ -7,9 +7,10 @@ using UnityEngine.UI;
 public class TouchProcessor : MonoBehaviour
 {
 
-	private MeshManipulator meshManipulator;
+	public GameObject facePosButtons;
+	public MeshManipulator meshManipulator;
 	public GameObject sliderController;
-	private ServerController sender;
+	public ServerController sender;
 	public GameObject slicePlane;
 	public Text debugText;
 	public Text touchText;
@@ -73,15 +74,7 @@ public class TouchProcessor : MonoBehaviour
 
 	void Start()
 	{
-		GameObject findObject;
-		findObject = GameObject.Find("OBJECT");
-		if (findObject != null) {
-			meshManipulator = findObject.GetComponent<MeshManipulator>();
-		}
-		findObject = GameObject.Find("Server");
-		if (findObject != null) {
-			sender = findObject.GetComponent<ServerController>();
-		}
+		
 	}
 
 	// Update is called once per frame
@@ -166,6 +159,9 @@ public class TouchProcessor : MonoBehaviour
 			state = Status.none;
 		}
 		else if (touchCountThisScreen == 1 && touchCountOtherScreen == 0) {
+			if (touchPosThisScreen[0].x > 1.15 && touchPosThisScreen[0].x < 1.55 && touchPosThisScreen[0].y > -4.75 && touchPosThisScreen[0].y < -4.25 && touchTimer <= 0) {
+				facePosButtons.SetActive(!facePosButtons.activeSelf);
+			}
 			state = Status.singleScreen1This;
 		}
 		else if (touchCountThisScreen == 0 && touchCountOtherScreen == 1) {

@@ -182,7 +182,7 @@ public class ServerController : MonoBehaviour {
 		try {
 			switch (receivedMessage[0]) {
 				case 'H': {
-					objectController.updateMesh(false);
+					objectController.updateMesh(false, false);
 					objectController.updateTransform();
 					break;
 				}
@@ -277,7 +277,7 @@ public class ServerController : MonoBehaviour {
 				}
 				case 'R': {
 					if (receivedMessage[1] == 'M') {
-						objectController.updateMesh(false);
+						objectController.updateMesh(false, false);
 					}
 					else if (receivedMessage[1] == 'T') {
 						objectController.updateTransform();
